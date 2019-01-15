@@ -3,7 +3,7 @@ package work.unformed.hardcore.repo
 import work.unformed.hardcore.dsl.{Boundary, DAO}
 
 trait DataBase extends Boundary {
-  override def acquire[DTO](dao: DAO[DTO]): Unit = ???
+  override def add[DTO](dao: DAO[DTO]): Unit = ???
 
   override def make[DTO](): Unit = ???
 
