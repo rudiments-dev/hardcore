@@ -7,7 +7,10 @@ trait Repository[A] {}
 
 
 trait ReadRepository[A] extends Repository[A] {
-  def get(id: ID[A]): A
+  def get(id: ID[A]): A = option(id) match {
+    case Some(value) => value
+    case None => throw new IllegalArgumentException(s"Can't find $id")
+  }
 
   def option(id: ID[A]): Option[A]
 
