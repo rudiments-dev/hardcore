@@ -1,4 +1,4 @@
-package work.unformed.hardcore
+package work.unformed.hardcore.sample
 
 import com.typesafe.scalalogging.LazyLogging
 
