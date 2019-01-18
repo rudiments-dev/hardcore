@@ -15,26 +15,26 @@ class MemoryRepo[A](implicit meta: Meta[A]) extends WriteRepository[A] {
         throw new IllegalArgumentException(s"$existing with key ${draft.identify} already exists")
       case None =>
         content.put(draft.identify, draft)
-        get(draft.identify)
+        strict(draft.identify)
     }
   }
 
   override def update(value: A): A = {
     content.put(value.identify, value)
-    get(value.identify)
+    strict(value.identify)
   }
 
   override def delete(id: ID[A]): Unit = content -= id
 
-  override def createAll(values: Seq[A]): Unit = content ++= values.map(v => (v.identify, v))
+  override def createAll(values: Iterable[A]): Unit = content ++= values.map(v => (v.identify, v))
 
   override def deleteAll(): Unit = content.clear()
 
-  override def option(id: ID[A]): Option[A] = content.get(id)
+  override def get(id: ID[A]): Option[A] = content.get(id)
 
   override def find(query: Query[A]): Result[A] = ???
 
-  override def count(): Long = content.size.toLong
+  override def count(filters: Filter[A]*): Long = content.size.toLong
 
   override def values(field: String, filters: Filter[A]*): Unit = ???
 }

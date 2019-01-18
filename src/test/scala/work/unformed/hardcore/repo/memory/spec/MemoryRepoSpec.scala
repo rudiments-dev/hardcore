@@ -21,21 +21,21 @@ class MemoryRepoSpec extends WordSpec with Matchers {
 
   "no element by ID" in {
     repo.count() should be (0)
-    repo.option(id) should be (None)
-    an[RuntimeException] should be thrownBy repo.get(id)
+    repo.get(id) should be (None)
+    an[RuntimeException] should be thrownBy repo.strict(id)
   }
 
   "put item into repository" in {
     repo.count() should be (0)
     repo.create(sample) should be (sample)
     repo.count() should be (1)
-    repo.get(id) should be (sample)
+    repo.strict(id) should be (sample)
   }
 
   "update item in repository" in {
     repo.update(sample.copy(comment = Some("changes"))) should be (Example(42, "sample", Some("changes")))
     repo.count() should be (1)
-    repo.get(id) should be (Example(42, "sample", Some("changes")))
+    repo.strict(id) should be (Example(42, "sample", Some("changes")))
   }
 
   "multiple inserts with same ID causes exception" in {
@@ -44,11 +44,11 @@ class MemoryRepoSpec extends WordSpec with Matchers {
   }
 
   "delete item from repository" in {
-    repo.get(id) should be (Example(42, "sample", Some("changes")))
+    repo.strict(id) should be (Example(42, "sample", Some("changes")))
     repo.count() should be (1)
     repo.delete(id)
     repo.count() should be (0)
-    repo.option(id) should be (None)
+    repo.get(id) should be (None)
   }
 
   "endure 100.000 records" in {
@@ -59,7 +59,7 @@ class MemoryRepoSpec extends WordSpec with Matchers {
     repo.count() should be (100000)
 
     val rnd = new Random().nextInt(100000)
-    repo.get(ID(rnd)) should be (Example(rnd, s"$rnd'th element"))
+    repo.strict(ID(rnd)) should be (Example(rnd, s"$rnd'th element"))
   }
 
   "endure 100.000 batch" in {
@@ -69,7 +69,7 @@ class MemoryRepoSpec extends WordSpec with Matchers {
     repo.count() should be (200000)
 
     val rnd = new Random().nextInt(200000)
-    repo.get(ID(rnd)) should be (Example(rnd, s"$rnd'th element"))
+    repo.strict(ID(rnd)) should be (Example(rnd, s"$rnd'th element"))
   }
 
   "clear repository" in {
