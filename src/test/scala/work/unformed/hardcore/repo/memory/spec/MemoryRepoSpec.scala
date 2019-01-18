@@ -19,6 +19,12 @@ class MemoryRepoSpec extends WordSpec with Matchers {
   val sample = Example(42, "sample")
   val id = sample.identify
 
+  "no element by ID" in {
+    repo.count() should be (0)
+    repo.option(id) should be (None)
+    an[RuntimeException] should be thrownBy repo.get(id)
+  }
+
   "put item into repository" in {
     repo.count() should be (0)
     repo.create(sample) should be (sample)
@@ -32,7 +38,7 @@ class MemoryRepoSpec extends WordSpec with Matchers {
     repo.get(id) should be (Example(42, "sample", Some("changes")))
   }
 
-  "multiple inserts causes exceptions" in {
+  "multiple inserts with same ID causes exception" in {
     repo.count() should be (1)
     an[RuntimeException] should be thrownBy repo.create(sample)
   }
