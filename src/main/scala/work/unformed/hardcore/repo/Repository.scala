@@ -7,13 +7,16 @@ trait Repository[A] {}
 
 
 trait ReadRepository[A] extends Repository[A] {
-  def get(id: ID[A]): A
+  def strict(id: ID[A]): A = get(id) match {
+    case Some(value) => value
+    case None => throw new IllegalArgumentException(s"Can't find $id")
+  }
 
-  def option(id: ID[A]): Option[A]
+  def get(id: ID[A]): Option[A]
 
   def find(query: Query[A]): Result[A]
 
-  def count(): Long
+  def count(filters: Filter[A]*): Long
 
   def values(field: String, filters: Filter[A]*)
 }
@@ -26,21 +29,9 @@ trait WriteRepository[A] extends ReadRepository[A] {
 
   def delete(id: ID[A]): Unit
 
-  def createAll(values: Seq[A]): Unit = values.foreach(create)
+  def createAll(values: Iterable[A]): Unit = values.foreach(create)
 
   def deleteAll(): Unit
-}
-
-
-trait BackRefRepo[A, B] extends Repository[A] {
-  def create(ref: ID[B], values: Set[A]): Set[A]
-
-  def update(ref: ID[B], values: Set[A]): Set[A] = {
-    delete(ref)
-    create(ref, values)
-  }
-
-  def delete(ref: ID[B]): Unit
 }
 
 
