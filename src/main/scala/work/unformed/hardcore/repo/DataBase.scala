@@ -1,5 +1,6 @@
 package work.unformed.hardcore.repo
 
+import doobie.util.{Get, Put, Read}
 import work.unformed.hardcore.dsl.{Boundary, DAO}
 
 trait DataBase extends Boundary {
@@ -10,7 +11,15 @@ trait DataBase extends Boundary {
   override def get[DTO]: DAO[DTO] = ???
 }
 
-class Table[DTO] {}
+abstract class Table[DTO]
+(
+  val tableName: String
+) {
+
+  implicit val dtoRead: Read[DTO]
+//  implicit val dtoPut: Put[DTO]
+
+}
 
 class MySQL extends DataBase {}
 class Oracle extends DataBase {}
