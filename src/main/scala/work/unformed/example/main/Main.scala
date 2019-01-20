@@ -14,7 +14,6 @@ import doobie.implicits._
 import scala.concurrent.ExecutionContext
 
 object Main extends App with LazyLogging {
-  implicit val han = LogHandler.jdkLogHandler
 
   implicit val meta = Meta[City](city => ID(city.id))
 
@@ -32,19 +31,17 @@ object Main extends App with LazyLogging {
     )
 
     override implicit val write: Write[City] = Write[(Long, String, String, String, Long)].contramap(
-      a => (a.id, a.name, a.countryCode, a.district, a.population)
+      a => City.unapply(a).get
     )
   }
 
   implicit val cs = IO.contextShift(ExecutionContext.global)
 
-  // A transactor that gets connections from java.sql.DriverManager and excutes blocking operations
-  // on an unbounded pool of daemon threads. See the chapter on connection handling for more info.
   implicit val xa = Transactor.fromDriverManager[IO](
-    "com.mysql.cj.jdbc.Driver",           // driver classname
-    "jdbc:mysql://localhost:3306/hardcore", // connect URL (driver-specific)
-    "root",                                // user
-    "root"                                // password
+    "com.mysql.cj.jdbc.Driver",
+    "jdbc:mysql://localhost:3306/hardcore",
+    "root",
+    "root"
   )
 
   val repo = new SqlWriteRepository[City]
