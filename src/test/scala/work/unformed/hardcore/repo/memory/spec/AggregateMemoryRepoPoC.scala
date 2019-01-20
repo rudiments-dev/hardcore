@@ -25,38 +25,6 @@ class AggregateMemoryRepoPoC extends WordSpec with Matchers {
     private val repo = new MemoryRepo[Container]
     private val parts = new MemoryFKRepo[Container, Parts]
 
-//    override def get(id: ID[Container]): Option[Container] = {
-//      repo.get(id).map(_.copy(parts = parts.get(id).toSet))
-//    }
-//
-//    override def find(query: Query[Container]): Result[Container] = ???
-//
-//    override def count(filters: Filter[Container]*): Long = repo.count(filters: _*)
-//
-//    override def values(field: String, filters: Filter[Container]*): Unit = ???
-//
-//    override def create(draft: Container): Container = {
-//      repo.create(draft.copy(parts = Set.empty))
-//          .copy(parts = parts.create(draft.identify, draft.parts).toSet)
-//    }
-//
-//    override def update(value: Container): Container = get(value.identify) match {
-//      case Some(_) =>
-//        repo.update(value.copy(parts = Set.empty))
-//          .copy(parts = parts.update(value.identify, value.parts).toSet)
-//      case None =>
-//        throw new IllegalArgumentException(s"${value.identify} not exists, can't update")
-//    }
-//
-//    override def delete(id: ID[Container]): Unit = {
-//      parts.delete(id)
-//      repo.delete(id)
-//    }
-//
-//    override def deleteAll(): Unit = {
-//      parts.deleteAll()
-//      repo.deleteAll()
-//    }
 
     override def get(id: ID[Container]): IO[Option[Container]] = for {
       base <- repo.get(id)
