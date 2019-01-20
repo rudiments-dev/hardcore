@@ -4,64 +4,67 @@ import work.unformed.hardcore.dsl._
 import work.unformed.hardcore.dsl.ID._
 import work.unformed.hardcore.repo.WriteRepository
 
-import cats.implicits._
+import cats.effect.IO
 
 import scala.collection.parallel.mutable
 
 class MemoryRepo[A](implicit meta: Meta[A]) extends WriteRepository[A] {
   private val content = mutable.ParMap.empty[ID[A], A]
 
-  override def get(id: ID[A]): Either[Error[A], Result[A]] = content.get(id) match {
-    case Some(value) => Result(id, value).asRight
-    case None => NotFound(id).asLeft
+  override def get(id: ID[A]): IO[Result[A]] = IO {
+    content.get(id)
+      .map(value => Result(id, value))
+      .getOrElse(throw NotFound(id))
   }
 
-  override def count(filters: Filter[A]*): Long = content.size
+  override def count(filters: Filter[A]*): IO[Long] = IO { content.size }
 
-  override def create(draft: A): Either[Error[A], Created[A]] = {
+  override def create(draft: A): IO[Created[A]] = IO {
     val id = draft.identify
+
     content.get(id) match {
       case None =>
         content.put(id, draft)
         content.get(id) match {
-          case Some(created) => Created(id, created).asRight
-          case None => FailedToCreate(id, draft).asLeft
+          case Some(created) => Created(id, created)
+          case None => throw FailedToCreate(id, draft)
         }
-      case Some(_) => AlreadyExists(draft.identify).asLeft
+      case Some(_) => throw AlreadyExists(draft.identify)
     }
   }
 
-  override def update(value: A): Either[Error[A], Updated[A]] = {
+  override def update(value: A): IO[Updated[A]] = {
     val id = value.identify
-    get(id).flatMap { old =>
+    get(id).map { old =>
       content.put(id, value)
       content.get(id) match {
-        case Some(newValue) => Updated(id, old.value, newValue).asRight
-        case None => FailedToUpdate(id, value).asLeft
+        case Some(newValue) => Updated(id, old.value, newValue)
+        case None => throw FailedToUpdate(id, value)
       }
     }
   }
 
-  override def delete(id: ID[A]): Either[Error[A], Deleted[A]] = {
-    get(id).flatMap { result =>
+  override def delete(id: ID[A]): IO[Deleted[A]] = {
+    get(id).map { old =>
       content -= id
       content.get(id) match {
-        case None => Deleted(id, result.value).asRight
-        case Some(_) => FailedToDelete(id).asLeft
+        case None => Deleted(id, old.value)
+        case Some(_) => throw FailedToDelete(id)
       }
     }
   }
 
-  override def createAll(values: Iterable[A]): Either[Error[A], BatchCreated[A]]  = {
+  override def createAll(values: Iterable[A]): IO[BatchCreated[A]]  = IO {
     content ++= values.map(v => (v.identify, v))
-    BatchCreated(values).asRight
+    BatchCreated[A](values)
   }
 
-  override def deleteAll(): Either[Error[A], AllDeleted[A]] = {
+  override def deleteAll(): IO[AllDeleted[A]] = IO {
     content.clear()
-    AllDeleted[A]().asRight
+    AllDeleted[A]()
   }
 
-  override def find(query: Query[A]): Either[Error[A], QueryResult[A]] =
-    NotImplemented[A]("Query API on MemoryRepo").asLeft
+  override def find(query: Query[A]): IO[QueryResult[A]] = IO {
+    throw NotImplemented[A]("Query API on MemoryRepo")
+  }
 }

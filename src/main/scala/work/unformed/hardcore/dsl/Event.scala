@@ -21,7 +21,7 @@ case class FKAllDeleted[R, A]() extends Event[A]
 
 
 
-trait Error[A] extends Event[A]
+trait Error[A] extends Throwable with Event[A]
 
 case class NoHandler[A](command: Command[A]) extends Error[A]
 case class Failed[A](command: Command[A]) extends Error[A]
