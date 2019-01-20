@@ -51,13 +51,11 @@ object Main extends App with LazyLogging {
 
   val query = new Query[City]()
 
-//  logger.info(repo.find(query).values.mkString("; "))
   val vrn = City(999, "Voronezh", "RUS", "", 10000)
-//  val cr = repo.Raw.create(City(999, "Voronezh", "RUS", "", 10000)).transact(xa).unsafeRunSync()
 
   logger.info(repo.Raw.create(vrn).transact(xa).unsafeRunSync().toString)
-  logger.info(repo.Raw.delete(meta.identify(vrn)).transact(xa).unsafeRunSync().toString())
-  logger.info(repo.Raw.get(meta.identify(vrn)).transact(xa).unsafeRunSync().toString())
+  logger.info(repo.Raw.delete(meta.identify(vrn)).transact(xa).unsafeRunSync().toString)
+  logger.info(repo.Raw.get(meta.identify(vrn)).transact(xa).unsafeRunSync().toString)
 
 
   val result = for {
