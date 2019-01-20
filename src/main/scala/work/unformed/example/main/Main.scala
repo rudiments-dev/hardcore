@@ -40,11 +40,11 @@ object Main extends App with LazyLogging {
 
   // A transactor that gets connections from java.sql.DriverManager and excutes blocking operations
   // on an unbounded pool of daemon threads. See the chapter on connection handling for more info.
-  val xa = Transactor.fromDriverManager[IO](
-    "com.mysql.cj.jdbc.Driver", // driver classname
+  implicit val xa = Transactor.fromDriverManager[IO](
+    "com.mysql.cj.jdbc.Driver",           // driver classname
     "jdbc:mysql://localhost:3306/hardcore", // connect URL (driver-specific)
-    "root",              // user
-    "root"                       // password
+    "root",                                // user
+    "root"                                // password
   )
 
   val repo = new SqlWriteRepository[City]

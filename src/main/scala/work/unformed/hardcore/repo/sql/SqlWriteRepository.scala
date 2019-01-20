@@ -1,30 +1,20 @@
 package work.unformed.hardcore.repo.sql
 
+import cats.effect.IO
 import work.unformed.hardcore.dsl.{Filter, ID, Meta, Query, Result}
 import work.unformed.hardcore.repo.{Table, WriteRepository}
 import doobie._
+import doobie.implicits._
 import shapeless.HNil
 
 
-class SqlWriteRepository[A : Table : Meta] extends WriteRepository[A] {
+class SqlWriteRepository[A : Table : Meta](implicit xa: Transactor[IO]) extends WriteRepository[A] {
 
   private val meta = implicitly[Meta[A]]
   private val table = implicitly[Table[A]]
   import table.{read, write}
 
-  override def get(id: ID[A]): Option[A] = ???
-
-  override def create(draft: A): A = ???
-
-  override def update(value: A): A = ???
-
-  override def delete(id: ID[A]): Unit = ???
-
-  override def deleteAll(): Unit = ???
-
-  override def find(query: Query[A]): Result[A] = ???
-
-  override def values(field: String, filters: Filter[A]*): Unit = ???
+  private implicit def connection2IO[T](connectionIO: ConnectionIO[T]): IO[T] = connectionIO.transact(xa)
 
   object Raw {
     def create(draft: A): ConnectionIO[A] = {
@@ -71,5 +61,21 @@ class SqlWriteRepository[A : Table : Meta] extends WriteRepository[A] {
 
   }
 
+  override def create(draft: A): IO[A] = Raw.create(draft)
+
+  override def update(value: A): IO[A] = ???
+
+  override def delete(id: ID[A]): IO[Unit] = for {
+    count <- Raw.delete(id).transact(xa)
+  } yield ()
+
+  override def deleteAll(): IO[Unit] = ???
+
+  override def get(id: ID[A]): IO[Option[A]] = Raw.get(id)
+
+  override def find(query: Query[A]): Result[A] = ???
+
   override def count(filters: Filter[A]*): Long = ???
+
+  override def values(field: String, filters: Filter[A]*): Unit = ???
 }
