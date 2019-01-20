@@ -13,6 +13,7 @@ object Meta {
 sealed trait Ref[A]
 trait ID[A] extends Ref[A] {}
 object ID {
+  def apply[A]: ID[A] = new ID0[A]()
   def apply[A, K](id: K): ID[A] = new ID1[A, K](id)
   def apply[A, K1, K2](id1: K1, id2: K2): ID[A] = new ID2[A, K1, K2](id1, id2)
 
@@ -20,6 +21,8 @@ object ID {
     def identify(implicit meta: Meta[A]): ID[A] = meta.identify(value)
   }
 }
+
+case class ID0[A]() extends ID[A]
 case class ID1[A, K](id: K) extends ID[A]
 case class ID2[A, K1, K2](id1: K1, id2: K2) extends ID[A]
 

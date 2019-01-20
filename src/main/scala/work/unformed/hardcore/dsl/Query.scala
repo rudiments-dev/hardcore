@@ -45,4 +45,4 @@ object SortOrder extends Enum[SortOrder] {
   case object Desc extends SortOrder
 }
 
-case class Result[A](query: Query[A], values: Seq[A])
+case class QueryResult[A](query: Query[A], values: Seq[A])

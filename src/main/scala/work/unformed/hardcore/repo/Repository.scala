@@ -2,41 +2,59 @@ package work.unformed.hardcore.repo
 
 import work.unformed.hardcore.dsl._
 
-
 trait Repository[A] {}
 
 
 trait ReadRepository[A] extends Repository[A] {
-  def strict(id: ID[A]): A = get(id) match {
-    case Some(value) => value
-    case None => throw new IllegalArgumentException(s"Can't find $id")
-  }
-
-  def get(id: ID[A]): Option[A]
-
-  def find(query: Query[A]): Result[A]
-
+  def get(id: ID[A]): Either[Error[A], Result[A]]
+  def find(query: Query[A]): Either[Error[A], QueryResult[A]]
   def count(filters: Filter[A]*): Long
-
-  def values(field: String, filters: Filter[A]*)
 }
 
 
 trait WriteRepository[A] extends ReadRepository[A] {
-  def create(draft: A): A
+  def create(draft: A): Either[Error[A], Created[A]]
+  def update(value: A): Either[Error[A], Updated[A]]
+  def delete(id: ID[A]): Either[Error[A], Deleted[A]]
 
-  def update(value: A): A
+  def createAll(values: Iterable[A]): Either[Error[A], BatchCreated[A]]
+  def deleteAll(): Either[Error[A], AllDeleted[A]]
 
-  def delete(id: ID[A]): Unit
+  def handle(command: Command[A]): Event[A] = command match {
+    case Read(id) => get(id) match {
+      case Left(error) => error
+      case Right(result) => result
+    }
 
-  def createAll(values: Iterable[A]): Unit = values.foreach(create)
+    case Create(value) => create(value) match {
+      case Left(error) => error
+      case Right(created) => created
+    }
 
-  def deleteAll(): Unit
+    case Update(value) => update(value) match {
+      case Left(error) => error
+      case Right(updated) => updated
+    }
+
+    case Delete(id) => delete(id) match {
+      case Left(error) => error
+      case Right(deleted) => deleted
+    }
+
+    case CreateBatch(values) => createAll(values) match {
+      case Left(error) => error
+      case Right(created) => created
+    }
+
+    case DeleteAll() => deleteAll() match {
+      case Left(error) => error
+      case Right(deleted) => deleted
+    }
+  }
 }
 
 
 trait SingleRepo[A] extends Repository[A] {
-  def get(): A
-
-  def update(value: A): A
+  def get(): Either[Error[A], Result[A]]
+  def update(value: A): Either[Error[A], Updated[A]]
 }
