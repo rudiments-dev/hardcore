@@ -24,6 +24,8 @@ dependencies {
     compile 'io.circe:circe-generic_2.12:0.11.0'
     compile 'io.circe:circe-generic-extras_2.12:0.11.0'
     compile 'de.heikoseeberger:akka-http-circe_2.12:1.23.0'
+    
+    compile 'org.tpolecat:doobie-core_2.12:0.6.0'
 
     compile 'com.beachape:enumeratum_2.12:1.5.13'
 
