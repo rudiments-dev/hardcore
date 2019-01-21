@@ -24,7 +24,9 @@ object ID {
     def identify(implicit meta: Meta[A]): ID[A] = meta.identify(value)
   }
 }
-case class ID0[A]() extends ID[A]
+case class ID0[A]() extends ID[A] {
+  override def values(): Seq[Any] = Seq.empty
+}
 case class ID1[A, K](id: K) extends ID[A] {
   override def values(): Seq[Any] = Seq(id)
 }

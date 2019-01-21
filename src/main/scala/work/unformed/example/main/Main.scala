@@ -44,7 +44,7 @@ object Main extends App with LazyLogging {
     "root"
   )
 
-  val repo = new SqlWriteRepository[City]
+  val repo = new SqlWriteRepository[City]()
 
   val query = new Query[City]()
 
