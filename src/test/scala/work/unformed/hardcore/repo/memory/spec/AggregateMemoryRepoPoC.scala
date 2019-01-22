@@ -1,11 +1,12 @@
 package work.unformed.hardcore.repo.memory.spec
 
-import cats.effect.IO
 import org.scalatest.{Matchers, WordSpec}
 import work.unformed.hardcore.dsl.ID._
 import work.unformed.hardcore.dsl._
 import work.unformed.hardcore.repo.WriteRepository
 import work.unformed.hardcore.repo.memory.{MemoryFKRepo, MemoryRepo}
+
+import cats.effect.IO
 
 import scala.util.Random
 
@@ -15,7 +16,9 @@ class AggregateMemoryRepoPoC extends WordSpec with Matchers {
     id: Long,
     name: String,
     parts: Set[Parts] = Set.empty
-  )
+  ) {
+    def plain: Container = this.copy(parts = Set.empty)
+  }
 
   case class Parts(
     comment: String
@@ -25,45 +28,57 @@ class AggregateMemoryRepoPoC extends WordSpec with Matchers {
     private val repo = new MemoryRepo[Container]
     private val parts = new MemoryFKRepo[Container, Parts]
 
-
-    override def get(id: ID[Container]): IO[Option[Container]] = for {
-      base <- repo.get(id)
-      parts <- parts.get(id)
-    } yield base.map(b => b.copy(parts = parts.toSet))
-
-    override def create(draft: Container): IO[Container] = for {
-        base  <- repo.create(draft.copy(parts = Set.empty))
-        parts <- parts.create(draft.identify, draft.parts)
-    } yield base.copy(parts = parts.toSet)
-
-    override def delete(id: ID[Container]): IO[Unit] = for {
-      _ <- parts.delete(id)
-      _ <- repo.delete(id)
-    } yield ()
-
-    override def deleteAll(): IO[Unit] = for {
-      _ <- parts.deleteAll()
-      _ <- repo.deleteAll()
-    } yield ()
-
-    override def update(value: Container): IO[Container] = {
-      get(value.identify).flatMap {
-        case Some(_) =>
-          for {
-            base <- repo.update(value.copy(parts = Set.empty))
-            parts <- parts.update(value.identify, value.parts)
-          } yield base.copy(parts = parts.toSet)
-        case None => throw new IllegalArgumentException(s"${value.identify} not exists, can't update")
-      }
+    override def get(id: ID[Container]): IO[Result[Container]] = {
+      for {
+        plain <- repo.get(id)
+        parts <- parts.get(id)
+      } yield Result(id, plain.value.copy(parts = parts.values.toSet))
     }
 
+    override def find(query: Query[Container]): IO[QueryResult[Container]] = ???
 
+    override def count(filters: Filter[Container]*): IO[Long] = repo.count(filters: _*)
 
-    override def find(query: Query[Container]): Result[Container] = ???
+    override def create(draft: Container): IO[Created[Container]] = {
+      for {
+        plain <- repo.create(draft.plain)
+        parts <- parts.create(draft.identify, draft.parts)
+      } yield Created(draft.identify, plain.value.copy(parts = parts.values.toSet))
+    }
 
-    override def count(filters: Filter[Container]*): Long = repo.count(filters: _*)
+    override def update(value: Container): IO[Updated[Container]] = {
+      for {
+        plain <- repo.update(value.plain)
+        parts <- parts.update(value.identify, value.parts)
+      } yield Updated(
+        value.identify,
+        plain.oldValue.copy(parts = parts.oldValues.toSet),
+        plain.newValue.copy(parts = parts.newValues.toSet)
+      )
+    }
 
-    override def values(field: String, filters: Filter[Container]*): Unit = ???
+    override def delete(id: ID[Container]): IO[Deleted[Container]] = {
+      for {
+        plain <- repo.get(id)
+        p <- parts.get(id)
+        _ <- repo.delete(id)
+        _ <- parts.delete(id)
+      } yield Deleted(id, plain.value.copy(parts = p.values.toSet))
+    }
+
+    override def createAll(values: Iterable[Container]): IO[BatchCreated[Container]] = {
+      for {
+        plain <- repo.createAll(values.map(_.plain))
+        parts <- parts.createAll(values.groupBy(c => c.identify).mapValues(_.flatMap(_.parts)))
+      } yield BatchCreated[Container](values)
+    }
+
+    override def deleteAll(): IO[AllDeleted[Container]] = {
+      for {
+        _ <- parts.deleteAll()
+        _ <- repo.deleteAll()
+      } yield AllDeleted[Container]()
+    }
   }
 
   implicit val meta: Meta[Container] = Meta(value => ID(value.id))
@@ -73,29 +88,28 @@ class AggregateMemoryRepoPoC extends WordSpec with Matchers {
   val id: ID[Container] = sample.identify
 
   "no element by ID" in {
-    repo.get(id).unsafeRunSync() should be (None)
-    an[RuntimeException] should be thrownBy repo.strict(id).unsafeRunSync()
+    an[NotFound[Container]] should be thrownBy repo.get(id).unsafeRunSync()
   }
 
   "put collection into repository" in {
-    repo.create(sample).unsafeRunSync() should be (Container(42, "sample", Set(Parts("123"), Parts("456"))))
-    repo.strict(id).unsafeRunSync() should be (Container(42, "sample", Set(Parts("123"), Parts("456"))))
+    repo.create(sample).unsafeRunSync() should be (Created(id, Container(42, "sample", Set(Parts("123"), Parts("456")))))
+    repo.get(id).unsafeRunSync() should be (Result(id, Container(42, "sample", Set(Parts("123"), Parts("456")))))
   }
 
   "update collection in repository" in {
     val updated = Container(42, "example", Set(Parts("1123"), Parts("4456"), Parts("7789")))
-    repo.strict(id).unsafeRunSync() should be (Container(42, "sample", Set(Parts("123"), Parts("456"))))
-    repo.update(updated).unsafeRunSync() should be (Container(42, "example", Set(Parts("1123"), Parts("4456"), Parts("7789"))))
-    repo.strict(id).unsafeRunSync() should be (Container(42, "example", Set(Parts("1123"), Parts("4456"), Parts("7789"))))
+    repo.get(id).unsafeRunSync() should be (Result(id, Container(42, "sample", Set(Parts("123"), Parts("456")))))
+    repo.update(updated).unsafeRunSync() should be (Updated(id, sample, updated))
+    repo.get(id).unsafeRunSync() should be (Result(id, Container(42, "example", Set(Parts("1123"), Parts("4456"), Parts("7789")))))
   }
 
   "multiple inserts with same ID causes exception" in {
-    an[RuntimeException] should be thrownBy repo.create(sample).unsafeRunSync()
+    an[AlreadyExists[Container]] should be thrownBy repo.create(sample).unsafeRunSync()
   }
 
   "delete collection from repository" in {
-    repo.delete(id).unsafeRunSync()
-    repo.get(id).unsafeRunSync() should be (None)
+    repo.delete(id).unsafeRunSync() should be (Deleted(id, Container(42, "example", Set(Parts("1123"), Parts("4456"), Parts("7789")))))
+    an[NotFound[Container]] should be thrownBy repo.get(id).unsafeRunSync()
   }
 
   "endure 1.000.000 records" in {
@@ -105,12 +119,16 @@ class AggregateMemoryRepoPoC extends WordSpec with Matchers {
       )
     }.foreach(container => repo.create(container).unsafeRunSync())
 
-    repo.count() should be (10000)
+    repo.count().unsafeRunSync() should be (10000)
 
     val rnd = new Random().nextInt(10000)
-    repo.strict(ID(rnd)).unsafeRunSync() should be (Container(rnd, s"$rnd'th element in collection",
-      (1 to 100).map(j => Parts(j.toString)).toSet
-    ))
+    repo.get(ID(rnd)).unsafeRunSync() should be (
+      Result(ID(rnd), Container(
+        rnd,
+        s"$rnd'th element in collection",
+        (1 to 100).map(j => Parts(j.toString)).toSet
+      ))
+    )
   }
 
   "endure 1.000.000 batch" in {
@@ -121,17 +139,21 @@ class AggregateMemoryRepoPoC extends WordSpec with Matchers {
     }
     repo.createAll(values).unsafeRunSync()
 
-    repo.count() should be (20000)
+    repo.count().unsafeRunSync() should be (20000)
 
     val rnd = new Random().nextInt(20000)
-    repo.strict(ID(rnd)).unsafeRunSync() should be (Container(rnd, s"$rnd'th element in collection",
-      (1 to 100).map(j => Parts(j.toString)).toSet
-    ))
+    repo.get(ID(rnd)).unsafeRunSync() should be (
+      Result(ID(rnd), Container(
+        rnd,
+        s"$rnd'th element in collection",
+        (1 to 100).map(j => Parts(j.toString)).toSet
+      ))
+    )
   }
 
   "clear repository" in {
-    repo.count() should be (20000)
-    repo.deleteAll().unsafeRunSync()
-    repo.count() should be (0)
+    repo.count().unsafeRunSync() should be (20000)
+    repo.deleteAll().unsafeRunSync() should be (AllDeleted[Container]())
+    repo.count().unsafeRunSync() should be (0)
   }
 }

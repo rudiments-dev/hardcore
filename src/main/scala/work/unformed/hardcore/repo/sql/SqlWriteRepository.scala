@@ -1,16 +1,19 @@
 package work.unformed.hardcore.repo.sql
 
 import cats.effect.IO
-import work.unformed.hardcore.dsl.{Filter, ID, Meta, Query, Result}
+import work.unformed.hardcore.dsl.{Meta => _, Query => _, _}
+import work.unformed.hardcore.dsl
 import work.unformed.hardcore.repo.{Table, WriteRepository}
+import work.unformed.hardcore.dsl.ID._
 import doobie._
 import doobie.implicits._
 import shapeless.HNil
 
+import scala.language.implicitConversions
 
-class SqlWriteRepository[A : Table : Meta](implicit xa: Transactor[IO]) extends WriteRepository[A] {
 
-  private val meta = implicitly[Meta[A]]
+class SqlWriteRepository[A : Table : dsl.Meta](implicit xa: Transactor[IO]) extends WriteRepository[A] {
+
   private val table = implicitly[Table[A]]
   import table.{read, write}
 
@@ -23,10 +26,10 @@ class SqlWriteRepository[A : Table : Meta](implicit xa: Transactor[IO]) extends 
         s"""
            |INSERT INTO ${table.tableName} (${values.map(_._1).mkString(", ")})
            |VALUES
-           |(${values.map(a => "?").mkString(", ")})
+           |(${values.map(_ => "?").mkString(", ")})
          """.stripMargin //todo refact, but auto unwrap is pretty good
       val insertIO = doobie.Update[A](sql).toUpdate0(draft).run
-      val getIO = get(meta.identify(draft))
+      val getIO = get(draft.identify)
 
       for {
         _ <- insertIO
@@ -61,21 +64,28 @@ class SqlWriteRepository[A : Table : Meta](implicit xa: Transactor[IO]) extends 
 
   }
 
-  override def create(draft: A): IO[A] = Raw.create(draft)
+  override def create(draft: A): IO[Created[A]] =
+    Raw.create(draft).map(a => Created(a.identify, a))
 
-  override def update(value: A): IO[A] = ???
+  override def update(value: A): IO[Updated[A]] = ???
 
-  override def delete(id: ID[A]): IO[Unit] = for {
-    count <- Raw.delete(id).transact(xa)
-  } yield ()
+  override def delete(id: ID[A]): IO[Deleted[A]] = Raw.get(id).map {
+    case Some(v) =>
+      Raw.delete(id)
+      Deleted(id, v)
+    case None => throw NotFound(id)
+  }
 
-  override def deleteAll(): IO[Unit] = ???
+  override def createAll(values: Iterable[A]): IO[BatchCreated[A]] = ???
 
-  override def get(id: ID[A]): IO[Option[A]] = Raw.get(id)
+  override def deleteAll(): IO[AllDeleted[A]] = ???
 
-  override def find(query: Query[A]): Result[A] = ???
+  override def get(id: ID[A]): IO[Result[A]] = Raw.get(id).map {
+    case Some(v) => Result(id, v)
+    case None => throw NotFound(id)
+  }
 
-  override def count(filters: Filter[A]*): Long = ???
+  override def find(query: dsl.Query[A]): IO[QueryResult[A]] = ???
 
-  override def values(field: String, filters: Filter[A]*): Unit = ???
+  override def count(filters: Filter[A]*): IO[Long] = ???
 }

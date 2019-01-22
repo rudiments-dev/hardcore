@@ -1,32 +1,22 @@
 package work.unformed.hardcore.repo
 
+import work.unformed.hardcore.dsl._
+
 import cats.effect.IO
-import work.unformed.hardcore.dsl.{Filter, ID}
 
 trait FKRepository[R, A] extends Repository [A] {}
 
 trait FKReadRepo[R, A] extends FKRepository[R, A] {
-  def get(id: ID[R]): IO[Iterable[A]]
-
-  def find(filters: Filter[A]*): IO[(ID[R], Iterable[A])]
-
+  def get(id: ID[R]): IO[FKResult[R, A]]
+  def find(filters: Filter[A]*): IO[(ID[R], Iterable[A])] // TODO replace with commands
   def count(filters: Filter[A]*): IO[Long]
-
-  def values(field: String, filters: Filter[A]*): IO[Iterable[Any]]
 }
 
 
 trait FKWriteRepo[R, A] extends FKReadRepo[R, A] {
-  def create(ref: ID[R], values: Iterable[A]): IO[Iterable[A]]
-
-  def update(ref: ID[R], values: Iterable[A]): IO[Iterable[A]] = for {
-    _ <- delete(ref)
-    res <- create(ref, values)
-  } yield res
-
-  def delete(ref: ID[R]): IO[Unit]
-
-  def createAll(values: Map[ID[R], Iterable[A]]): IO[Unit]
-
-  def deleteAll(): IO[Unit]
+  def create(ref: ID[R], values: Iterable[A]): IO[FKCreated[R, A]]
+  def update(ref: ID[R], values: Iterable[A]): IO[FKUpdated[R, A]]
+  def delete(ref: ID[R]): IO[FKDeleted[R, A]]
+  def createAll(values: Map[ID[R], Iterable[A]]): IO[FKBatchCreated[R, A]]
+  def deleteAll(): IO[FKAllDeleted[R, A]]
 }
