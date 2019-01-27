@@ -1,0 +1,32 @@
+@startuml
+control Persistence_Repo
+control Kafka
+control Memory_Repo
+database Sql_Repo
+
+
+Persistence_Repo -> Kafka: Start Transaction
+Persistence_Repo <-- Kafka
+group In system trancation:
+    Persistence_Repo -> Memory_Repo: First action with memory
+    Persistence_Repo <-- Memory_Repo
+    Persistence_Repo -> Memory_Repo: Second action with memory
+    Persistence_Repo <-- Memory_Repo
+    Persistence_Repo -> Memory_Repo: Third action with memory
+    Persistence_Repo <-- Memory_Repo
+
+    Persistence_Repo -> Kafka: Commit memory transaction
+    Persistence_Repo <-- Kafka
+
+    group In one db transaction
+        Persistence_Repo -> Sql_Repo: First action with db
+        Persistence_Repo -> Sql_Repo: Second action with db
+        Persistence_Repo -> Sql_Repo: Third action with db
+        Persistence_Repo <-- Sql_Repo
+    end
+
+    Persistence_Repo -> Kafka: Commit sql transaction
+    Persistence_Repo <-- Kafka
+
+end
+@enduml
