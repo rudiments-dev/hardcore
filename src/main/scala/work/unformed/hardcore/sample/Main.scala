@@ -19,7 +19,7 @@ object Main extends App with LazyLogging {
 
   try {
     val config = ConfigFactory.load()
-    new RootRouter(config, new HealthRouter).bind()
+    new RootRouter(config, new HealthRouter, AppContext.itemRouter).bind()
   } catch {
     case e: Throwable =>
       logger.error("Error while initializing app, shutdown", e)
