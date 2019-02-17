@@ -34,7 +34,7 @@ case class  GreaterOrEquals(value: Any) extends Predicate
 case class  Lesser(value: Any) extends Predicate
 case class  LesserOrEquals(value: Any) extends Predicate
 case class  Between(from: Any, to: Any) extends Predicate
-case class  Like(pattern: String)
+case class  Contains(pattern: String) extends Predicate
 
 
 sealed trait SortOrder extends EnumEntry
@@ -45,4 +45,4 @@ object SortOrder extends Enum[SortOrder] {
   case object Desc extends SortOrder
 }
 
-case class QueryResult[A](query: Query[A], values: Seq[A])
+case class QueryResult[A](query: Query[A], values: Seq[A], count: Long)
