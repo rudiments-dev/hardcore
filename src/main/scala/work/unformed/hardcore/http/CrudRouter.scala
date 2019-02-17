@@ -17,6 +17,12 @@ class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: CommandH
         entity(as[A]) { draft =>
           responseWith(handler.handle(Create(draft)))
         }
+      } ~ put {
+        entity(as[List[A]]) { batch =>
+          responseWith(handler.handle(CreateBatch(batch)))
+        }
+      } ~ delete {
+        responseWith(handler.handle(DeleteAll()))
       }
     } ~ idDirective { id =>
       get {
@@ -36,6 +42,9 @@ class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: CommandH
     case Result(_, value) =>      complete(StatusCodes.OK, value)
     case Updated(_, _, value) =>  complete(StatusCodes.OK, value)
     case Deleted(_, _) =>         complete(StatusCodes.NoContent)
+
+    case BatchCreated(_) =>       complete(StatusCodes.Created)
+    case AllDeleted() =>          complete(StatusCodes.NoContent)
 
     case NotFound(_) => complete(StatusCodes.NotFound)
     case AlreadyExists(_) => complete(StatusCodes.Conflict)
