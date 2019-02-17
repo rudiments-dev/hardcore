@@ -33,15 +33,4 @@ object CirceSupport extends AutoDerivation with FailFastCirceSupport {
       case Asc => a.field
     })
   }
-
-  implicit def eventEncoder[A](implicit encoder: Encoder[A]): Encoder[Event[A]] = new Encoder[Event[A]] {
-    override def apply(a: Event[A]): Json = a match {
-      case Created(_, value) => encoder.apply(value)
-      case Result(_, value) => encoder.apply(value)
-      case Updated(_, _, newValue) => encoder.apply(newValue)
-      case Deleted(_, value) => encoder.apply(value)
-
-      case e: work.unformed.hardcore.dsl.Error[A] => Encoder.encodeString(e.getLocalizedMessage)
-    }
-  }
 }

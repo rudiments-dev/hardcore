@@ -1,5 +1,5 @@
 package work.unformed.hardcore.http
-import akka.http.scaladsl.model.StatusCodes
+
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
 import io.circe.{Decoder, Encoder}
@@ -7,6 +7,7 @@ import work.unformed.hardcore.dsl._
 
 class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: CommandHandler[A], idDirective: Directive1[ID[A]]) extends Router {
   import work.unformed.hardcore.http.CirceSupport._
+  import work.unformed.hardcore.http.EventMarshaller._
 
   override val routes: Route = pathPrefix(prefix) {
     pathEndOrSingleSlash {
@@ -14,7 +15,7 @@ class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: CommandH
         complete(s"GET Query on $prefix")
       } ~ post {
         entity(as[A]) { draft =>
-          complete(StatusCodes.Created, handler.handle(Create(draft)))
+          complete(handler.handle(Create(draft)))
         }
       }
     } ~ idDirective { id =>
@@ -25,7 +26,7 @@ class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: CommandH
           complete(handler.handle(Update(newValue)))
         }
       } ~ delete {
-        complete(StatusCodes.NoContent, handler.handle(Delete(id)))
+        complete(handler.handle(Delete(id)))
       }
     }
   }
