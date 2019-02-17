@@ -1,13 +1,13 @@
 package work.unformed.hardcore.http
 
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Directive1, Route}
+import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
 import io.circe.{Decoder, Encoder}
 import work.unformed.hardcore.dsl._
 
 class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: CommandHandler[A], idDirective: Directive1[ID[A]]) extends Router {
   import work.unformed.hardcore.http.CirceSupport._
-  import work.unformed.hardcore.http.EventMarshaller._
 
   override val routes: Route = pathPrefix(prefix) {
     pathEndOrSingleSlash {
@@ -15,19 +15,31 @@ class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: CommandH
         complete(s"GET Query on $prefix")
       } ~ post {
         entity(as[A]) { draft =>
-          complete(handler.handle(Create(draft)))
+          responseWith(handler.handle(Create(draft)))
         }
       }
     } ~ idDirective { id =>
       get {
-        complete(handler.handle(Read(id)))
+        responseWith(handler.handle(Read(id)))
       } ~ put {
         entity(as[A]) { newValue =>
-          complete(handler.handle(Update(newValue)))
+          responseWith(handler.handle(Update(newValue)))
         }
       } ~ delete {
-        complete(handler.handle(Delete(id)))
+        responseWith(handler.handle(Delete(id)))
       }
     }
+  }
+
+  def responseWith[A : Encoder](event: Event[A]): StandardRoute = event match {
+    case Created(_, value) =>     complete(StatusCodes.Created, value)
+    case Result(_, value) =>      complete(StatusCodes.OK, value)
+    case Updated(_, _, value) =>  complete(StatusCodes.OK, value)
+    case Deleted(_, _) =>         complete(StatusCodes.NoContent)
+
+    case NotFound(_) => complete(StatusCodes.NotFound)
+    case AlreadyExists(_) => complete(StatusCodes.Conflict)
+
+    case e: Error[A] => complete(StatusCodes.InternalServerError)
   }
 }
