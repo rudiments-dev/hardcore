@@ -33,4 +33,7 @@ object CirceSupport extends AutoDerivation with FailFastCirceSupport {
       case Asc => a.field
     })
   }
+
+  implicit def instance[A: Encoder]: Encoder[Instance[A]] =
+    implicitly[Encoder[A]].contramap(_.value)
 }

@@ -34,4 +34,4 @@ case class ID2[A, K1, K2](id1: K1, id2: K2) extends ID[A] {
   override def values(): Seq[Any] = Seq(id1, id2)
 }
 
-class Instance[A] extends Ref[A] {}
+class Instance[A](val value: A) extends Ref[A]
