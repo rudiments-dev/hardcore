@@ -14,7 +14,7 @@ trait ReadRepository[A] extends Repository[A] {
 }
 
 
-trait WriteRepository[A] extends ReadRepository[A] {
+trait WriteRepository[A] extends ReadRepository[A] with CommandHandler[A] {
   def create(draft: A): IO[Created[A]]
   def update(value: A): IO[Updated[A]]
   def delete(id: ID[A]): IO[Deleted[A]]
