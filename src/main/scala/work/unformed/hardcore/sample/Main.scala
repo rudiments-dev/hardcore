@@ -13,9 +13,7 @@ import scala.util.{Failure, Success}
 
 object Main extends App with LazyLogging {
 
-  implicit val actorSystem: ActorSystem = ActorSystem()
-  implicit val ec: ExecutionContext = actorSystem.dispatcher
-  implicit val mat: ActorMaterializer = ActorMaterializer()
+  import AppContext._
 
   try {
     val config = ConfigFactory.load()

@@ -9,6 +9,7 @@ case class Deleted[A](id: ID[A], value: A) extends Event[A]
 
 case class BatchCreated[A](values: Iterable[A]) extends Event[A]
 case class AllDeleted[A]() extends Event[A]
+case class ResultAll[A](values: Seq[A]) extends Event[A]
 
 
 case class FKCreated[R, A](ref: ID[R], values: Iterable[A]) extends Event[A]

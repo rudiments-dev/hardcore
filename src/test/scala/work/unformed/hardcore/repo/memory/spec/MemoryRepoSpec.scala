@@ -1,18 +1,22 @@
 package work.unformed.hardcore.repo.memory.spec
 
+import akka.http.scaladsl.testkit.{RouteTest, ScalatestRouteTest}
 import org.scalatest.{Matchers, WordSpec}
 import work.unformed.hardcore.dsl._
 import work.unformed.hardcore.dsl.ID._
+import work.unformed.hardcore.repo.EventStreamer
 import work.unformed.hardcore.repo.memory.MemoryRepo
 
 import scala.util.Random
 
-class MemoryRepoSpec extends WordSpec with Matchers {
+class MemoryRepoSpec extends WordSpec with Matchers with ScalatestRouteTest  {
   case class Example(
     id: Long,
     name: String,
     comment: Option[String] = None
   )
+
+  implicit val eventStreamer = new EventStreamer()
 
   implicit val meta: Meta[Example] = Meta(value => ID(value.id))
   val repo: MemoryRepo[Example] = new MemoryRepo[Example]

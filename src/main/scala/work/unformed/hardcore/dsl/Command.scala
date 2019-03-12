@@ -6,7 +6,7 @@ case class Create[A](value: A) extends Command[A]
 case class Read[A](id: ID[A]) extends Command[A]
 case class Update[A](value: A) extends Command[A]
 case class Delete[A](id: ID[A]) extends Command[A]
-
+case class ReadAll[A]() extends Command[A]
 case class CreateBatch[A](values: Iterable[A]) extends Command[A]
 case class DeleteAll[A]() extends Command[A]
 

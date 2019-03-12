@@ -4,19 +4,23 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import org.scalatest.{Matchers, WordSpec}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import com.typesafe.scalalogging.LazyLogging
 import work.unformed.hardcore.dsl.ID._
 import work.unformed.hardcore.dsl._
 import work.unformed.hardcore.http.{CrudRouter, IDPath}
 import work.unformed.hardcore.repo.memory.MemoryRepo
 import work.unformed.hardcore.http.CirceSupport._
-class CrudRouterSpec extends WordSpec with Matchers with ScalatestRouteTest {
+import work.unformed.hardcore.repo.EventStreamer
+class CrudRouterSpec extends WordSpec with Matchers with ScalatestRouteTest with LazyLogging {
   case class Example(
     id: Long,
     name: String
   )
 
+  implicit val eventMaster: EventStreamer = new EventStreamer()
   implicit val meta: Meta[Example] = Meta(value => ID(value.id))
   val repo: MemoryRepo[Example] = new MemoryRepo[Example]
+
   val router: CrudRouter[Example] = new CrudRouter[Example]("example", repo, IDPath[Example, Long])
   val routes = Route.seal(router.routes)
   val sample = Example(42, "sample")

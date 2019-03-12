@@ -2,14 +2,19 @@ package work.unformed.hardcore.repo.memory
 
 import work.unformed.hardcore.dsl._
 import work.unformed.hardcore.dsl.ID._
-import work.unformed.hardcore.repo.WriteRepository
-
+import work.unformed.hardcore.repo.{EventStreamer, WriteRepository}
 import cats.effect.IO
 
 import scala.collection.parallel.mutable
 
-class MemoryRepo[A](implicit meta: Meta[A]) extends WriteRepository[A] {
+class MemoryRepo[A](implicit val eventMaster: EventStreamer, meta: Meta[A]) extends WriteRepository[A] {
   private val content = mutable.ParMap.empty[ID[A], A]
+
+  val onEvent: PartialFunction[Event[_], Unit] = PartialFunction.empty
+
+  override def getAll(): IO[ResultAll[A]] = IO {
+    ResultAll(content.valuesIterator.toSeq)
+  }
 
   override def get(id: ID[A]): IO[Result[A]] = IO {
     content.get(id)

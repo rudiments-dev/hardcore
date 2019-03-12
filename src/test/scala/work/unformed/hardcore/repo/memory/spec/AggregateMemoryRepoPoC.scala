@@ -1,17 +1,17 @@
 package work.unformed.hardcore.repo.memory.spec
 
+import akka.http.scaladsl.testkit.{RouteTest, ScalatestRouteTest}
 import org.scalatest.{Matchers, WordSpec}
 import work.unformed.hardcore.dsl.ID._
 import work.unformed.hardcore.dsl._
-import work.unformed.hardcore.repo.WriteRepository
+import work.unformed.hardcore.repo.{EventStreamer, WriteRepository}
 import work.unformed.hardcore.repo.memory.{MemoryFKRepo, MemoryRepo}
-
 import cats.effect.IO
 
 import scala.util.Random
 
 
-class AggregateMemoryRepoPoC extends WordSpec with Matchers {
+class AggregateMemoryRepoPoC extends WordSpec with Matchers with ScalatestRouteTest {
   case class Container(
     id: Long,
     name: String,
@@ -24,7 +24,9 @@ class AggregateMemoryRepoPoC extends WordSpec with Matchers {
     comment: String
   )
 
-  class ContainerMemoryRepo(implicit meta: Meta[Container]) extends WriteRepository[Container] {
+  implicit val eventStreamer: EventStreamer = new EventStreamer()
+
+  class ContainerMemoryRepo extends WriteRepository[Container] {
     private val repo = new MemoryRepo[Container]
     private val parts = new MemoryFKRepo[Container, Parts]
 
@@ -78,6 +80,13 @@ class AggregateMemoryRepoPoC extends WordSpec with Matchers {
         _ <- parts.deleteAll()
         _ <- repo.deleteAll()
       } yield AllDeleted[Container]()
+    }
+
+    override val onEvent: PartialFunction[Event[_], Unit] = PartialFunction.empty
+    override val eventMaster: EventStreamer = eventStreamer
+
+    override def getAll(): IO[ResultAll[Container]] = IO {
+      ResultAll(Seq.empty)
     }
   }
 
