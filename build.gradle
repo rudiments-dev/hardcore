@@ -1,4 +1,4 @@
-group 'work.unformed'
+group 'dev.rudiments'
 version '0.1'
 
 apply plugin: 'java'
@@ -46,7 +46,7 @@ dependencies {
 
 task run(type: JavaExec, dependsOn: classes) {
     classpath sourceSets.main.runtimeClasspath
-    main = 'work.unformed.hardcore.Main'
+    main = 'dev.rudiments.hardcore.Main'
     standardInput = System.in
 }
 
