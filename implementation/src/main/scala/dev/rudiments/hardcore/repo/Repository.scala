@@ -66,10 +66,10 @@ trait WriteRepository[K ,V] extends ReadRepository[K, V] with DataCommandHandler
 abstract class PlainRepository[A](implicit meta: Meta[A]) extends WriteRepository[ID[A], A] {
   import dev.rudiments.hardcore.dsl.ID._
 
-  def create(value: A): IO[Created[ID[A], A]] = super.create(value.identify, value)
-  def update(value: A): IO[Updated[ID[A], A]] = super.update(value.identify, value)
+  def create(value: A): IO[Created[ID[A], A]] = create(value.identify, value)
+  def update(value: A): IO[Updated[ID[A], A]] = update(value.identify, value)
 
-  def createAll(values: Iterable[A]): IO[AllCreated[ID[A], A]] = super.createAll(
+  def createAll(values: Iterable[A]): IO[AllCreated[ID[A], A]] = createAll(
     values.groupBy(_.identify).mapValues(_.head)
   )
 }

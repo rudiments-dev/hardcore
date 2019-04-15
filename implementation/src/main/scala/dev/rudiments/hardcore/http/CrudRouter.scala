@@ -6,20 +6,21 @@ import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
 import io.circe.{Decoder, Encoder}
 import dev.rudiments.hardcore.dsl._
 
-class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: CommandHandler[A], idDirective: Directive1[ID[A]]) extends Router {
+class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: DataCommandHandler[ID[A], A], idDirective: Directive1[ID[A]]) extends Router {
   import dev.rudiments.hardcore.http.CirceSupport._
+  import dev.rudiments.hardcore.dsl.ID._
 
   override val routes: Route = pathPrefix(prefix) {
     pathEndOrSingleSlash {
       get {
         complete(s"GET Query on $prefix")
       } ~ post {
-        entity(as[A]) { draft =>
-          responseWith(handler.handle(Create(draft)))
+        entity(as[A]) { value =>
+          responseWith(handler.handle(Create(value.identify, value)))
         }
       } ~ put {
         entity(as[List[A]]) { batch =>
-          responseWith(handler.handle(CreateBatch(batch)))
+          responseWith(handler.handle(CreateAll(batch.groupBy(_.identify).mapValues(_.head))))
         }
       } ~ delete {
         responseWith(handler.handle(DeleteAll()))
@@ -29,26 +30,26 @@ class CrudRouter[A : Meta : Encoder : Decoder](prefix: String, handler: CommandH
         responseWith(handler.handle(Read(id)))
       } ~ put {
         entity(as[A]) { newValue =>
-          responseWith(handler.handle(Update(newValue)))
+          responseWith(handler.handle(Update(newValue.identify, newValue)))
         }
       } ~ delete {
-        responseWith(handler.handle(Delete(id)))
+        responseWith(handler.handle(Delete[ID[A], A](id)))
       }
     }
   }
 
-  def responseWith[A : Encoder](event: Event[A]): StandardRoute = event match {
+  def responseWith[A : Encoder](event: DataEvent[ID[A], A]): StandardRoute = event match {
     case Created(_, value) =>     complete(StatusCodes.Created, value)
     case Result(_, value) =>      complete(StatusCodes.OK, value)
     case Updated(_, _, value) =>  complete(StatusCodes.OK, value)
     case Deleted(_, _) =>         complete(StatusCodes.NoContent)
 
-    case BatchCreated(_) =>       complete(StatusCodes.Created)
+    case AllCreated(_) =>         complete(StatusCodes.Created)
     case AllDeleted() =>          complete(StatusCodes.NoContent)
 
-    case NotFound(_) => complete(StatusCodes.NotFound)
+    case NotFound(_) =>      complete(StatusCodes.NotFound)
     case AlreadyExists(_) => complete(StatusCodes.Conflict)
 
-    case e: Error[A] => complete(StatusCodes.InternalServerError)
+    case _: Error => complete(StatusCodes.InternalServerError)
   }
 }

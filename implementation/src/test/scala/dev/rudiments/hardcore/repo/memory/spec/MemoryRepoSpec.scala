@@ -24,7 +24,7 @@ class MemoryRepoSpec extends WordSpec with Matchers {
 
   "no element by ID" in {
     repo.count().unsafeRunSync() should be (0)
-    an[NotFound[Example]] should be thrownBy repo.get(id).unsafeRunSync()
+    an[NotFound[ID[Example], Example]] should be thrownBy repo.get(id).unsafeRunSync()
   }
 
   "put item into repository" in {
@@ -46,7 +46,7 @@ class MemoryRepoSpec extends WordSpec with Matchers {
 
   "multiple inserts with same ID causes exception" in {
     repo.count().unsafeRunSync() should be (1)
-    an[AlreadyExists[Example]] should be thrownBy repo.create(sample).unsafeRunSync()
+    an[AlreadyExists[ID[Example], Example]] should be thrownBy repo.create(sample).unsafeRunSync()
   }
 
   "delete item from repository" in {
@@ -54,7 +54,7 @@ class MemoryRepoSpec extends WordSpec with Matchers {
     repo.delete(id).unsafeRunSync() should be (Deleted(id, Example(42, "sample", Some("changes"))))
     repo.count().unsafeRunSync() should be (0)
 
-    an[NotFound[Example]] should be thrownBy repo.get(id).unsafeRunSync()
+    an[NotFound[ID[Example], Example]] should be thrownBy repo.get(id).unsafeRunSync()
   }
 
   "endure 100.000 records" in {
@@ -70,7 +70,7 @@ class MemoryRepoSpec extends WordSpec with Matchers {
 
   "endure 100.000 batch" in {
     val batch = (100001 to 200000).map(i => Example(i, s"$i'th element"))
-    repo.createAll(batch).unsafeRunSync() should be (BatchCreated(batch))
+    repo.createAll(batch).unsafeRunSync() should be (AllCreated[ID[Example], Example](batch.groupBy(_.identify).mapValues(_.head)))
 
     repo.count().unsafeRunSync() should be (200000)
 
@@ -80,7 +80,7 @@ class MemoryRepoSpec extends WordSpec with Matchers {
 
   "clear repository" in {
     repo.count().unsafeRunSync() should be (200000)
-    repo.deleteAll().unsafeRunSync() should be (AllDeleted[Example]())
+    repo.deleteAll().unsafeRunSync() should be (AllDeleted[ID[Example], Example]())
     repo.count().unsafeRunSync() should be (0)
   }
 

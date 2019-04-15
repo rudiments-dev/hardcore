@@ -2,49 +2,45 @@ package dev.rudiments.hardcore.repo.memory
 
 import dev.rudiments.hardcore.dsl._
 import dev.rudiments.hardcore.dsl.ID._
-import dev.rudiments.hardcore.repo.WriteRepository
-
+import dev.rudiments.hardcore.repo.{PlainRepository, WriteRepository}
 import cats.effect.IO
 
 import scala.collection.parallel.mutable
 
-class MemoryRepo[A](implicit meta: Meta[A]) extends WriteRepository[A] {
+class MemoryRepo[A](implicit meta: Meta[A]) extends PlainRepository[A] {
   private val content = mutable.ParMap.empty[ID[A], A]
 
-  override def get(id: ID[A]): IO[Result[A]] = IO {
-    content.get(id)
-      .map(value => Result(id, value))
-      .getOrElse(throw NotFound(id))
+  override def get(key: ID[A]): IO[Result[ID[A], A]] = IO {
+    content.get(key)
+      .map(value => Result(key, value))
+      .getOrElse(throw NotFound(key))
   }
 
   override def count(filters: Filter[A]*): IO[Long] = IO { content.size }
 
-  override def create(draft: A): IO[Created[A]] = IO {
-    val id = draft.identify
-
-    content.get(id) match {
+  override def create(key: ID[A], value: A): IO[Created[ID[A], A]] = IO {
+    content.get(key) match {
       case None =>
-        content.put(id, draft)
-        content.get(id) match {
-          case Some(created) => Created(id, created)
-          case None => throw FailedToCreate(id, draft)
+        content.put(key, value)
+        content.get(key) match {
+          case Some(created) => Created(key, created)
+          case None => throw FailedToCreate(key, value)
         }
-      case Some(_) => throw AlreadyExists(draft.identify)
+      case Some(_) => throw AlreadyExists(value.identify)
     }
   }
 
-  override def update(value: A): IO[Updated[A]] = {
-    val id = value.identify
-    get(id).map { old =>
-      content.put(id, value)
-      content.get(id) match {
-        case Some(newValue) => Updated(id, old.value, newValue)
-        case None => throw FailedToUpdate(id, value)
+  override def update(key: ID[A], value: A): IO[Updated[ID[A], A]] = {
+    get(key).map { old =>
+      content.put(key, value)
+      content.get(key) match {
+        case Some(newValue) => Updated(key, old.value, newValue)
+        case None => throw FailedToUpdate(key, value)
       }
     }
   }
 
-  override def delete(id: ID[A]): IO[Deleted[A]] = {
+  override def delete(id: ID[A]): IO[Deleted[ID[A], A]] = {
     get(id).map { old =>
       content -= id
       content.get(id) match {
@@ -54,17 +50,17 @@ class MemoryRepo[A](implicit meta: Meta[A]) extends WriteRepository[A] {
     }
   }
 
-  override def createAll(values: Iterable[A]): IO[BatchCreated[A]]  = IO {
-    content ++= values.map(v => (v.identify, v))
-    BatchCreated[A](values)
+  override def createAll(values: Map[ID[A], A])  = IO {
+    content ++= values
+    AllCreated[ID[A], A](values)
   }
 
-  override def deleteAll(): IO[AllDeleted[A]] = IO {
+  override def deleteAll() = IO {
     content.clear()
-    AllDeleted[A]()
+    AllDeleted[ID[A], A]()
   }
 
   override def find(query: Query[A]): IO[QueryResult[A]] = IO {
-    throw NotImplemented[A]("Query API on MemoryRepo")
+    throw NotImplemented("Query API on MemoryRepo")
   }
 }
