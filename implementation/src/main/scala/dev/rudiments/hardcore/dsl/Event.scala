@@ -1,41 +1,52 @@
 package dev.rudiments.hardcore.dsl
 
-trait Event[A]
+trait Event
 
-case class Created[A](id: ID[A], value: A) extends Event[A]
-case class Result[A](id: ID[A], value: A) extends Event[A]
-case class Updated[A](id: ID[A], oldValue: A, newValue: A) extends Event[A]
-case class Deleted[A](id: ID[A], value: A) extends Event[A]
+trait DataEvent[K, V]
 
-case class BatchCreated[A](values: Iterable[A]) extends Event[A]
-case class AllDeleted[A]() extends Event[A]
+case class Created[K, V](key: K, value: V) extends DataEvent[K, V]
+case class Result[K, V](key: K, value: V) extends DataEvent[K, V]
+case class Updated[K, V](key: K, oldValue: V, newValue: V) extends DataEvent[K, V]
+case class Deleted[K, V](key: K, value: V) extends DataEvent[K, V]
 
-
-case class FKCreated[R, A](ref: ID[R], values: Iterable[A]) extends Event[A]
-case class FKResult[R, A](ref: ID[R], values: Iterable[A]) extends Event[A]
-case class FKUpdated[R, A](ref: ID[R], oldValues: Iterable[A], newValues: Iterable[A]) extends Event[A]
-case class FKDeleted[R, A](ref: ID[R], values: Iterable[A]) extends Event[A]
-
-case class FKBatchCreated[R, A](values: Map[ID[R], Iterable[A]]) extends Event[A]
-case class FKAllDeleted[R, A]() extends Event[A]
+case class AllCreated[K, V](values: Map[K, V]) extends DataEvent[K, V]
+case class AllDeleted[K, V]() extends DataEvent[K, V]
 
 
 
-trait Error[A] extends Throwable with Event[A]
+trait Error extends Throwable with Event
+trait DataError[K, V] extends Error with DataEvent[K, V]
 
-case class NoHandler[A](command: Command[A]) extends Error[A]
-case class Failed[A](command: Command[A], cause: Throwable) extends Error[A]
-case class NotImplemented[A](string: String) extends Error[A]
-case class Internal[R, A](cause: Error[A]) extends Error[R]
+case class NoHandler(command: Command) extends Error
+case class NotImplemented(string: String) extends Error
+case class Internal(cause: Error) extends Error
 
-case class NotFound[A](id: ID[A]) extends Error[A]
-case class AlreadyExists[A](id: ID[A]) extends Error[A]
-case class FailedToCreate[A](id: ID[A], value: A) extends Error[A]
-case class FailedToUpdate[A](id: ID[A], value: A) extends Error[A]
-case class FailedToDelete[A](id: ID[A]) extends Error[A]
+case class Failed[K, V](command: DataCommand[K, V], cause: Throwable) extends DataError[K, V]
 
-case class FKNotFound[R, A](id: ID[R]) extends Error[A]
-case class FKAlreadyExists[R, A](id: ID[R]) extends Error[A]
-case class FKFailedToCreate[R, A](id: ID[R], values: Iterable[A]) extends Error[A]
-case class FKFailedToUpdate[R, A](id: ID[R], values: Iterable[A]) extends Error[A]
-case class FKFailedToDelete[R, A](id: ID[R]) extends Error[A]
+case class NotFound[K, V](key: K) extends DataError[K, V]
+case class AlreadyExists[K, V](key: K) extends DataError[K, V]
+case class FailedToCreate[K, V](key: K, value: V) extends DataError[K, V]
+case class FailedToUpdate[K, V](key: K, value: V) extends DataError[K, V]
+case class FailedToDelete[K, V](key: K) extends DataError[K, V]
+
+
+
+trait Command extends Event
+trait DataCommand[K, V] extends Command with DataEvent[K, V]
+
+case class Create[K, V](key: K, value: V) extends DataCommand[K, V]
+case class Read[K, V](key: K) extends DataCommand[K, V]
+case class Update[K, V](key: K, value: V) extends DataCommand[K, V]
+case class Delete[K, V](key: K) extends DataCommand[K, V]
+
+case class CreateAll[K, V](values: Map[K, V]) extends DataCommand[K, V]
+case class DeleteAll[K, V]() extends DataCommand[K, V]
+
+
+trait CommandHandler {
+  def handle(command: Command): Event
+}
+
+trait DataCommandHandler[K, V] {
+  def handle(command: DataCommand[K, V]): DataEvent[K, V]
+}
