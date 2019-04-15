@@ -1,4 +1,4 @@
-package dev.rudiments.hardcore.sample
+package dev.rudiments.sample
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes

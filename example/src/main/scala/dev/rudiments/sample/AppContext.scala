@@ -1,4 +1,4 @@
-package dev.rudiments.hardcore.sample
+package dev.rudiments.sample
 
 import dev.rudiments.hardcore.dsl._
 import dev.rudiments.hardcore.http.{CrudRouter, IDPath}
