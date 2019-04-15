@@ -6,7 +6,10 @@ import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.repo.memory.MemoryRepo
 
 import scala.util.Random
+import org.scalatest.junit.JUnitRunner
+import org.junit.runner.RunWith
 
+@RunWith(classOf[JUnitRunner])
 class MemoryRepoSpec extends WordSpec with Matchers {
   case class Example(
     id: Long,

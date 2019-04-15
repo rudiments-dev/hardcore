@@ -8,7 +8,10 @@ case class Example(
   name: String,
   comment: Option[String] = None
 )
+import org.scalatest.junit.JUnitRunner
+import org.junit.runner.RunWith
 
+@RunWith(classOf[JUnitRunner])
 class IDSpec extends WordSpec with Matchers {
   val sample = Example(42, "sample")
 

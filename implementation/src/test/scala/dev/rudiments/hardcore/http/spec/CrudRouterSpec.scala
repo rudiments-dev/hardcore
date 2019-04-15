@@ -9,6 +9,10 @@ import dev.rudiments.hardcore.dsl._
 import dev.rudiments.hardcore.http.{CrudRouter, IDPath}
 import dev.rudiments.hardcore.repo.memory.MemoryRepo
 import dev.rudiments.hardcore.http.CirceSupport._
+import org.scalatest.junit.JUnitRunner
+import org.junit.runner.RunWith
+
+@RunWith(classOf[JUnitRunner])
 class CrudRouterSpec extends WordSpec with Matchers with ScalatestRouteTest {
   case class Example(
     id: Long,

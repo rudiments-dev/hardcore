@@ -1,63 +1,56 @@
-group 'dev.rudiments'
-version '0.1'
+allprojects {
+    group 'dev.rudiments'
+    version '0.1'
 
-apply plugin: 'java'
-apply plugin: 'scala'
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-repositories {
-    mavenLocal()
-    mavenCentral()
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
 }
 
-dependencies {
-    compile 'org.scala-lang:scala-library:2.12.8'
-    compile 'com.typesafe.akka:akka-actor_2.12:2.5.19'
-    compile 'com.typesafe.akka:akka-slf4j_2.12:2.5.19'
-    compile 'com.typesafe.akka:akka-stream_2.12:2.5.19'
-    compile 'com.typesafe.akka:akka-http_2.12:10.1.7'
-    
-
-    compile 'ch.megard:akka-http-cors_2.12:0.3.3'
-    compile 'io.circe:circe-core_2.12:0.11.0'
-    compile 'io.circe:circe-generic_2.12:0.11.0'
-    compile 'io.circe:circe-generic-extras_2.12:0.11.0'
-    compile 'de.heikoseeberger:akka-http-circe_2.12:1.23.0'
-    
-    compile 'org.tpolecat:doobie-core_2.12:0.6.0'
-
-    compile 'org.typelevel:cats_2.12:0.9.0'
-    compile 'org.typelevel:cats-effect_2.12:1.1.0'
-
-    compile 'com.beachape:enumeratum_2.12:1.5.13'
-
-    compile 'mysql:mysql-connector-java:8.0.13'
-
-    compile 'com.typesafe.scala-logging:scala-logging_2.12:3.9.2'
-    compile 'ch.qos.logback:logback-classic:1.2.3'
-    compile 'org.slf4j:slf4j-api:1.7.25'
-
-    testCompile 'org.scalatest:scalatest_2.12:3.0.5'
-    testCompile 'com.typesafe.akka:akka-testkit_2.12:2.5.19'
-    testCompile 'com.typesafe.akka:akka-http-testkit_2.12:10.1.7'
+def scalaModules() {
+    subprojects.findAll { new File(it.projectDir, 'src/main/scala').directory }
 }
 
-task run(type: JavaExec, dependsOn: classes) {
-    classpath sourceSets.main.runtimeClasspath
-    main = 'dev.rudiments.hardcore.Main'
-    standardInput = System.in
-}
+configure(scalaModules()) {
+    apply plugin: 'java'
+    apply plugin: 'scala'
 
-task scalaTest(dependsOn: ['testClasses'], type: JavaExec) {
-    main = 'org.scalatest.tools.Runner'
-    args = ['-R', 'build/classes/scala/test', '-o']
-    classpath sourceSets.test.runtimeClasspath
-}
-test.dependsOn scalaTest
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
 
-wrapper {
-    distributionType = Wrapper.DistributionType.ALL
-    gradleVersion = '5.1'
+    test.reports.html.enabled = true
+    test.reports.junitXml.enabled = true
+
+    dependencies {
+        compile 'org.scala-lang:scala-library:2.12.8'
+        compile 'com.typesafe.akka:akka-actor_2.12:2.5.19'
+        compile 'com.typesafe.akka:akka-slf4j_2.12:2.5.19'
+        compile 'com.typesafe.akka:akka-stream_2.12:2.5.19'
+        compile 'com.typesafe.akka:akka-http_2.12:10.1.7'
+
+
+        compile 'ch.megard:akka-http-cors_2.12:0.3.3'
+        compile 'io.circe:circe-core_2.12:0.11.0'
+        compile 'io.circe:circe-generic_2.12:0.11.0'
+        compile 'io.circe:circe-generic-extras_2.12:0.11.0'
+        compile 'de.heikoseeberger:akka-http-circe_2.12:1.23.0'
+
+        compile 'org.tpolecat:doobie-core_2.12:0.6.0'
+
+        compile 'org.typelevel:cats_2.12:0.9.0'
+        compile 'org.typelevel:cats-effect_2.12:1.1.0'
+
+        compile 'com.beachape:enumeratum_2.12:1.5.13'
+
+        compile 'com.typesafe.scala-logging:scala-logging_2.12:3.9.2'
+        
+        compile 'org.slf4j:slf4j-api:1.7.25'
+
+        testCompile 'org.scalatest:scalatest_2.12:3.0.5'
+        testCompile 'com.typesafe.akka:akka-testkit_2.12:2.5.19'
+        testCompile 'com.typesafe.akka:akka-http-testkit_2.12:10.1.7'
+        
+        testCompile 'junit:junit:4.12'
+    }
 }

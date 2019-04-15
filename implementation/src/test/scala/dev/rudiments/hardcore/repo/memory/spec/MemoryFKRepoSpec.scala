@@ -7,7 +7,10 @@ import dev.rudiments.hardcore.repo.memory.MemoryFKRepo
 
 import scala.util.Random
 
+import org.scalatest.junit.JUnitRunner
+import org.junit.runner.RunWith
 
+@RunWith(classOf[JUnitRunner])
 class MemoryFKRepoSpec extends WordSpec with Matchers {
   case class Container(
     id: Long,

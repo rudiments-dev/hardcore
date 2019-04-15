@@ -10,7 +10,10 @@ import cats.effect.IO
 
 import scala.util.Random
 
+import org.scalatest.junit.JUnitRunner
+import org.junit.runner.RunWith
 
+@RunWith(classOf[JUnitRunner])
 class AggregateMemoryRepoPoC extends WordSpec with Matchers {
   case class Container(
     id: Long,
