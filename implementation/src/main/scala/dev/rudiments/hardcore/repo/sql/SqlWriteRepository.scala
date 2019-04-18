@@ -75,10 +75,6 @@ class SqlWriteRepository[A : Table : dsl.Meta](implicit xa: Transactor[IO]) exte
     case None => throw NotFound(id)
   }
 
-  override def createAll(values: Map[ID[A], A]): IO[AllCreated[ID[A], A]] = ???
-
-  override def deleteAll(): IO[AllDeleted[ID[A], A]] = ???
-
   override def get(key: ID[A]): IO[Result[ID[A], A]] = Raw.get(key).map {
     case Some(v) => Result(key, v)
     case None => throw NotFound(key)
@@ -87,4 +83,8 @@ class SqlWriteRepository[A : Table : dsl.Meta](implicit xa: Transactor[IO]) exte
   override def find(query: dsl.Query[A]): IO[QueryResult[A]] = ???
 
   override def count(filters: Filter[A]*): IO[Long] = ???
+
+  override def createAll(values: Map[ID[A], A]): IO[AllCreated[ID[A], A]] = ???
+
+  override def deleteAll(): IO[AllDeleted[ID[A], A]] = ???
 }

@@ -14,7 +14,7 @@ trait ReadRepository[K, V] extends Repository[V] {
 }
 
 
-trait WriteRepository[K ,V] extends ReadRepository[K, V] with DataCommandHandler[K, V] {
+trait WriteRepository[K ,V] extends ReadRepository[K, V] with PartialFunction[Command, Event] {
   def create(key: K, value: V): IO[Created[K, V]]
   def update(key: K, value: V): IO[Updated[K, V]]
   def delete(key: K): IO[Deleted[K, V]]
@@ -22,44 +22,33 @@ trait WriteRepository[K ,V] extends ReadRepository[K, V] with DataCommandHandler
   def createAll(values: Map[K, V]): IO[AllCreated[K, V]]
   def deleteAll(): IO[AllDeleted[K, V]]
 
-  def handle(command: DataCommand[K, V]): DataEvent[K, V] = command match {
-    case Read(id) => get(id).attempt.unsafeRunSync() match {
-      case Right(result) => result
-      case Left(error: DataError[K, V]) => error
-      case Left(error) => Failed(command, error)
-    }
+  override def apply(command: Command):Event = handle(command)
+  override def isDefinedAt(x: Command): Boolean = handle.isDefinedAt(x)
 
-    case Create(key, value) => create(key, value).attempt.unsafeRunSync() match {
+  val handle: PartialFunction[Command, Event] = {
+    case c:Create[K, V] =>  handleData(c, create(c.key, c.value))
+    case c:Read[K, V] =>    handleData(c, get(c.key))
+    case c:Update[K, V] =>  handleData(c, update(c.key, c.value))
+    case c:Delete[K, V] =>  handleData(c, delete(c.key))
+
+    case c:CreateAll[K, V] =>  handleBatch(c, createAll(c.values))
+    case c:DeleteAll[K, V] =>  handleBatch(c, deleteAll())
+  }
+
+  private def handleData(command: DataCommand[K, V], action: IO[Event]): Event = {
+    action.attempt.unsafeRunSync() match {
       case Right(created) => created
       case Left(error: DataError[K, V]) => error
       case Left(error) => Failed(command, error)
     }
+  }
 
-    case Update(key, value) => update(key, value).attempt.unsafeRunSync() match {
-      case Right(updated) => updated
-      case Left(error: DataError[K, V]) => error
-      case Left(error) => Failed(command, error)
-    }
-
-    case Delete(id) => delete(id).attempt.unsafeRunSync() match {
-      case Right(deleted) => deleted
-      case Left(error: DataError[K, V]) => error
-      case Left(error) => Failed(command, error)
-    }
-
-    case CreateAll(values) => createAll(values).attempt.unsafeRunSync() match {
+  private def handleBatch(command: BatchCommand[K, V], action: IO[Event]): Event = {
+    action.attempt.unsafeRunSync() match {
       case Right(created) => created
-      case Left(error: DataError[K, V]) => error
-      case Left(error) => Failed(command, error)
+      case Left(error: BatchError[K, V]) => error
+      case Left(error) => FailedBatch(command, error)
     }
-
-    case DeleteAll() => deleteAll().attempt.unsafeRunSync() match {
-      case Right(deleted) => deleted
-      case Left(error: DataError[K, V]) => error
-      case Left(error) => Failed(command, error)
-    }
-
-    case _ => ???
   }
 }
 
@@ -72,6 +61,7 @@ abstract class PlainRepository[A](implicit meta: Meta[A]) extends WriteRepositor
   def createAll(values: Iterable[A]): IO[AllCreated[ID[A], A]] = createAll(
     values.groupBy(_.identify).mapValues(_.head)
   )
+
 }
 
 trait SingleRepo[A] extends Repository[A] {

@@ -1,14 +1,15 @@
 package dev.rudiments.hardcore.repo.memory
 
-import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.dsl.ID._
-import dev.rudiments.hardcore.repo.PlainRepository
 import cats.effect.IO
+import dev.rudiments.hardcore.dsl.ID._
+import dev.rudiments.hardcore.dsl._
+import dev.rudiments.hardcore.repo.PlainRepository
 
-import scala.collection.parallel.mutable
+import scala.collection.mutable
 
-class MemoryRepo[A](implicit meta: Meta[A]) extends PlainRepository[A] {
-  private val content = mutable.ParMap.empty[ID[A], A]
+
+class SyncMemoryRepo[A](implicit meta: Meta[A]) extends PlainRepository[A] {
+  private val content = mutable.Map.empty[ID[A], A]
 
   override def get(key: ID[A]): IO[Result[ID[A], A]] = IO {
     content.get(key)
