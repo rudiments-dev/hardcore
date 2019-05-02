@@ -44,7 +44,6 @@ configure(scalaModules()) {
         compile 'com.beachape:enumeratum_2.12:1.5.13'
 
         compile 'com.typesafe.scala-logging:scala-logging_2.12:3.9.2'
-        
         compile 'org.slf4j:slf4j-api:1.7.25'
 
         testCompile 'org.scalatest:scalatest_2.12:3.0.5'
@@ -52,5 +51,6 @@ configure(scalaModules()) {
         testCompile 'com.typesafe.akka:akka-http-testkit_2.12:10.1.7'
         
         testCompile 'junit:junit:4.12'
+        testCompile 'ch.qos.logback:logback-classic:1.2.3'
     }
 }

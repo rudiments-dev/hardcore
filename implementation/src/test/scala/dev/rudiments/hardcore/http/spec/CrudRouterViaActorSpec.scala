@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.{ActorEventStore, Task}
+import dev.rudiments.hardcore.eventstore.{ActorEventStore, ActorTask}
 import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.hardcore.http.{CrudRouter, IDPath}
 import dev.rudiments.hardcore.repo.memory.MemoryRepo
@@ -25,7 +25,7 @@ class CrudRouterViaActorSpec extends WordSpec with Matchers with ScalatestRouteT
   private implicit val meta: Meta[Example] = Meta(value => ID(value.id))
   private val repo: MemoryRepo[Example] = new MemoryRepo[Example]
   private implicit val es: ActorEventStore = new ActorEventStore
-  private val task = Task(repo.handle)
+  private val task = ActorTask(repo.handle)
   private val router: CrudRouter[Example] = new CrudRouter[Example]("example", task, IDPath[Example, Long])
   private val routes = Route.seal(router.routes)
   private val sample = Example(42, "sample")

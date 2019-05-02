@@ -1,14 +1,9 @@
 package dev.rudiments.hardcore.repo.actor.spec
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.dsl._
 import dev.rudiments.hardcore.eventstore.ActorEventStore
-import dev.rudiments.hardcore.http.CirceSupport._
-import dev.rudiments.hardcore.http.{CrudRouter, IDPath}
 import dev.rudiments.hardcore.repo.actor.ActorDataHandler
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -32,9 +27,11 @@ class ActorDataHandlerSpec extends AsyncFlatSpec with Matchers {
 
   def check(name: String, command: Command, event: Event, count: Long): Unit = {
     it should name in {
-      handler.apply(command) should be (event)
-      es.state(command).map(_ should be (Some(Seq(event))))
-      es.countEvents().map(_ should be (count))
+      handler(command) should be (event)
+      for {
+        _ <- es.state(command).map(_ should be (Some(event)))
+        r <- es.countEvents().map(_ should be (count))
+      } yield r
     }
   }
 

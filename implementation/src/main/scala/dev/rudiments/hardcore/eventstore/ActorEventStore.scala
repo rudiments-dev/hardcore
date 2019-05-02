@@ -2,7 +2,7 @@ package dev.rudiments.hardcore.eventstore
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.StrictLogging
-import dev.rudiments.hardcore.dsl.{Command, Done, Event, EventStore, InProgress}
+import dev.rudiments.hardcore.dsl.{Command, Event, EventStore, InProgress}
 
 import scala.collection.mutable
 import scala.concurrent.{Future, Promise}
@@ -16,7 +16,7 @@ class ActorEventStore(implicit val system: ActorSystem) extends EventStore {
   def countEvents(): Future[Long] = viaPromise(Count)
 
   def subscribe(ref: ActorRef): Unit = {
-    system.eventStream.subscribe(ref, classOf[Done])
+    system.eventStream.subscribe(ref, classOf[ActorAction.Done])
   }
 
   def unsubscribe(ref: ActorRef): Unit = {
@@ -32,19 +32,17 @@ class ActorEventStore(implicit val system: ActorSystem) extends EventStore {
 
 
 class EventListenerActor extends Actor with StrictLogging {
-  private var events = mutable.ArrayBuffer.empty[Event]
+  private val events = mutable.ArrayBuffer.empty[Event]
   private val commands = mutable.Map.empty[Command, Event]
 
   override def receive: Receive = {
     case command: Command =>
       commands.get(command) match {
-        case Some(InProgress) =>
-          sender() ! (command, InProgress)
-        case Some(exists) =>
-          sender() ! Done(command, exists)
+        case Some(InProgress) => sender() ! (command, InProgress)
+        case Some(exists) => sender() ! ActorAction.Done(command, exists)
         case None =>
           commands.put(command, InProgress)
-          sender() ! GoOn(command)
+          sender() ! ActorAction.GoOn(command)
       }
       logger.trace("Command received {}", command)
 
@@ -56,13 +54,14 @@ class EventListenerActor extends Actor with StrictLogging {
 
     case Events(promise) => promise.success(events)
     case Commands(promise) => promise.success(commands.toMap)
-    case By(command: Command, promise) => promise.success(commands.toMap.get(command))
+    case By(command: Command, promise) => promise.success(commands.get(command))
     case Count(promise) => promise.success(events.size)
+
     case other => logger.warn("Received {} of type {}", other, other.getClass.getSimpleName)
   }
 
   def publish(command: Command, event: Event): Unit = {
-    context.system.eventStream.publish(Done(command, event))
+    context.system.eventStream.publish(ActorAction.Done(command, event))
   }
 }
 

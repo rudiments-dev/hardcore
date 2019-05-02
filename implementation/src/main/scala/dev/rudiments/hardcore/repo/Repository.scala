@@ -25,29 +25,23 @@ trait WriteRepository[K ,V] extends ReadRepository[K, V] with PartialFunction[Co
   override def apply(command: Command):Event = handle(command)
   override def isDefinedAt(x: Command): Boolean = handle.isDefinedAt(x)
 
-  val handle: PartialFunction[Command, Event] = {
-    case c:Create[K, V] =>  handleData(c, create(c.key, c.value))
-    case c:Read[K, V] =>    handleData(c, get(c.key))
-    case c:Update[K, V] =>  handleData(c, update(c.key, c.value))
-    case c:Delete[K, V] =>  handleData(c, delete(c.key))
+  val io: PartialFunction[Command, IO[Event]] = {
+    case c:Create[K, V] =>  create(c.key, c.value)
+    case c:Read[K, V] =>    get(c.key)
+    case c:Update[K, V] =>  update(c.key, c.value)
+    case c:Delete[K, V] =>  delete(c.key)
 
-    case c:CreateAll[K, V] =>  handleBatch(c, createAll(c.values))
-    case c:DeleteAll[K, V] =>  handleBatch(c, deleteAll())
+    case c:CreateAll[K, V] =>  createAll(c.values)
+    case _:DeleteAll[K, V] =>  deleteAll()
   }
 
-  private def handleData(command: DataCommand[K, V], action: IO[Event]): Event = {
-    action.attempt.unsafeRunSync() match {
-      case Right(created) => created
-      case Left(error: DataError[K, V]) => error
-      case Left(error) => Failed(command, error)
-    }
-  }
+  val handle: PartialFunction[Command, Event] = io.andThen(handleIO)
 
-  private def handleBatch(command: BatchCommand[K, V], action: IO[Event]): Event = {
+  private def handleIO(action: IO[Event]): Event = {
     action.attempt.unsafeRunSync() match {
       case Right(created) => created
-      case Left(error: BatchError[K, V]) => error
-      case Left(error) => FailedBatch(command, error)
+      case Left(error: Error) => error
+      case Left(error) => Internal(error)
     }
   }
 }

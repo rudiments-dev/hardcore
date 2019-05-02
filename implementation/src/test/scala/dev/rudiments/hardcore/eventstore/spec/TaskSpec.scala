@@ -1,18 +1,18 @@
 package dev.rudiments.hardcore.eventstore.spec
 
 import akka.actor.ActorSystem
+import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.{ActorEventStore, Task}
+import dev.rudiments.hardcore.eventstore.{ActorEventStore, ActorTask}
 import dev.rudiments.hardcore.repo.memory.SyncMemoryRepo
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{AsyncFlatSpec, Matchers}
 
-import scala.concurrent.Future
 
 @RunWith(classOf[JUnitRunner])
-class TaskSpec extends AsyncFlatSpec with Matchers {
+class TaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
   private case class Example(
     id: Long,
     name: String
@@ -23,7 +23,7 @@ class TaskSpec extends AsyncFlatSpec with Matchers {
   private val repo: SyncMemoryRepo[Example] = new SyncMemoryRepo[Example]()
   private implicit val es: ActorEventStore = new ActorEventStore
 
-  private val task = Task(repo.handle)
+  private val task = ActorTask(repo.handle)
 
   private val sample = Example(42, "sample")
   private val id = sample.identify
@@ -31,8 +31,10 @@ class TaskSpec extends AsyncFlatSpec with Matchers {
   def check(name: String, command: Command, event: Event, count: Long): Unit = {
     it should name in {
       task(command) should be (event)
-      es.state(command).map(_ should be (Some(Seq(event))))
-      es.countEvents().map(_ should be (count))
+      for {
+        _ <- es.state(command).map(_ should be (Some(event)))
+        r <- es.countEvents().map(_ should be (count))
+      } yield r
     }
   }
 
@@ -64,70 +66,5 @@ class TaskSpec extends AsyncFlatSpec with Matchers {
       commands(DeleteAll[ID[Example], Example]()) should be (AllDeleted[ID[Example], Example]())
       commands.size should be (10006)
     }
-  }
-
-
-  private case class DoSomething(a: Int) extends Command
-  private case class DoneSomething(b: String) extends Event
-
-  private val doing = Task {
-    case c: DoSomething => DoneSomething(c.a.toString)
-  }
-
-  it should "fail if not defined" in {
-    Future {
-      an[MatchError] should be thrownBy task(DoSomething(42))
-    }
-  }
-
-  it should "take custom command" in {
-    val command = DoSomething(42)
-    val event = DoneSomething("42")
-    doing(command) should be (event)
-    es.state(command).map(_ should be (Some(Seq(event))))
-    es.countEvents().map(_ should be (10007))
-  }
-
-  it should "be composable" in {
-    val composite = doing.orElse(task)
-
-    val command1 = DoSomething(24)
-    val event1 = DoneSomething("24")
-    composite(command1) should be (event1)
-    es.state(command1).map(_ should be (Some(Seq(event1))))
-    es.countEvents().map(_ should be (10008))
-
-    val command2 = Read(id)
-    val event2 = NotFound(id)
-    composite(command2) should be (event2)
-    es.state(command2).map(_ should be (Some(Seq(event2))))
-    es.countEvents().map(_ should be (10008))
-  }
-
-  case class Boring(work: String) extends Command
-  case class AtLast(done: Int) extends Event
-
-  private val boring = Task {
-    case c: Boring =>
-      Thread.sleep(1000)
-      AtLast(c.work.length)
-  }
-
-  it should "execute task in the future" in {
-    boring.future(Boring("Hello, World!")).map(_ should be (AtLast(13)))
-  }
-
-  it should "await long-running action" in {
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-    boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
   }
 }
