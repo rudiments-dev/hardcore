@@ -14,7 +14,7 @@ trait ReadRepository[K, V] extends Repository[V] {
 }
 
 
-trait WriteRepository[K ,V] extends ReadRepository[K, V] with PartialFunction[Command, Event] {
+trait WriteRepository[K ,V] extends ReadRepository[K, V] with PF1 {
   def create(key: K, value: V): IO[Created[K, V]]
   def update(key: K, value: V): IO[Updated[K, V]]
   def delete(key: K): IO[Deleted[K, V]]

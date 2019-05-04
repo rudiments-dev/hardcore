@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.{ActorEventStore, ActorTask}
+import dev.rudiments.hardcore.eventstore.ActorEventStore
 import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.hardcore.http.{CrudRouter, IDPath}
 import dev.rudiments.hardcore.repo.memory.MemoryRepo
@@ -15,7 +15,7 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
-class CrudRouterViaActorSpec extends WordSpec with Matchers with ScalatestRouteTest {
+class CrudRouterViaActorRepoSpec extends WordSpec with Matchers with ScalatestRouteTest {
   private case class Example(
     id: Long,
     name: String
@@ -24,8 +24,8 @@ class CrudRouterViaActorSpec extends WordSpec with Matchers with ScalatestRouteT
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val meta: Meta[Example] = Meta(value => ID(value.id))
   private val repo: MemoryRepo[Example] = new MemoryRepo[Example]
-  private implicit val es: ActorEventStore = new ActorEventStore
-  private val task = ActorTask(repo.handle)
+  private implicit val es: EventStore with TaskStore = new ActorEventStore
+  private val task = es.withTask(repo.handle)
   private val router: CrudRouter[Example] = new CrudRouter[Example]("example", task, IDPath[Example, Long])
   private val routes = Route.seal(router.routes)
   private val sample = Example(42, "sample")

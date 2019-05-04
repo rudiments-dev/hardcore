@@ -1,8 +1,10 @@
 package dev.rudiments.hardcore.dsl
 
 trait Command
+case object Health extends Command
 
 trait Event
+case object HealthOk extends Event
 
 trait Error extends Throwable with Event {
   override def toString: String = this match {

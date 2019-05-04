@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.{ActorEventStore, ActorTask}
+import dev.rudiments.hardcore.eventstore.ActorEventStore
 import dev.rudiments.hardcore.repo.memory.SyncMemoryRepo
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -21,9 +21,9 @@ class TaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val meta: Meta[Example] = Meta(value => ID(value.id))
   private val repo: SyncMemoryRepo[Example] = new SyncMemoryRepo[Example]()
-  private implicit val es: ActorEventStore = new ActorEventStore
+  private implicit val es: EventStore = new ActorEventStore
 
-  private val task = ActorTask(repo.handle)
+  private val task = es.task(repo.handle)
 
   private val sample = Example(42, "sample")
   private val id = sample.identify

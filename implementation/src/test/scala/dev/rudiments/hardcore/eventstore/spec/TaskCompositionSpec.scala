@@ -3,7 +3,7 @@ package dev.rudiments.hardcore.eventstore.spec
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.{ActorEventStore, ActorTask}
+import dev.rudiments.hardcore.eventstore.ActorEventStore
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{AsyncFlatSpec, Matchers}
@@ -14,17 +14,17 @@ import scala.concurrent.Future
 class TaskCompositionSpec extends AsyncFlatSpec with Matchers with StrictLogging {
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val es: ActorEventStore = new ActorEventStore
+  private implicit val es: EventStore = new ActorEventStore
 
   private case class DoSomething(a: Int) extends Command
   private case class DoneSomething(b: String) extends Event
-  private val doing = ActorTask { case c: DoSomething => DoneSomething(c.a.toString) }
+  private val doing = es.task { case c: DoSomething => DoneSomething(c.a.toString) }
 
   case class Boring(work: String) extends Command
   case class AtLast(done: Int) extends Event
 
   private var counter = 0
-  private val boring = ActorTask {
+  private val boring = es.task {
     case c: Boring =>
       counter += 1
       Thread.sleep(100)
