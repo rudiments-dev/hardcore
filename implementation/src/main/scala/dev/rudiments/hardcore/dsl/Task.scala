@@ -4,20 +4,20 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
 
 trait HardTask extends PF1 {
-  def future(command: Command): Future[Event]
 
   override def apply(command: Command): Event = {
-    Await.result(future(command), Task.defaultTimeout)
+    Await.result(async(command), Task.defaultTimeout)
   }
 
-  def run(command: Command): Event
+  def sync(command: Command): Event
+  def async(command: Command): Future[Event]
 
   def orElse(t: HardTask): HardTask = OrElseTask(this, t)
 }
 
 object NoTask extends HardTask {
-  override def run(command: Command) = NoHandler(command)
-  override def future(command: Command): Future[Event] = {
+  override def sync(command: Command) = NoHandler(command)
+  override def async(command: Command): Future[Event] = {
     Promise[Event].success(NoHandler(command)).future
   }
 
@@ -27,8 +27,8 @@ object NoTask extends HardTask {
 trait Task extends HardTask {
   val f: PF1
 
-  override def run(command: Command): Event = f match {
-    case t: HardTask => t.run(command)
+  override def sync(command: Command): Event = f match {
+    case t: HardTask => t.sync(command)
     case pf: PF1 => pf(command)
   }
 
@@ -42,13 +42,15 @@ object Task {
 
 case class OrElseTask(t1: HardTask, t2: HardTask) extends HardTask {
 
-  override def run(command: Command): Event = {
-    t1.applyOrElse(command, t2)
+  override def sync(command: Command): Event = {
+    if(t1.isDefinedAt(command)) t1.sync(command)
+    else if(t2.isDefinedAt(command)) t2.sync(command)
+    else NoHandler(command)
   }
 
-  override def future(command: Command): Future[Event] = {
-    if(t1.isDefinedAt(command)) t1.future(command)
-    else if(t2.isDefinedAt(command)) t2.future(command)
+  override def async(command: Command): Future[Event] = {
+    if(t1.isDefinedAt(command)) t1.async(command)
+    else if(t2.isDefinedAt(command)) t2.async(command)
     else Promise.failed(NoHandler(command)).future
   }
 
@@ -70,7 +72,7 @@ trait DependentTask extends HardTask {
   val f: PF2
   val r: Resolver
 
-  override def run(command: Command): Event = apply(command)
+  override def sync(command: Command): Event = apply(command)
 
   override def isDefinedAt(command: Command): Boolean = {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -111,23 +113,15 @@ trait EventStore {
   def state(command: Command): Future[Option[Event]]
   def countEvents(): Future[Long]
 
-
   def task(f: PF1): Task
-  def future(f: PF1, command: Command): Future[Event]
-
   def dependent(r: Resolver)(f: PF2): DependentTask
-  def future(f: PF2, command: Command, dependency: Command): Future[Event]
-
-  def complete(command: Command, result: Event): Unit
 }
 
 trait TaskStore extends HardTask {
-  def f: HardTask
-
   def withTask(g: PF1): TaskStore
   def withDependency(r: Resolver)(g: PF2): TaskStore
 
-  override def run(command: Command): Event = f.run(command)
-
+  def f: HardTask
+  override def sync(command: Command): Event = f.sync(command)
   override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
 }

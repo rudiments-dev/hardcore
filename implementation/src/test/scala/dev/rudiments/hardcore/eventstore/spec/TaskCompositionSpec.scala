@@ -67,7 +67,7 @@ class TaskCompositionSpec extends AsyncFlatSpec with Matchers with StrictLogging
   }
 
   it should "execute task in the future" in {
-    boring.future(Boring("Hello, World!")).map { res =>
+    boring.async(Boring("Hello, World!")).map { res =>
       counter should be (2)
       res should be (AtLast(13))
     }
@@ -75,11 +75,11 @@ class TaskCompositionSpec extends AsyncFlatSpec with Matchers with StrictLogging
 
   it should "await long-running action but run them only once" in {
     for {
-      _ <- boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-      _ <- boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-      _ <- boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-      _ <- boring.future(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
-      r <- boring.future(Boring("FooBarBaz")).map { res =>
+      _ <- boring.async(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
+      _ <- boring.async(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
+      _ <- boring.async(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
+      _ <- boring.async(Boring("FooBarBaz")).map(_ should be (AtLast(9)))
+      r <- boring.async(Boring("FooBarBaz")).map { res =>
         counter should be (3)
         res should be (AtLast(9))
       }

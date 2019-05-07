@@ -49,7 +49,7 @@ class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
     val event = DoneSomething("24")
 
     for {
-      _ <- es.future(command).map(_ should be (event))
+      _ <- es.async(command).map(_ should be (event))
       _ <- es.state(command).map(_ should be (Some(event)))
       d <- es.countEvents().map(_ should be (2))
     } yield d
@@ -58,11 +58,11 @@ class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
   it should "run task and get dependency from store" in {
     val command1 = DoSomething(50)
     val event1 = DoneSomething("50")
-    es.run(command1) should be (event1)
+    es.sync(command1) should be (event1)
 
     val command2 = Boring("composed")
     val event2 = AtLast(8, DoneSomething("50"))
-    es.run(command2) should be (event2)
+    es.sync(command2) should be (event2)
 
     counter should be (1)
 
@@ -81,7 +81,7 @@ class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
     val resolved = DoneSomething("55")
 
     for {
-      _ <- es.future(command).map { res =>
+      _ <- es.async(command).map { res =>
         counter should be (2)
         res should be (event)
       }
@@ -93,11 +93,11 @@ class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
 
   it should "await long-running action but run them only once" in {
     for {
-      _ <- es.future(Boring("FooBarBaz")).map(_ should be (AtLast(9, DoneSomething("51"))))
-      _ <- es.future(Boring("FooBarBaz")).map(_ should be (AtLast(9, DoneSomething("51"))))
-      _ <- es.future(Boring("FooBarBaz")).map(_ should be (AtLast(9, DoneSomething("51"))))
-      _ <- es.future(Boring("FooBarBaz")).map(_ should be (AtLast(9, DoneSomething("51"))))
-      _ <- es.future(Boring("FooBarBaz")).map { res =>
+      _ <- es.async(Boring("FooBarBaz")).map(_ should be (AtLast(9, DoneSomething("51"))))
+      _ <- es.async(Boring("FooBarBaz")).map(_ should be (AtLast(9, DoneSomething("51"))))
+      _ <- es.async(Boring("FooBarBaz")).map(_ should be (AtLast(9, DoneSomething("51"))))
+      _ <- es.async(Boring("FooBarBaz")).map(_ should be (AtLast(9, DoneSomething("51"))))
+      _ <- es.async(Boring("FooBarBaz")).map { res =>
           counter should be (3)
           res should be (AtLast(9, DoneSomething("51")))
         }

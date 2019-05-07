@@ -6,12 +6,13 @@ import dev.rudiments.hardcore.dsl._
 
 import scala.concurrent.{Future, Promise}
 
-class DependentActorTask(val f: PF2, val r: Resolver)(implicit val es: EventStore)
+class DependentActorTask(val f: PF2, val r: Resolver)(implicit val es: ActorEventStore)
   extends DependentTask {
 
-  override def future(command: Command): Future[Event] = {
-    //TODO if(!f.isDefinedAt(withDependency)) throw new MatchError(withDependency)
-    es.future(f, command, r(command))
+  override def async(command: Command): Future[Event] = {
+    val promise = Promise[Event]
+    es.system.actorOf(DependentActorAction.props(f, command, r(command), promise)(es))
+    promise.future
   }
 }
 
@@ -47,7 +48,7 @@ class DependentActorAction(
     case Done(d, event) if dependency == d && canFire =>
       val result = f((command, event))
       context.system.eventStream.unsubscribe(self)
-      es.complete(command, result)
+      es.ref ! Complete(command, result)
       promise.success(result)
 
   }

@@ -25,40 +25,19 @@ class ActorEventStore()(implicit val system: ActorSystem) extends EventStore wit
   }
 
   override def withTask(g: PF1): ActorEventStore = {
-    val hard: HardTask = g match {
-      case t: HardTask => task.orElse(t)
-      case pf: PF1 => new ActorTask(pf)(this)
-    }
-    task = task orElse hard
+    task = task orElse task(g)
     this
   }
 
   override def withDependency(r: Resolver)(g: PF2): ActorEventStore = {
-    task = task.orElse(new DependentActorTask(g, r)(this))
+    task = task.orElse(dependent(r)(g))
     this
   }
 
-  override def future(command: Command): Future[Event] = {
-    f.future(command)
-  }
+  override def async(command: Command): Future[Event] = f.async(command)
 
   override def task(f: PF1): ActorTask = new ActorTask(f)(this)
-  override def future(f: PF1, command: Command): Future[Event] = {
-    val promise = Promise[Event]
-    implicit val callback: ActorRef = system.actorOf(ActorAction.props(f, command, promise)(this))
-    promise.future
-  }
-
   override def dependent(r: Resolver)(f: PF2): DependentActorTask = new DependentActorTask(f, r)(this)
-  override def future(f: PF2, command: Command, dependency: Command): Future[Event] = {
-    val promise = Promise[Event]
-    system.actorOf(DependentActorAction.props(f, command, dependency, promise)(this))
-    promise.future
-  }
-
-  override def complete(command: Command, result: Event): Unit = {
-    ref ! EventStoreActor.Complete(command, result)
-  }
 }
 
 
@@ -93,7 +72,7 @@ class EventStoreActor(ts: TaskStore) extends Actor with StrictLogging {
 
         case None if ts.isDefinedAt(dependency) =>
           logger.debug("Resolving dependency {}", dependency)
-          ts.future(dependency)
+          ts.async(dependency)
           sender() ! InProgress(dependency)
 
         case None if !ts.isDefinedAt(dependency) =>

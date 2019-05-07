@@ -8,11 +8,13 @@ import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
 
 
-class ActorTask(val f: PF1)(implicit es: EventStore) extends Task {
+class ActorTask(val f: PF1)(implicit es: ActorEventStore) extends Task {
 
-  override def future(command: Command): Future[Event] = {
+  override def async(command: Command): Future[Event] = {
     if(!f.isDefinedAt(command)) throw new MatchError(command)
-    es.future(f, command)
+    val promise = Promise[Event]
+    es.system.actorOf(ActorAction.props(f, command, promise)(es))
+    promise.future
   }
 }
 
@@ -29,11 +31,11 @@ class ActorAction(val f: PF1, val command: Command, val promise: Promise[Event])
       val result = f match {
         case h: Task => h.f(command)
         case _: DependentTask => ???
-        case or: OrElseTask => or.run(command)
+        case or: OrElseTask => or.sync(command)
         case pf: PF1 => pf(command)
       }
       context.system.eventStream.unsubscribe(self)
-      es.complete(command, result)
+      es.ref ! Complete(command, result)
       promise.success(result)
 
     case InProgress(c: Command) if command == c =>
