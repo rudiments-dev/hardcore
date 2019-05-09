@@ -3,7 +3,7 @@ package dev.rudiments.hardcore.eventstore.spec
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.ActorEventStore
+import dev.rudiments.hardcore.eventstore.ActorMemory
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{AsyncFlatSpec, Matchers}
@@ -11,20 +11,20 @@ import org.scalatest.{AsyncFlatSpec, Matchers}
 import scala.concurrent.Future
 
 @RunWith(classOf[JUnitRunner])
-class TaskCompositionSpec extends AsyncFlatSpec with Matchers with StrictLogging {
+class SkillCompositionSpec extends AsyncFlatSpec with Matchers with StrictLogging {
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val es: EventStore = new ActorEventStore
+  private implicit val es: Memory = new ActorMemory
 
   private case class DoSomething(a: Int) extends Command
   private case class DoneSomething(b: String) extends Event
-  private val doing = es.task { case c: DoSomething => DoneSomething(c.a.toString) }
+  private val doing = es.skill { case c: DoSomething => DoneSomething(c.a.toString) }
 
   case class Boring(work: String) extends Command
   case class AtLast(done: Int) extends Event
 
   private var counter = 0
-  private val boring = es.task {
+  private val boring = es.skill {
     case c: Boring =>
       counter += 1
       Thread.sleep(100)
@@ -66,7 +66,7 @@ class TaskCompositionSpec extends AsyncFlatSpec with Matchers with StrictLogging
     } yield d
   }
 
-  it should "execute task in the future" in {
+  it should "use skill asynchronously" in {
     boring.async(Boring("Hello, World!")).map { res =>
       counter should be (2)
       res should be (AtLast(13))

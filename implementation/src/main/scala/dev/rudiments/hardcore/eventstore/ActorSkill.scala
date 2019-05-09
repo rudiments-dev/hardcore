@@ -8,7 +8,7 @@ import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
 
 
-class ActorTask(val f: PF1)(implicit es: ActorEventStore) extends Task {
+class ActorSkill(val f: PF1)(implicit es: ActorMemory) extends Skill {
 
   override def async(command: Command): Future[Event] = {
     if(!f.isDefinedAt(command)) throw new MatchError(command)
@@ -19,19 +19,19 @@ class ActorTask(val f: PF1)(implicit es: ActorEventStore) extends Task {
 }
 
 
-class ActorAction(val f: PF1, val command: Command, val promise: Promise[Event])(implicit es: ActorEventStore)
+class ActorAction(val f: PF1, val command: Command, val promise: Promise[Event])(implicit es: ActorMemory)
   extends Actor with StrictLogging with Action {
 
   import ActorAction._
-  import EventStoreActor._
+  import MemoryActor._
   es.ref ! ReadyToDo(command)
   es.system.eventStream.subscribe(self, classOf[Done])
   override def receive: Receive = {
     case GoOn(c: Command) if command == c =>
       val result = f match {
-        case h: Task => h.f(command)
-        case _: DependentTask => ???
-        case or: OrElseTask => or.sync(command)
+        case h: Skill => h.f(command)
+        case _: DependentSkill => ???
+        case or: OrElseSkill => or.sync(command)
         case pf: PF1 => pf(command)
       }
       context.system.eventStream.unsubscribe(self)
@@ -51,6 +51,6 @@ object ActorAction {
   case class Done(command: Command, event: Event)
   case class InProgress(command: Command)
 
-  def props(f: PF1, command: Command, promise: Promise[Event])(implicit es: ActorEventStore): Props =
+  def props(f: PF1, command: Command, promise: Promise[Event])(implicit es: ActorMemory): Props =
     Props(new ActorAction(f, command, promise))
 }

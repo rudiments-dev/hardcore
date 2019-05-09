@@ -3,14 +3,14 @@ package dev.rudiments.hardcore.eventstore.spec
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.ActorEventStore
+import dev.rudiments.hardcore.eventstore.ActorMemory
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{AsyncFlatSpec, Matchers}
 
 
 @RunWith(classOf[JUnitRunner])
-class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
+class DependentSkillSpec extends AsyncFlatSpec with Matchers with StrictLogging {
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
 
@@ -21,7 +21,7 @@ class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
   private case class AtLast(done: Int, something: DoneSomething) extends Event
   private var counter = 0
 
-  private implicit val es: EventStore with TaskStore = new ActorEventStore().withTask {
+  private implicit val es: Memory with SkillSet = new ActorMemory().withSkill {
     case c: DoSomething =>
       Thread.sleep(100)
       DoneSomething(c.a.toString)
@@ -33,7 +33,7 @@ class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
   }
 
 
-  it should "run dependent task as usual" in {
+  it should "run dependent skill as usual" in {
     val command = DoSomething(42)
     val event = DoneSomething("42")
     es(command) should be (event)
@@ -44,7 +44,7 @@ class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
     } yield d
   }
 
-  it should "run dependent task in future" in {
+  it should "run dependent skill in future" in {
     val command = DoSomething(24)
     val event = DoneSomething("24")
 
@@ -55,7 +55,7 @@ class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
     } yield d
   }
 
-  it should "run task and get dependency from store" in {
+  it should "run skill and get dependency from store" in {
     val command1 = DoSomething(50)
     val event1 = DoneSomething("50")
     es.sync(command1) should be (event1)
@@ -73,7 +73,7 @@ class DependentTaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
     } yield d
   }
 
-  it should "ask to run dependent task" in {
+  it should "ask to run dependent skill" in {
     val command = Boring("Hello, World!")
     val event = AtLast(13, DoneSomething("55"))
 

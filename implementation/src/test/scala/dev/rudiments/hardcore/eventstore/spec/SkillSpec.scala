@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.ActorEventStore
+import dev.rudiments.hardcore.eventstore.ActorMemory
 import dev.rudiments.hardcore.repo.memory.SyncMemoryRepo
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -12,7 +12,7 @@ import org.scalatest.{AsyncFlatSpec, Matchers}
 
 
 @RunWith(classOf[JUnitRunner])
-class TaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
+class SkillSpec extends AsyncFlatSpec with Matchers with StrictLogging {
   private case class Example(
     id: Long,
     name: String
@@ -21,16 +21,16 @@ class TaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val meta: Meta[Example] = Meta(value => ID(value.id))
   private val repo: SyncMemoryRepo[Example] = new SyncMemoryRepo[Example]()
-  private implicit val es: EventStore = new ActorEventStore
+  private implicit val es: Memory = new ActorMemory
 
-  private val task = es.task(repo.handle)
+  private val skill = es.skill(repo.handle)
 
   private val sample = Example(42, "sample")
   private val id = sample.identify
 
   def check(name: String, command: Command, event: Event, count: Long): Unit = {
     it should name in {
-      task(command) should be (event)
+      skill(command) should be (event)
       for {
         _ <- es.state(command).map(_ should be (Some(event)))
         r <- es.countEvents().map(_ should be (count))
@@ -46,7 +46,7 @@ class TaskSpec extends AsyncFlatSpec with Matchers with StrictLogging {
 
   it should "endure 10.000 records" in {
     (1 to 10000).foreach { i =>
-      task(Create(ID(i), Example(i, s"$i'th element"))) should be (Created(ID(i), Example(i, s"$i'th element")))
+      skill(Create(ID(i), Example(i, s"$i'th element"))) should be (Created(ID(i), Example(i, s"$i'th element")))
     }
     es.countEvents().map(_ should be (10004))
   }

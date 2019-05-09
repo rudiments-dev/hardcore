@@ -3,15 +3,15 @@ package dev.rudiments.hardcore.eventstore
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore.dsl
-import dev.rudiments.hardcore.dsl.{Command, Event, EventStore, HardTask, NoHandler, NoTask, NotImplemented, PF1, PF2, Resolver, TaskStore}
+import dev.rudiments.hardcore.dsl.{Command, Event, Memory, HardSkill, NoHandler, NoSkill, PF1, PF2, Resolver, SkillSet}
 
 import scala.collection.mutable
 import scala.concurrent.{Future, Promise}
 
-class ActorEventStore()(implicit val system: ActorSystem) extends EventStore with TaskStore {
-  val ref: ActorRef = system.actorOf(EventStoreActor.props(this))
-  private var task: HardTask = NoTask
-  override def f: HardTask = task
+class ActorMemory()(implicit val system: ActorSystem) extends Memory with SkillSet {
+  val ref: ActorRef = system.actorOf(MemoryActor.props(this))
+  private var skills: HardSkill = NoSkill
+  override def f: HardSkill = skills
 
   override def state(): Future[Seq[Event]] = viaPromise(Events)
   override def commands(): Future[Map[Command, Event]] = viaPromise(Commands)
@@ -24,29 +24,27 @@ class ActorEventStore()(implicit val system: ActorSystem) extends EventStore wit
     promise.future
   }
 
-  override def withTask(g: PF1): ActorEventStore = {
-    task = task orElse task(g)
+  override def withSkill(g: PF1): ActorMemory = {
+    skills = skills orElse skill(g)
     this
   }
 
-  override def withDependency(r: Resolver)(g: PF2): ActorEventStore = {
-    task = task.orElse(dependent(r)(g))
+  override def withDependency(r: Resolver)(g: PF2): ActorMemory = {
+    skills = skills.orElse(dependent(r)(g))
     this
   }
 
-  override def async(command: Command): Future[Event] = f.async(command)
-
-  override def task(f: PF1): ActorTask = new ActorTask(f)(this)
-  override def dependent(r: Resolver)(f: PF2): DependentActorTask = new DependentActorTask(f, r)(this)
+  override def skill(f: PF1): ActorSkill = new ActorSkill(f)(this)
+  override def dependent(r: Resolver)(f: PF2): DependentActorSkill = new DependentActorSkill(f, r)(this)
 }
 
 
-class EventStoreActor(ts: TaskStore) extends Actor with StrictLogging {
+class MemoryActor(ts: SkillSet) extends Actor with StrictLogging {
   private val events = mutable.ArrayBuffer.empty[Event]
   private val commands = mutable.Map.empty[Command, Event]
 
   import ActorAction._
-  import EventStoreActor._
+  import MemoryActor._
   override def receive: Receive = {
     case ReadyToDo(command) =>
       commands.get(command) match {
@@ -68,7 +66,7 @@ class EventStoreActor(ts: TaskStore) extends Actor with StrictLogging {
       logger.debug("Required {}", dependency)
       commands.get(dependency) match {
         case Some(dsl.InProgress) => sender() ! InProgress(dependency)
-        case Some(exists) => sender() ! ActorAction.Done(dependency, exists)
+        case Some(exists) => sender() ! Done(dependency, exists)
 
         case None if ts.isDefinedAt(dependency) =>
           logger.debug("Resolving dependency {}", dependency)
@@ -89,16 +87,16 @@ class EventStoreActor(ts: TaskStore) extends Actor with StrictLogging {
   }
 
   def publish(command: Command, event: Event): Unit = {
-    context.system.eventStream.publish(ActorAction.Done(command, event))
+    context.system.eventStream.publish(Done(command, event))
   }
 }
 
-object EventStoreActor {
+object MemoryActor {
   case class ReadyToDo(command: Command)
   case class Requires(command: Command)
   case class Complete(command: Command, event: Event)
 
-  def props(ts: TaskStore): Props = Props(new EventStoreActor(ts))
+  def props(ts: SkillSet): Props = Props(new MemoryActor(ts))
 }
 
 private case class Events(promise: Promise[Seq[Event]])

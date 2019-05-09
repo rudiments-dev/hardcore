@@ -3,7 +3,7 @@ package dev.rudiments.hardcore.repo.actor.spec
 import akka.actor.ActorSystem
 import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.ActorEventStore
+import dev.rudiments.hardcore.eventstore.ActorMemory
 import dev.rudiments.hardcore.repo.actor.ActorDataHandler
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -18,7 +18,7 @@ class ActorDataHandlerSpec extends AsyncFlatSpec with Matchers {
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val meta: Meta[Example] = Meta(value => ID(value.id))
-  private implicit val es: ActorEventStore = new ActorEventStore
+  private implicit val es: ActorMemory = new ActorMemory
 
   private val handler: ActorDataHandler[Example] = new ActorDataHandler[Example]
 

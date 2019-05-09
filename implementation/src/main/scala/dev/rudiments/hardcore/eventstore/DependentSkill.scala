@@ -6,8 +6,8 @@ import dev.rudiments.hardcore.dsl._
 
 import scala.concurrent.{Future, Promise}
 
-class DependentActorTask(val f: PF2, val r: Resolver)(implicit val es: ActorEventStore)
-  extends DependentTask {
+class DependentActorSkill(val f: PF2, val r: Resolver)(implicit val es: ActorMemory)
+  extends DependentSkill {
 
   override def async(command: Command): Future[Event] = {
     val promise = Promise[Event]
@@ -22,10 +22,10 @@ class DependentActorAction(
   val command: Command,
   val dependency: Command,
   val promise: Promise[Event]
-)(implicit es: ActorEventStore)
+)(implicit es: ActorMemory)
   extends Actor with StrictLogging with DependentAction {
 
-  import EventStoreActor._
+  import MemoryActor._
   import ActorAction._
 
   private var canFire = false
@@ -60,6 +60,6 @@ object DependentActorAction {
     command: Command,
     dependency: Command,
     promise: Promise[Event]
-  )(implicit es: ActorEventStore): Props =
+  )(implicit es: ActorMemory): Props =
     Props(new DependentActorAction(f, command, dependency, promise))
 }

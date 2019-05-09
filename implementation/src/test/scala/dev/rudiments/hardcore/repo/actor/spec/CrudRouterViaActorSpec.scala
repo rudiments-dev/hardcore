@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.dsl._
-import dev.rudiments.hardcore.eventstore.ActorEventStore
+import dev.rudiments.hardcore.eventstore.ActorMemory
 import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.hardcore.http.{CrudRouter, IDPath}
 import dev.rudiments.hardcore.repo.actor.ActorDataHandler
@@ -23,7 +23,7 @@ class CrudRouterViaActorSpec extends AsyncFlatSpec with Matchers with ScalatestR
 
   implicit val actorSystem: ActorSystem = ActorSystem()
   implicit val meta: Meta[Example] = Meta(value => ID(value.id))
-  implicit val es: ActorEventStore = new ActorEventStore
+  implicit val es: ActorMemory = new ActorMemory
 
   val handler: ActorDataHandler[Example] = new ActorDataHandler[Example]
 

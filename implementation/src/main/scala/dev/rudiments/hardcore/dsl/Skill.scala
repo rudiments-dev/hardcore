@@ -3,19 +3,19 @@ package dev.rudiments.hardcore.dsl
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
 
-trait HardTask extends PF1 {
+trait HardSkill extends PF1 {
 
   override def apply(command: Command): Event = {
-    Await.result(async(command), Task.defaultTimeout)
+    Await.result(async(command), Skill.defaultTimeout)
   }
 
   def sync(command: Command): Event
   def async(command: Command): Future[Event]
 
-  def orElse(t: HardTask): HardTask = OrElseTask(this, t)
+  def orElse(t: HardSkill): HardSkill = OrElseSkill(this, t)
 }
 
-object NoTask extends HardTask {
+object NoSkill extends HardSkill {
   override def sync(command: Command) = NoHandler(command)
   override def async(command: Command): Future[Event] = {
     Promise[Event].success(NoHandler(command)).future
@@ -24,23 +24,23 @@ object NoTask extends HardTask {
   override def isDefinedAt(x: Command): Boolean = true
 }
 
-trait Task extends HardTask {
+trait Skill extends HardSkill {
   val f: PF1
 
   override def sync(command: Command): Event = f match {
-    case t: HardTask => t.sync(command)
+    case t: HardSkill => t.sync(command)
     case pf: PF1 => pf(command)
   }
 
   override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
 }
 
-object Task {
+object Skill {
   val defaultTimeout: Duration = Duration("5 seconds")
 }
 
 
-case class OrElseTask(t1: HardTask, t2: HardTask) extends HardTask {
+case class OrElseSkill(t1: HardSkill, t2: HardSkill) extends HardSkill {
 
   override def sync(command: Command): Event = {
     if(t1.isDefinedAt(command)) t1.sync(command)
@@ -57,18 +57,18 @@ case class OrElseTask(t1: HardTask, t2: HardTask) extends HardTask {
   override def isDefinedAt(x: Command): Boolean = t1.isDefinedAt(x) || t2.isDefinedAt(x)
 }
 
-object OrElseTask {
-  def apply(t1: HardTask, t2: HardTask): HardTask = (t1, t2) match {
-    case (NoTask, NoTask) => NoTask
-    case (a: HardTask, NoTask) => a
-    case (NoTask, b: HardTask) => b
-    case (a: HardTask, b: HardTask) => new OrElseTask(a, b)
+object OrElseSkill {
+  def apply(t1: HardSkill, t2: HardSkill): HardSkill = (t1, t2) match {
+    case (NoSkill, NoSkill) => NoSkill
+    case (a: HardSkill, NoSkill) => a
+    case (NoSkill, b: HardSkill) => b
+    case (a: HardSkill, b: HardSkill) => new OrElseSkill(a, b)
   }
 }
 
 
-trait DependentTask extends HardTask {
-  val es: EventStore
+trait DependentSkill extends HardSkill {
+  val es: Memory
   val f: PF2
   val r: Resolver
 
@@ -87,7 +87,7 @@ trait DependentTask extends HardTask {
           case _ => true
         }
       } yield c && d,
-      Task.defaultTimeout
+      Skill.defaultTimeout
     )
   }
 }
@@ -107,21 +107,28 @@ trait DependentAction {
   val promise: Promise[Event]
 }
 
-trait EventStore {
+trait Memory {
   def state(): Future[Seq[Event]]
   def commands(): Future[Map[Command, Event]]
   def state(command: Command): Future[Option[Event]]
   def countEvents(): Future[Long]
 
-  def task(f: PF1): Task
-  def dependent(r: Resolver)(f: PF2): DependentTask
+  def skill(f: PF1): Skill
+  def dependent(r: Resolver)(f: PF2): DependentSkill
 }
 
-trait TaskStore extends HardTask {
-  def withTask(g: PF1): TaskStore
-  def withDependency(r: Resolver)(g: PF2): TaskStore
+trait SkillSet extends PF1 {
+  override def apply(command: Command): Event = {
+    Await.result(async(command), Skill.defaultTimeout)
+  }
 
-  def f: HardTask
-  override def sync(command: Command): Event = f.sync(command)
+
+
+  def withSkill(g: PF1): SkillSet
+  def withDependency(r: Resolver)(g: PF2): SkillSet
+
+  def f: HardSkill
+  def sync(command: Command): Event = f.sync(command)
+  def async(command: Command): Future[Event] = f.async(command)
   override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
 }
