@@ -1,4 +1,5 @@
 #Hard Core
+
 [![Build Status](https://travis-ci.org/gennady-lebedev/hard-core.svg?branch=master)](https://travis-ci.org/gennady-lebedev/hard-core)
 
 Research project and bootstrap library for mastering:
