@@ -11,7 +11,7 @@ import org.scalatest.{AsyncFlatSpec, Matchers}
 import scala.concurrent.Future
 
 @RunWith(classOf[JUnitRunner])
-class SkillCompositionSpec extends AsyncFlatSpec with Matchers with StrictLogging {
+class HardSkillCompositionSpec extends AsyncFlatSpec with Matchers with StrictLogging {
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val es: Memory = new ActorMemory

@@ -8,7 +8,7 @@ import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
 
 
-class ActorSkill(val f: PF1)(implicit es: ActorMemory) extends Skill {
+class ActorHardSkill(val f: PF1)(implicit es: ActorMemory) extends HardSkill {
 
   override def async(command: Command): Future[Event] = {
     if(!f.isDefinedAt(command)) throw new MatchError(command)
@@ -29,7 +29,7 @@ class ActorAction(val f: PF1, val command: Command, val promise: Promise[Event])
   override def receive: Receive = {
     case GoOn(c: Command) if command == c =>
       val result = f match {
-        case h: Skill => h.f(command)
+        case h: HardSkill => h.f(command)
         case _: DependentSkill => ???
         case or: OrElseSkill => or.sync(command)
         case pf: PF1 => pf(command)

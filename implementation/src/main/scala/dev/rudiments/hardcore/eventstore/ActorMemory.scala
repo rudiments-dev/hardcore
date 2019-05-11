@@ -3,15 +3,15 @@ package dev.rudiments.hardcore.eventstore
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore.dsl
-import dev.rudiments.hardcore.dsl.{Command, Event, Memory, HardSkill, NoHandler, NoSkill, PF1, PF2, Resolver, SkillSet}
+import dev.rudiments.hardcore.dsl.{Command, Event, Memory, Skill, NoHandler, NoSkill, PF1, PF2, Resolver, SkillSet}
 
 import scala.collection.mutable
 import scala.concurrent.{Future, Promise}
 
 class ActorMemory()(implicit val system: ActorSystem) extends Memory with SkillSet {
   val ref: ActorRef = system.actorOf(MemoryActor.props(this))
-  private var skills: HardSkill = NoSkill
-  override def f: HardSkill = skills
+  private var skills: Skill = NoSkill
+  override def skill: Skill = skills
 
   override def state(): Future[Seq[Event]] = viaPromise(Events)
   override def commands(): Future[Map[Command, Event]] = viaPromise(Commands)
@@ -34,7 +34,7 @@ class ActorMemory()(implicit val system: ActorSystem) extends Memory with SkillS
     this
   }
 
-  override def skill(f: PF1): ActorSkill = new ActorSkill(f)(this)
+  override def skill(f: PF1): ActorHardSkill = new ActorHardSkill(f)(this)
   override def dependent(r: Resolver)(f: PF2): DependentActorSkill = new DependentActorSkill(f, r)(this)
 }
 

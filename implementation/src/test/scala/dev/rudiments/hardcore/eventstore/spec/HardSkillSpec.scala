@@ -12,7 +12,7 @@ import org.scalatest.{AsyncFlatSpec, Matchers}
 
 
 @RunWith(classOf[JUnitRunner])
-class SkillSpec extends AsyncFlatSpec with Matchers with StrictLogging {
+class HardSkillSpec extends AsyncFlatSpec with Matchers with StrictLogging {
   private case class Example(
     id: Long,
     name: String
