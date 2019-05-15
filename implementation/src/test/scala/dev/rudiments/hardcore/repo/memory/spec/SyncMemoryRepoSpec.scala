@@ -1,16 +1,16 @@
 package dev.rudiments.hardcore.repo.memory.spec
 
-import org.scalatest.{Matchers, WordSpec}
-import dev.rudiments.hardcore.dsl._
 import dev.rudiments.hardcore.dsl.ID._
-import dev.rudiments.hardcore.repo.memory.MemoryRepo
+import dev.rudiments.hardcore.dsl._
+import dev.rudiments.hardcore.repo.memory.SyncMemoryRepo
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.Random
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
 
 @RunWith(classOf[JUnitRunner])
-class MemoryRepoSpec extends WordSpec with Matchers {
+class SyncMemoryRepoSpec extends WordSpec with Matchers {
   case class Example(
     id: Long,
     name: String,
@@ -18,7 +18,7 @@ class MemoryRepoSpec extends WordSpec with Matchers {
   )
 
   implicit val meta: Meta[Example] = Meta(value => ID(value.id))
-  val repo: MemoryRepo[Example] = new MemoryRepo[Example]
+  val repo: SyncMemoryRepo[Example] = new SyncMemoryRepo[Example]
   val sample = Example(42, "sample")
   val id = sample.identify
 

@@ -1,30 +1,35 @@
 package dev.rudiments.hardcore.http.spec
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
-import org.scalatest.{Matchers, WordSpec}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.dsl.ID._
 import dev.rudiments.hardcore.dsl._
+import dev.rudiments.hardcore.eventstore.ActorMemory
+import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.hardcore.http.{CrudRouter, IDPath}
 import dev.rudiments.hardcore.repo.memory.MemoryRepo
-import dev.rudiments.hardcore.http.CirceSupport._
-import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
-class CrudRouterSpec extends WordSpec with Matchers with ScalatestRouteTest {
-  case class Example(
+class CrudRouterViaActorRepoSpec extends WordSpec with Matchers with ScalatestRouteTest {
+  private case class Example(
     id: Long,
     name: String
   )
 
-  implicit val meta: Meta[Example] = Meta(value => ID(value.id))
-  val repo: MemoryRepo[Example] = new MemoryRepo[Example]
-  val router: CrudRouter[Example] = new CrudRouter[Example]("example", repo.handle, IDPath[Example, Long])
-  val routes = Route.seal(router.routes)
-  val sample = Example(42, "sample")
-  val id = sample.identify
+  private implicit val actorSystem: ActorSystem = ActorSystem()
+  private implicit val meta: Meta[Example] = Meta(value => ID(value.id))
+  private val repo: MemoryRepo[Example] = new MemoryRepo[Example]
+  private implicit val es: Memory with SkillSet = new ActorMemory
+  private val skill = es.withSkill(repo.handle)
+  private val router: CrudRouter[Example] = new CrudRouter[Example]("example", skill, IDPath[Example, Long])
+  private val routes = Route.seal(router.routes)
+  private val sample = Example(42, "sample")
+  private val id = sample.identify
 
   "no element by ID" in {
     Get("/example/42") ~> routes ~> check {
@@ -46,9 +51,9 @@ class CrudRouterSpec extends WordSpec with Matchers with ScalatestRouteTest {
     }
   }
 
-  "multiple inserts with same ID causes exception" in {
+  "same command returns same result" in {
     Post("/example", sample) ~> routes ~> check {
-      response.status should be (StatusCodes.Conflict)
+      response.status should be (StatusCodes.Created)
     }
   }
 

@@ -3,8 +3,7 @@ package dev.rudiments.hardcore.repo.sql
 import cats.effect.IO
 import dev.rudiments.hardcore.dsl.{Meta => _, Query => _, _}
 import dev.rudiments.hardcore.dsl
-import dev.rudiments.hardcore.repo.{Table, WriteRepository}
-import dev.rudiments.hardcore.dsl.ID._
+import dev.rudiments.hardcore.repo.{PlainRepository, Table}
 import doobie._
 import doobie.implicits._
 import shapeless.HNil
@@ -12,7 +11,7 @@ import shapeless.HNil
 import scala.language.implicitConversions
 
 
-class SqlWriteRepository[A : Table : dsl.Meta](implicit xa: Transactor[IO]) extends WriteRepository[A] {
+class SqlWriteRepository[A : Table : dsl.Meta](implicit xa: Transactor[IO]) extends PlainRepository[A] {
 
   private val table = implicitly[Table[A]]
   import table.{read, write}
@@ -20,16 +19,16 @@ class SqlWriteRepository[A : Table : dsl.Meta](implicit xa: Transactor[IO]) exte
   private implicit def connection2IO[T](connectionIO: ConnectionIO[T]): IO[T] = connectionIO.transact(xa)
 
   object Raw {
-    def create(draft: A): ConnectionIO[A] = {
-      val values = table.unwrap(draft)
+    def create(key: ID[A], value: A): ConnectionIO[A] = {
+      val values = table.unwrap(value)
       val sql =
         s"""
            |INSERT INTO ${table.tableName} (${values.map(_._1).mkString(", ")})
            |VALUES
            |(${values.map(_ => "?").mkString(", ")})
          """.stripMargin //todo refact, but auto unwrap is pretty good
-      val insertIO = doobie.Update[A](sql).toUpdate0(draft).run
-      val getIO = get(draft.identify)
+      val insertIO = doobie.Update[A](sql).toUpdate0(value).run
+      val getIO = get(key)
 
       for {
         _ <- insertIO
@@ -40,8 +39,8 @@ class SqlWriteRepository[A : Table : dsl.Meta](implicit xa: Transactor[IO]) exte
       }
     }
 
-    def get(id: ID[A]): ConnectionIO[Option[A]] = {
-      val keys = table.keyColumns.zip(id.values())
+    def get(key: ID[A]): ConnectionIO[Option[A]] = {
+      val keys = table.keyColumns.zip(key.values())
       val sql =
         s"""
           | SELECT *
@@ -64,28 +63,28 @@ class SqlWriteRepository[A : Table : dsl.Meta](implicit xa: Transactor[IO]) exte
 
   }
 
-  override def create(draft: A): IO[Created[A]] =
-    Raw.create(draft).map(a => Created(a.identify, a))
+  override def create(key: ID[A], value: A): IO[Created[ID[A], A]] =
+    Raw.create(key, value).map(a => Created(key, a))
 
-  override def update(value: A): IO[Updated[A]] = ???
+  override def update(key:ID[A], value: A): IO[Updated[ID[A], A]] = ???
 
-  override def delete(id: ID[A]): IO[Deleted[A]] = Raw.get(id).map {
+  override def delete(id: ID[A]): IO[Deleted[ID[A], A]] = Raw.get(id).map {
     case Some(v) =>
       Raw.delete(id)
       Deleted(id, v)
     case None => throw NotFound(id)
   }
 
-  override def createAll(values: Iterable[A]): IO[BatchCreated[A]] = ???
-
-  override def deleteAll(): IO[AllDeleted[A]] = ???
-
-  override def get(id: ID[A]): IO[Result[A]] = Raw.get(id).map {
-    case Some(v) => Result(id, v)
-    case None => throw NotFound(id)
+  override def get(key: ID[A]): IO[Result[ID[A], A]] = Raw.get(key).map {
+    case Some(v) => Result(key, v)
+    case None => throw NotFound(key)
   }
 
   override def find(query: dsl.Query[A]): IO[QueryResult[A]] = ???
 
   override def count(filters: Filter[A]*): IO[Long] = ???
+
+  override def createAll(values: Map[ID[A], A]): IO[AllCreated[ID[A], A]] = ???
+
+  override def deleteAll(): IO[AllDeleted[ID[A], A]] = ???
 }

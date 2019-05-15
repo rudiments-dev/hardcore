@@ -4,67 +4,61 @@ import dev.rudiments.hardcore.dsl._
 
 import cats.effect._
 
-trait Repository[A] {}
+trait Repository[V] {}
 
 
-trait ReadRepository[A] extends Repository[A] {
-  def get(id: ID[A]): IO[Result[A]]
-  def find(query: Query[A]): IO[QueryResult[A]]
-  def count(filters: Filter[A]*): IO[Long]
+trait ReadRepository[K, V] extends Repository[V] {
+  def get(key: K): IO[Result[K, V]]
+  def find(query: Query[V]): IO[QueryResult[V]]
+  def count(filters: Filter[V]*): IO[Long]
 }
 
 
-trait WriteRepository[A] extends ReadRepository[A] with CommandHandler[A] {
-  def create(draft: A): IO[Created[A]]
-  def update(value: A): IO[Updated[A]]
-  def delete(id: ID[A]): IO[Deleted[A]]
+trait WriteRepository[K ,V] extends ReadRepository[K, V] with PF1 {
+  def create(key: K, value: V): IO[Created[K, V]]
+  def update(key: K, value: V): IO[Updated[K, V]]
+  def delete(key: K): IO[Deleted[K, V]]
 
-  def createAll(values: Iterable[A]): IO[BatchCreated[A]]
-  def deleteAll(): IO[AllDeleted[A]]
+  def createAll(values: Map[K, V]): IO[AllCreated[K, V]]
+  def deleteAll(): IO[AllDeleted[K, V]]
 
-  def handle(command: Command[A]): Event[A] = command match {
-    case Read(id) => get(id).attempt.unsafeRunSync() match {
-      case Right(result) => result
-      case Left(error: Error[A]) => error
-      case Left(error) => Failed(command, error)
-    }
+  override def apply(command: Command):Event = handle(command)
+  override def isDefinedAt(x: Command): Boolean = handle.isDefinedAt(x)
 
-    case Create(value) => create(value).attempt.unsafeRunSync() match {
+  val io: PartialFunction[Command, IO[Event]] = {
+    case c:Create[K, V] =>  create(c.key, c.value)
+    case c:Read[K, V] =>    get(c.key)
+    case c:Update[K, V] =>  update(c.key, c.value)
+    case c:Delete[K, V] =>  delete(c.key)
+
+    case c:CreateAll[K, V] =>  createAll(c.values)
+    case _:DeleteAll[K, V] =>  deleteAll()
+  }
+
+  val handle: PartialFunction[Command, Event] = io.andThen(handleIO)
+
+  private def handleIO(action: IO[Event]): Event = {
+    action.attempt.unsafeRunSync() match {
       case Right(created) => created
-      case Left(error: Error[A]) => error
-      case Left(error) => Failed(command, error)
+      case Left(error: Error) => error
+      case Left(error) => Internal(error)
     }
-
-    case Update(value) => update(value).attempt.unsafeRunSync() match {
-      case Right(updated) => updated
-      case Left(error: Error[A]) => error
-      case Left(error) => Failed(command, error)
-    }
-
-    case Delete(id) => delete(id).attempt.unsafeRunSync() match {
-      case Right(deleted) => deleted
-      case Left(error: Error[A]) => error
-      case Left(error) => Failed(command, error)
-    }
-
-    case CreateBatch(values) => createAll(values).attempt.unsafeRunSync() match {
-      case Right(created) => created
-      case Left(error: Error[A]) => error
-      case Left(error) => Failed(command, error)
-    }
-
-    case DeleteAll() => deleteAll().attempt.unsafeRunSync() match {
-      case Right(deleted) => deleted
-      case Left(error: Error[A]) => error
-      case Left(error) => Failed(command, error)
-    }
-
-    case _ => NotImplemented("command handler on WriteRepository")
   }
 }
 
+abstract class PlainRepository[A](implicit meta: Meta[A]) extends WriteRepository[ID[A], A] {
+  import dev.rudiments.hardcore.dsl.ID._
+
+  def create(value: A): IO[Created[ID[A], A]] = create(value.identify, value)
+  def update(value: A): IO[Updated[ID[A], A]] = update(value.identify, value)
+
+  def createAll(values: Iterable[A]): IO[AllCreated[ID[A], A]] = createAll(
+    values.groupBy(_.identify).mapValues(_.head)
+  )
+
+}
 
 trait SingleRepo[A] extends Repository[A] {
-  def get(): IO[Result[A]]
-  def update(value: A): IO[Updated[A]]
+  def get(): IO[Result[Unit, A]]
+  def update(value: A): IO[Updated[Unit, A]]
 }
