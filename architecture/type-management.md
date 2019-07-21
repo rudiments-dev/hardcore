@@ -9,6 +9,8 @@ With domain-separated modules (`Sub-Domains`).
 ## Type Registry
 Holds information about `Types` and `Fields`, mapping between `Types`.
 
+`Type System` can be instantiated from existing `Types` in language (including tables and NoSQL documents).
+
 ### Types
 Filled with `Fields`, `Categories` (mostly marker interfaces) and `Methods` (distant future), unique identified.
 
