@@ -52,3 +52,7 @@ Use various mapping and `SerDe` from `Type System` to handle `Commands` and retu
 * propagation of new requirements - help to map new values from the root of changes
 * agnostic change of EventStore and DataBase
 * `Command` and `Event` based tests. Integration test in form of unit-test. `Cache` put instead of mocks of DB and ES.
+* migration based on `Impact Analisys`, reconciliation, and changelog projection
+* data discovery and service discovery support, API publication
+* derivation and composition of runnable artifacts
+* clustering (based on `Types` and `IDs`)
