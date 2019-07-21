@@ -7,17 +7,18 @@ Terms from Domain-Driven Design (especially Hexagonal Architecture), but with ex
 ### Components
 * `Services` - application management
   * consumes `Commands`
-  * produces `Events`
-  * can pass `Commands` and `Events` to other `Services`, `Adapters` and `Ports`
+  * produces `Events` and `Commands` to `Adapters` and to other `Serices`
+  * can send `Commands` to `Adapters` and to other `Services` 
+  * can return `Events` back to sender `Port` or `Service`
   * can call `Domain` operations and entities
 * `Adapter` - client
-  * consumes `Commands` from `Services`
+  * consumes `Commands` from `Services` through `Pipeline`
   * requests external systems
-  * produces `Events` back to `Services`
+  * respond `Events` back to `Service` through `Drainage`
 * `Port` - server
   * consumes `Messages` from external systems
-  * produces `Commands` to `Services` through `Pipeline`
-  * respond to external systems with `Events` through `Drainage`
+  * send `Commands` to `Services` through `Pipeline`
+  * respond to external systems with `Events` from `Service` through `Drainage`
 
 ### API
 * `Command` - representation of function call
@@ -95,13 +96,13 @@ Use cases
 ### Memory and Projections
 * `Memory` is a relation between consumed `Commands` and produced `Events`. Usually managed through `Pipeline` and `Drainage`.
 * for `Memory` better terms will be `Cause` instead of `Command` and `Effect` instead of `Event`.
-    * `Long-term Memory` - stream of consumed `Commands` and produced `Events`. Expected, that every `Event` caused by `Command` should reference it.
-    * `Short-term Memory` - `State`, Map `Command` -> `Event` with actual (possibly last) `Event` for every `Command`.
+    * `Eventual Memory` (like long-term memory) - stream of consumed `Commands` and produced `Events`. Expected, that every `Event` caused by `Command` should reference it.
+    * `Contextual Memory` (like short-term memory) - `State`, Map `Command` -> `Event` with actual (possibly last) `Event` for every `Command`.
 * `Projection` is somehow processed Memory.
 TODO: rename, all 4 starting with `S`
     * `Stage Projection` - projection of `Memory` to a single value, made by state machine. Can be cached or streamed.
-    * `Sequence Projection` - filtered (by Type, ID, etc.) and transformed `Memory`. Can be cached and streamed.
-    * `State Projection` - use `Sequence Projection` to modify internal `State`.
+    * `Inplace Projection` - filtered (by Type, ID, etc.) and transformed `Memory`. Can be cached and streamed.
+    * `Context Projection` - use `Inplace Projection` to modify internal `State`.
     * `Stream Projection` - `Memory` as `Stream` of `Commands` and `Events`. `Memory` itself acts like `Stream Projection`.
 * often can be clustered by `Types` and `IDs` in `Sub-Domain`.
 * safe (read-only) `Commands` can be memorized differently from unsafe (modification) `Commands`.
