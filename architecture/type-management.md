@@ -18,13 +18,15 @@ Inheritance allows transfer `Fields`, `Categories` and `Methods` between `Types`
 
 ### Fields
 Are strictly typed. Can be any serializable type, but strongly preferred DTO-compatible:
-* number
-* logical (true/false, y/n, enums)
-* string
-* date and time
-* self ID
-* reference (ID[T])
-* other DTO
+* plain values with various meta about limits and constraints
+    * number
+    * logical (true/false, y/n, enums)
+    * string
+    * date and time
+* logical and composition
+    * self ID
+    * reference (ID[T])
+    * other DTO
 * collection (set, array, map) of any above
 
 Also fields can be marked with some features, like
@@ -36,8 +38,35 @@ Also fields can be marked with some features, like
 * version of change
 * problems mark (something goes wrong and should be fixed)
 
+### Categories
+Interfaces with different focus. Interface contains declaration of implementation, requires to provide implementation. Marker Interfaces seems bad practice in SOLID.
+
+But Categories all about Marker Interfaces. It's idea from FP: you can handle behavior linked to that Interface outside. That idea makes Interfaces more like math Categories - marks that Type within some group with same features.
+
+Use cases
+* Tx management
+* LogLevel (Safe/Unsafe, IO, etc.)
+* Auth
+* and so on
+
+You get it, all the features Pipeline and Drainage provides.
+
 ### Mapping
 Bounds at least 2 `Types` as conversion one to another.
 Requires every field of output `Type`
 * taken and possibly transformed from input `Type`
 * or has a default value, possibly with logic to calculate
+
+### Inheritance
+In Rudimental architecture, inheritance only one of the mapping between `Types` operators.
+
+### Operators
+Because in run-time application `Types` are not limited with static rules of compilation, `Type Management` can provide unique operations above `Types`
+* inheritance as factory to produce another `Type`
+* generation of `SerDe` in multiple formats, strict usage of `Field` constraints in various systems
+* `Versioning` - ability to instantiate multiple `Type Systems` with different changes
+* `Impact Analisys` - ability to mark `Types` and `Fields` affected with changes in different `Types` and `Fields` as `Unconsistent`.
+Until all `Impact Analisys` issues resolved - version stays `Unconsistent`
+* conflict-free multiple inheritance
+* manual CRUD (actually DML) operations after inheritance. Requires `Impact Analisys` for stability.
+* semantic refactorings as single command. Requires `Impact Analisys` and `Versioning` for filling that single Command.
