@@ -64,9 +64,13 @@ In Rudimental architecture, inheritance only one of the mapping between `Types` 
 Because in run-time application `Types` are not limited with static rules of compilation, `Type Management` can provide unique operations above `Types`
 * inheritance as factory to produce another `Type`
 * generation of `SerDe` in multiple formats, strict usage of `Field` constraints in various systems
+* advanced manual and logical handling of cascade changes in `SerDe`. Requires `Impact Analisys`
 * `Versioning` - ability to instantiate multiple `Type Systems` with different changes
 * `Impact Analisys` - ability to mark `Types` and `Fields` affected with changes in different `Types` and `Fields` as `Unconsistent`.
 Until all `Impact Analisys` issues resolved - version stays `Unconsistent`
 * conflict-free multiple inheritance
+* reconciliation with external schema as source for new version of `Type System`
+* reconciliation between 2 versions of `Type System`
+* mapping info for advanced strategies of reconciliation (handle renaming, structure changes, EAV cases)
 * manual CRUD (actually DML) operations after inheritance. Requires `Impact Analisys` for stability.
-* semantic refactorings as single command. Requires `Impact Analisys` and `Versioning` for filling that single Command.
+* semantic refactorings as single command. Requires `Impact Analisys` for filling that single Command
