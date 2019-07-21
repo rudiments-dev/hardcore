@@ -1,4 +1,5 @@
 # Rudimental architecture
+
 ## Core concepts
 Terms from Domain-Driven Design (especially Hexagonal Architecture), but with extra constraints.
 * `Domain` - business-entities and business-operations.
@@ -92,17 +93,23 @@ Use cases
 * notify User with `Command` as `User Task` and await `User Action` (special `Event` from `User`)
 
 ### Memory and Projections
-* `Memory` is a sequence of `Commands` and it's `LifeCycle Events`. Usually managed through `Pipeline` and `Drainage`.
+* `Memory` is a relation between consumed `Commands` and produced `Events`. Usually managed through `Pipeline` and `Drainage`.
+* for `Memory` better terms will be `Cause` instead of `Command` and `Effect` instead of `Event`.
+    * `Long-term Memory` - stream of consumed `Commands` and produced `Events`. Expected, that every `Event` caused by `Command` should reference it.
+    * `Short-term Memory` - `State`, Map `Command` -> `Event` with actual (possibly last) `Event` for every `Command`.
 * `Projection` is somehow processed Memory.
-    * stage `Projection` - projection of `Memory` to single value, made by state machine. Can be cached or streamed.
-    * consumed `Projection` - filtered (by Type, ID, etc.) and transformed `Memory`. Can be cached and streamed.
-    * stream `Projection` - `Memory` as `Stream` of `Commands` and `Events`. `Memory` itself acts like stream `Projection`.
+TODO: rename, all 4 starting with `S`
+    * `Stage Projection` - projection of `Memory` to a single value, made by state machine. Can be cached or streamed.
+    * `Sequence Projection` - filtered (by Type, ID, etc.) and transformed `Memory`. Can be cached and streamed.
+    * `State Projection` - use `Sequence Projection` to modify internal `State`.
+    * `Stream Projection` - `Memory` as `Stream` of `Commands` and `Events`. `Memory` itself acts like `Stream Projection`.
 * often can be clustered by `Types` and `IDs` in `Sub-Domain`.
 * safe (read-only) `Commands` can be memorized differently from unsafe (modification) `Commands`.
 
 Use cases
 * order processing
 * audit
+* migrations
 * saga - long-running tasks with multiple interactions with external systems - just a projection
 * simplify CRUD-persisted model (no logs and history tables)
 * performance measuring and testing
