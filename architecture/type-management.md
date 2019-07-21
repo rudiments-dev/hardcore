@@ -58,12 +58,13 @@ Requires every field of output `Type`
 * or has a default value, possibly with logic to calculate
 
 ### Inheritance
-In Rudimental architecture, inheritance only one of the mapping between `Types` operators.
+In Rudimental architecture, inheritance only one of the mapping `Command` between `Types`.
 
-### Operators
+### Mapping Commands
 Because in run-time application `Types` are not limited with static rules of compilation, `Type Management` can provide unique operations above `Types`
 * inheritance as factory to produce another `Type`
 * generation of `SerDe` in multiple formats, strict usage of `Field` constraints in various systems
+* One Entity to Many tables/topics support as multiple produced `Commands`
 * advanced manual and logical handling of cascade changes in `SerDe`. Requires `Impact Analisys`
 * `Versioning` - ability to instantiate multiple `Type Systems` with different changes
 * `Impact Analisys` - ability to mark `Types` and `Fields` affected with changes in different `Types` and `Fields` as `Unconsistent`.
@@ -74,3 +75,4 @@ Until all `Impact Analisys` issues resolved - version stays `Unconsistent`
 * mapping info for advanced strategies of reconciliation (handle renaming, structure changes, EAV cases)
 * manual CRUD (actually DML) operations after inheritance. Requires `Impact Analisys` for stability.
 * semantic refactorings as single command. Requires `Impact Analisys` for filling that single Command
+* migration as Projection of Memory or Projection of reconciliation on adapter-specific format
