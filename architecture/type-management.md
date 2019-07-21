@@ -26,7 +26,7 @@ Are strictly typed. Can be any serializable type, but strongly preferred DTO-com
 * logical and composition
     * self ID
     * reference (ID[T])
-    * other DTO
+    * instance of other DTO
 * collection (set, array, map) of any above
 
 Also fields can be marked with some features, like
