@@ -8,6 +8,68 @@ allprojects {
     }
 }
 
+subprojects {
+    apply plugin: 'maven'
+    apply plugin: 'scala'
+    apply plugin: 'signing'
+
+    signing {
+        sign configurations.archives
+    }
+
+    task scaladocJar(type: Jar, dependsOn: scaladoc) {
+        classifier = 'javadoc'
+        from "${project.buildDir}/docs/scaladoc"
+    }
+
+    task sourceJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    artifacts {
+        archives jar
+        archives scaladocJar
+        archives sourceJar
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+                repository(url: System.getenv('SONATYPE_REPO_URL')) {
+                     authentication(userName: System.getenv('SONATYPE_USERNAME'), password: System.getenv('SONATYPE_PASSWORD'))
+                }
+                pom.project {
+                    description "${parent.project.description}"
+                    groupId "${parent.project.group}"
+                    name "${project.name}"
+                    packaging 'jar'
+                    url "https://github.com/rudiments-dev/hardcore"
+                    version "${parent.project.version}"
+                    developers {
+                        developer {
+                            id 'gennady-lebedev'
+                            name 'Gennady Lebedev'
+                        }
+                    }
+                    licenses {
+                        license {
+                            name 'Apache License v2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            distribution 'repo'
+                        }
+                    }
+                    scm {
+                        url "https://github.com/rudiments-dev/hardcore"
+                        connection "git@github.com:rudiments-dev/hardcore.git"
+                    }
+                }
+            }
+        }
+    }
+}
+
 def scalaModules() {
     subprojects.findAll { new File(it.projectDir, 'src/main/scala').directory }
 }
@@ -49,7 +111,7 @@ configure(scalaModules()) {
         testCompile 'org.scalatest:scalatest_2.12:3.0.5'
         testCompile 'com.typesafe.akka:akka-testkit_2.12:2.5.19'
         testCompile 'com.typesafe.akka:akka-http-testkit_2.12:10.1.7'
-        
+
         testCompile 'junit:junit:4.12'
         testCompile 'ch.qos.logback:logback-classic:1.2.3'
     }
