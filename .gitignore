@@ -5,3 +5,8 @@
 out/
 build/
 .DS_Store
+gradle.properties
+**/.classpath
+.project
+.settings
+**/bin
