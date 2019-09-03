@@ -7,11 +7,11 @@ env:
     - # SONATYPE_PASSWORD
     - secure: "y1BnqyyangwSM6clt5vodMtH5LxclQqzB3YM3iOqkAGxG0DEOUynrybc+nXfAYKcbDhLLRIXCHJ0a4XHHX0sMz2OmdyH60pm+IjS7NhzpY7jmVbVnV75GdRXh4keQ8op5AyNp2PuQaStdhbcCRhKnPrWkKDDc4OreEM2IifWVM9U2rMuEnvSYcrHSA7cox6CL0DvrGx4/SyyU+DmSJrWVbkDI9N7KD+oYugP1At6lZql9FXnE9SL0OuyApQ39j8g1vsetC9ppO7hwoQddGJGUnOYOob1RiRec4mv6em6g2Q3Vy4B5xvQfIYtsFEs5I6J3ZDUvc7f9mptyfUiWwtWBCctJD0I6qy0QHmaFgFg9GLjWWKlUh+QWYf8oW7u69FCIJ/S6HR1/E/weWTcuiBBncWhPKDcNfty8oA8lvm0JrQk2hv/eDQ5Ktch8+cbuGVhWybTV9WxtIfT6zYkANOh5rvwGK/eDLO4GhCS691kfULvrkdQnX/4p6VbGEYsrK0PXJ3EGocMmzpQkzgU4qivdiUE/0eGYyYj4rMKXWypSyfnkD0s1J9+FJCT/3DB1Zv82XXp527LDZZCotirkzHgDIsJq3xjynWtOyoUOXIdaKBGuIpSY+7AhGr7zWA+YUXeCMghw/rirweYNwnOE24/WWPyoSXMi39Bp8TlH5mGpUk="
     - # GPG_KEY_ID
-    - secure: "ix2dkc/YpQoTYMTFeh1nul9J+4c/zF7gzzH1rM+XBar1GUvRcXDm0MC2HWXM2vYWUP1KwiXGPgcNbkvw59rPXMAlvUJWkheGLhpnA6Ri24eIJVD39tFZK9cFd+lwBvoWp8V13w2MAjKKErcEo9ooQazOMUqdA+4h8RsjVA7k5gAlh5x8LEITXmqwgInuv1pLJodRZBqP3O4He/rjGbC9px/W5NJ3RRdnyAI5Fr1zUI7o/OzvJpKDN1YehWJ6O2m3zh2rU+74/buourtbMtQb5OetvdI92VTdXEKWTVloEVAVSJ7zdpgv8Oc63XMn8OwaOtgHUheQyfZHkiBmQ+ZQgdCpWjH/uUsqPqxaBoiiAV5fVHLMa/OSiwEiw/DZc9GXrU3i7zxHxsVsVxmlEIDeKKNAN3mCcCHKAGUAkemALoFM5r/WiKIM2GRfC8dUNpBTwDHq2kbMFzcrpysZKdWKspkZH12yKm0dgk3bUYjeqVvmANQXbukQ6GSt9iLh8RY6E7S9HJbioDMAsrqM8or8sMhPKdZMGCOdMG7GtrQtPWK3xpD8h6YqWD9AjaAip2bcBPIRXd73GdGeIyfO6Y86nBcifUMyPdCkTUROE40L9dy5ijyQkXrSRhVlxV0KSwVJur8J2VOox494woMd5ldCZWKFaxE5kwpqcjd5NcWuLh0="
+    - secure: "HN3kNoGWj+dXUDPgBZXaXHOO/KyrgyUkt1SdxqTBfCN/e6FbdZlshM2oNbncbNNQc8l2Xu8W9PUNoQBmAl8WyQVHA0OAt6dJzlQtiK1qx8YqAjqBkl0Tmey7Ih9sGBXaHaMgYcVi7lAhh7sPBOmZ8A3FOQijn1E8xn4MePNOsB5rEFY7wlxFDLlKkg+pqlWKflBCRXNtsY5MtDLjiCaZsrbKKVfyOyy89UJwja3zFwRAlG1tbW9IxGabWOt0L9oYj1EdNbdj/gdeI26eVGEKczJm/3vd8WGymOXxUPgOdpYVbLysei11N1A2c71T2uqy0/zp2JKdp7INU9DnVNfE+VB01EAp99NxPETqmW92DnhcypbHTFEHX3kVdF4ERQmQ0OuUUePpuUZ4SgTrRy/xLoFVPGM8iGqZIgh1MTpsP9hsukZcP4P/6+8C2J9+oI7mlnSQXppgoSnzS5pBjB4UukHwtOI/sRs1/fJBfIY44ZYx0hl5k2ZmzvzZQ1fD1sF9StA2XeZ2YSq8vPiMH5mEECHyFjRglsMre6/j/moSBrubV/Vhf7Wl+LXnLWnoc7f5feeuj1eCkqJUJ72SxDKwPN5CQUpfhlWZlGX/+ZqsGowQdPPzhom+5Y3DWejVt6yJcOKf1cAi+8lhZsTyODt2oMyBp9E8wdWGHeULaYES4E4="
     - # GPG_PASSPHRASE
     - secure: "imicKEKGEu5BJdUJEAVxfEGHA1cQO48K2GEuGpJJNM0sXXHCgmdFVkKbWPqdRilynWTZHHI4ZOq725s3fBXuffD9fwSGhki62diNhdo0LQxsTbwGzdkBxj6HdwiaXT097Xk24GHcB44fKBa5NF9Qu58OvUmaCRTINjsySVOxjH9vNAeQUXigir/a3/41HiV6TfX2ky+XzfQOEBAXKYJSyJC/Gre+GPjfSS4pntEqWszrO/vXLquO87Lm6klX0TpAMv1YchLz5ccAAHTtUoSnDAeB2QOv2fB4gA8bTJECIGPGWEhRcqlFMHi4cfhjOrf2/ak+hN4WmjkgQchs7MX9dorhnC2U81YuDsP2epvBxNc8C6ujk6phgnQ8y+Xpa8ppl50dWbrKUdpdE/RHQ2ZyghZAZ8flWk28bg0Cso+F6KgqpURp3htDY6bsGvhDlZySCVUkKf9HRNe7lURVZJfZ6FUOvHNlkhZZJQqQvuaz7dKbFoTJUCE9D+dGodNGYj4F383B/A9DRHDOCkfI1OQGnhP6UzdQVfgLHYgAKhcvP7qHeW7FFbJmmpggrfiwZcY734KI3OiAh0Q+Cyv6IKJhlgE9HmleavRVf8epNb3mFEsdw/U/PydCicO+DKivaMbBPfYwg/vglQPxgTlSGzsfBqGCVCh6xN0t+j++q/HwRN4="
     - GPG_KEY_LOCATION=".travis/secret.gpg"
-    - ENCRYPTED_GPG_KEY_LOCATION=".travis/secret.gpg.enc"
+    - ENCRYPTED_GPG_KEY_LOCATION=".travis/secring.gpg.enc"
     - SONATYPE_REPO_URL="https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 language: scala
 scala:
@@ -19,9 +19,9 @@ scala:
 branches:
   only:
     - master
-    - travis-publish-to-mvncentral
-script:
+before_script:
   - openssl aes-256-cbc -K $encrypted_128b0dd6d06b_key -iv $encrypted_128b0dd6d06b_iv -in $ENCRYPTED_GPG_KEY_LOCATION -out $GPG_KEY_LOCATION -d
+script:
   - ./gradlew uploadArchives
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
