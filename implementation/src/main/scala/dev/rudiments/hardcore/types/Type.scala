@@ -1,17 +1,27 @@
 package dev.rudiments.hardcore.types
 
-import com.sun.tools.javac.code.TypeTag
-import dev.rudiments.hardcore.DTO
-
 import scala.reflect.runtime.universe._
 
-case class Type[T <: DTO](name: String, fields: Seq[Field])
+case class Type[T <: DTO](name: String, fields: Map[String, Field])
 object Type {
-  def apply[T: TypeTag]: Type[T] = {
-    val fields = Seq.empty[Field]
-    new Type[T](typeOf[T].typeSymbol.name.toString.trim, fields)
+  def apply[T <: DTO : TypeTag]: Type[T] = {
+    new Type[T](
+      typeOf[T].typeSymbol.name.toString.trim,
+      typeOf[T].members.collect {
+        case m: TermSymbol if m.isVal => m
+      }.map { f =>
+        (f.name.toString.trim, Field(f))
+      }.toMap
+    )
   }
 }
 
-case class Field(name: String, optional: Boolean)
-
+case class Field(kind: FieldType, optional: Boolean, array: Boolean)
+object Field {
+  def apply(symbol: TermSymbol): Field = {
+    if(symbol.typeSignature.typeSymbol == typeOf[Option[_]].typeSymbol)
+      new Field(FieldType(symbol.typeSignature.typeArgs.head), true, false)
+    else
+      new Field(FieldType(symbol.typeSignature), false, false)
+  }
+}

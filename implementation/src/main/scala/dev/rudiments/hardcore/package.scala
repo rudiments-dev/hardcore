@@ -1,7 +1,9 @@
 package dev.rudiments
 
+import dev.rudiments.hardcore.types.DTO
+
 package object hardcore {
-  trait DTO extends Product
+
   trait Command extends DTO {}
   trait Effect extends DTO {}
   trait Event extends Effect {}

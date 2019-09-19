@@ -4,8 +4,8 @@ dependencies {
     compile 'ch.qos.logback:logback-classic:1.2.3'
 }
 
-task run(type: JavaExec, dependsOn: classes) {
-    classpath sourceSets.main.runtimeClasspath
-    main = 'dev.rudiments.example.main.Main'
-    standardInput = System.in
-}
+//task run(type: JavaExec, dependsOn: classes) {
+//    classpath sourceSets.main.runtimeClasspath
+//    main = 'dev.rudiments.example.main.Main'
+//    standardInput = System.in
+//}
