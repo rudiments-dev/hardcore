@@ -1,8 +1,7 @@
-package dev.rudiments.hardcore
+package dev.rudiments.hardcore.types
 
 import java.sql.{Date, Time, Timestamp}
 
-import dev.rudiments.hardcore.types._
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.junit.JUnitRunner
