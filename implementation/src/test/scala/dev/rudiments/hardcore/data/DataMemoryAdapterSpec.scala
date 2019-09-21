@@ -18,7 +18,7 @@ class DataMemoryAdapterSpec extends WordSpec with Matchers {
   implicit val t: Type[Example] = Type[Example]
   val repo: DataMemoryAdapter[Example] = new DataMemoryAdapter[Example]
   val sample = Example(42, "sample")
-  val id: ID[Example] = ID(sample.id)(t)
+  val id: ID[Example] = ID(sample.id)
 
   "no element by ID" in {
     repo(Count[Example]()) should be (Counted(0))
@@ -57,22 +57,22 @@ class DataMemoryAdapterSpec extends WordSpec with Matchers {
   "endure 100.000 records" in {
     (1 to 100000)
       .map(i => Example(i, s"$i'th element"))
-      .foreach(sample => repo(Create(ID(sample.id)(t), sample)))
+      .foreach(sample => repo(Create(ID(sample.id), sample)))
 
     repo(Count[Example]()) should be (Counted(100000))
 
     val rnd = new Random().nextInt(100000)
-    repo(Find(ID(rnd)(t))) should be (Found(ID(rnd)(t), Example(rnd, s"$rnd'th element")))
+    repo(Find(ID(rnd))) should be (Found(ID(rnd), Example(rnd, s"$rnd'th element")))
   }
 
   "endure 100.000 batch" in {
-    val batch = (100001 to 200000).map(i => (ID(i)(t), Example(i, s"$i'th element"))).toMap
-    repo(CreateAll(batch)) should be (AllCreated(batch))
+    val batch = (100001 to 200000).map(i => (ID[Example, Long](i), Example(i, s"$i'th element"))).toMap
+    repo(CreateAll(batch)(t)) should be (AllCreated(batch)(t))
 
     repo(Count[Example]()) should be (Counted(200000))
 
     val rnd = new Random().nextInt(200000)
-    repo(Find(ID(rnd)(t))) should be (Found(ID(rnd)(t), Example(rnd, s"$rnd'th element")))
+    repo(Find(ID[Example, Long](rnd))(t)) should be (Found(ID[Example, Long](rnd), Example(rnd, s"$rnd'th element")))
   }
 
   "clear repository" in {

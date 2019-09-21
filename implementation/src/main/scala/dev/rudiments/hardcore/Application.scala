@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore
 
-trait Port {
-  def handle[C <: Command, E <: Event](skill: Skill[C, E])
+trait Port[C <: Command, E <: Event] {
+  val f: Skill[C, E]
 }
 
 trait Service[C <: Command, E <: Event] extends Skill[C, E] {}

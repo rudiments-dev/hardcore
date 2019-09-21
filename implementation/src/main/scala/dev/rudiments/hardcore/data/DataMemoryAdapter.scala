@@ -1,12 +1,14 @@
 package dev.rudiments.hardcore.data
 
 import dev.rudiments.hardcore.types._
-import dev.rudiments.hardcore.{Adapter, Command, Error, Event}
+import dev.rudiments.hardcore.Adapter
+import dev.rudiments.hardcore.types.ID.{AutoID, ID1}
 
 import scala.collection.parallel.mutable
 
 class DataMemoryAdapter[T <: DTO : Type] extends Adapter[DataCommand[T], DataEvent[T]] {
   private val content = mutable.ParMap.empty[ID[T], T]
+  private var nextAutoID: Long = 0
 
   override def isDefinedAt(x: DataCommand[T]): Boolean = x match { //TODO generify
     case _: Create[T] => true
@@ -17,6 +19,15 @@ class DataMemoryAdapter[T <: DTO : Type] extends Adapter[DataCommand[T], DataEve
   }
 
   override def apply(cmd: DataCommand[T]): DataEvent[T] = cmd match {
+
+    case Create(AutoID(), value) =>
+      nextAutoID += 1
+      val key = ID1[T, Long](nextAutoID)
+      content.put(key, value)
+      content.get(key) match {
+        case Some(created) => Created(key, created)
+        case None => FailedToCreate(key, value)
+      }
 
     case Create(key, value) =>
       content.get(key) match {
@@ -79,35 +90,3 @@ class DataMemoryAdapter[T <: DTO : Type] extends Adapter[DataCommand[T], DataEve
 }
 
 
-trait DataCommand [T <: DTO] extends Command
-case class Create [T <: DTO : Type](key: ID[T], value: T)  extends DataCommand[T]
-case class Find   [T <: DTO : Type](key: ID[T])            extends DataCommand[T]
-case class Update [T <: DTO : Type](key: ID[T], value: T)  extends DataCommand[T]
-case class Delete [T <: DTO : Type](key: ID[T])            extends DataCommand[T]
-
-case class Count[T <: DTO : Type]() extends DataCommand[T]
-
-case class CreateAll[T <: DTO : Type](batch: Map[ID[T], T]) extends DataCommand[T]
-case class DeleteAll[T <: DTO : Type]()                     extends DataCommand[T]
-
-
-trait DataEvent[T] extends Event
-case class Created[T <: DTO : Type](key: ID[T], value: T) extends DataEvent[T]
-case class Found  [T <: DTO : Type](key: ID[T], value: T) extends DataEvent[T]
-case class Updated[T <: DTO : Type](key: ID[T], oldValue: T, newValue: T) extends DataEvent[T]
-case class Deleted[T <: DTO : Type](key: ID[T], value: T) extends DataEvent[T]
-
-case class Counted[T <: DTO : Type](total: Long) extends DataEvent[T]
-
-case class AllCreated[T <: DTO : Type](batch: Map[ID[T], T])  extends DataEvent[T]
-case class AllDeleted[T <: DTO : Type]()                      extends DataEvent[T]
-
-
-trait DataErrorEvent[T] extends Error
-case class NotFound       [T <: DTO : Type](key: ID[T]) extends DataEvent[T]
-case class AlreadyExists  [T <: DTO : Type](key: ID[T], value: T) extends DataEvent[T]
-case class FailedToCreate [T <: DTO : Type](key: ID[T], value: T) extends DataEvent[T]
-case class FailedToUpdate [T <: DTO : Type](key: ID[T], value: T) extends DataEvent[T]
-case class FailedToDelete [T <: DTO : Type](key: ID[T], value: T) extends DataEvent[T]
-
-case class BatchFailed [T <: DTO : Type]() extends DataEvent[T]
