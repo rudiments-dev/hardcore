@@ -11,6 +11,8 @@ import io.circe._
 import io.circe.generic.extras.{AutoDerivation, Configuration}
 import io.circe.syntax._
 
+import scala.language.implicitConversions
+
 object CirceSupport extends AutoDerivation with FailFastCirceSupport {
   implicit val configuration: Configuration = Configuration.default.withDefaults
   implicit val printer: Printer = Printer.noSpaces.copy(dropNullValues = true)
