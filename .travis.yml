@@ -13,16 +13,20 @@ env:
     - GPG_KEY_LOCATION=".travis/secret.gpg"
     - ENCRYPTED_GPG_KEY_LOCATION=".travis/secring.gpg.enc"
     - SONATYPE_REPO_URL="https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+
 language: scala
 scala:
   - 2.12.8
-branches:
-  only:
-    - master
-before_script:
-  - openssl aes-256-cbc -K $encrypted_128b0dd6d06b_key -iv $encrypted_128b0dd6d06b_iv -in $ENCRYPTED_GPG_KEY_LOCATION -out $GPG_KEY_LOCATION -d
-script:
-  - ./gradlew uploadArchives
+
+jobs:
+  include:
+    - stage: test
+      name: "Unit Tests"
+      script: ./gradlew build
+    - stage: publish
+      if: branch = master
+      before_script: openssl aes-256-cbc -K $encrypted_128b0dd6d06b_key -iv $encrypted_128b0dd6d06b_iv -in $ENCRYPTED_GPG_KEY_LOCATION -out $GPG_KEY_LOCATION -d
+      script: ./gradlew uploadArchives
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
