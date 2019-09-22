@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.hardcore.http.IDPath
-import dev.rudiments.hardcore.types.{DTO, ID, Type}
+import dev.rudiments.hardcore.types.{DTO, Defaults, ID, Type}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -14,7 +14,7 @@ import org.scalatest.{Matchers, WordSpec}
 @RunWith(classOf[JUnitRunner])
 class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
   private case class Example(
-    id: Long,
+    id: Long = Defaults.long,
     name: String
   ) extends DTO
 
