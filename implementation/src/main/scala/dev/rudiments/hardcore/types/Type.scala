@@ -16,12 +16,12 @@ object Type {
   }
 }
 
-case class Field(kind: FieldType, optional: Boolean, array: Boolean)
+case class Field(kind: FieldType, boxed: Boolean, default: Boolean)
 object Field {
   def apply(symbol: TermSymbol): Field = {
     if(symbol.typeSignature.typeSymbol == typeOf[Option[_]].typeSymbol)
-      new Field(FieldType(symbol.typeSignature.typeArgs.head), true, false)
+      new Field(FieldType(symbol.typeSignature.typeArgs.head), true, symbol.isParamWithDefault)
     else
-      new Field(FieldType(symbol.typeSignature), false, false)
+      new Field(FieldType(symbol.typeSignature), false, symbol.isParamWithDefault)
   }
 }
