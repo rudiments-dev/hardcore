@@ -3,8 +3,8 @@ package dev.rudiments.db
 import dev.rudiments.hardcore.types.DTO
 
 package object registry {
-  case class Schema(tables: Set[Table]) extends DTO {}
-  case class Table(columns: Seq[Column]) extends DTO
+  case class Schema(name: String, tables: Set[Table]) extends DTO {}
+  case class Table(name: String, columns: Seq[Column]) extends DTO
   case class Column(name: String, t: ColumnType, nullable: Boolean) extends DTO
 
   sealed trait ColumnType {}
