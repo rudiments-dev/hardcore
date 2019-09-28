@@ -7,7 +7,7 @@ package object registry {
   case class Table(name: String, columns: Seq[Column]) extends DTO
   case class Column(name: String, t: ColumnType, nullable: Boolean) extends DTO
 
-  sealed trait ColumnType {}
+  sealed abstract class ColumnType {}
   object ColumnTypes {
     case object INT                                           extends ColumnType
     case object BOOLEAN                                       extends ColumnType
@@ -31,12 +31,27 @@ package object registry {
     case object UUID                                          extends ColumnType
     case object ARRAY                                         extends ColumnType
     case class  ENUM(values: String)                          extends ColumnType
+
 //    case class GEOMETRY()   extends ColumnType
 //    case class INTERVAL()   extends ColumnType
+
+    def valueOf(value: String): ColumnType = {
+      val INTpattern = "^INT\\((\\d+)\\)".r
+      val BIGINTpattern = "^BIGINT\\((\\d+)\\)".r
+      val VARCHARpattern = "VARCHAR\\((\\d+)\\)".r
+      val CLOBpattern = "CLOB\\((\\d+)\\)".r
+      value match {
+        case INTpattern(_) => INT
+        case BIGINTpattern(_) => BIGINT
+        case VARCHARpattern(c) => VARCHAR(c.toInt)
+        case CLOBpattern(c) => CLOB(c.toInt, SizeMultipliers.N)
+      }
+    }
   }
 
   sealed trait SizeMultiplier
   object SizeMultipliers {
+    case object N extends SizeMultiplier
     case object K extends SizeMultiplier
     case object M extends SizeMultiplier
     case object G extends SizeMultiplier

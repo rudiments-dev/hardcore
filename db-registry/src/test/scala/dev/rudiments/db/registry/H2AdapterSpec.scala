@@ -10,30 +10,21 @@ import collection.JavaConverters._
 
 @RunWith(classOf[JUnitRunner])
 class H2AdapterSpec extends WordSpec with Matchers {
+  val config: Config = ConfigFactory.parseMap(Map(
+    "driver" -> "org.h2.Driver",
+    "url" -> "jdbc:h2:mem:hello",
+    "user" -> "user",
+    "password" -> "pass",
+    "schema" -> "hello"
+  ).asJava)
+  val adapter: H2Adapter = new H2Adapter(config)
 
   "should connect on correct credentials" in {
-    val config: Config = ConfigFactory.parseMap(Map(
-      "driver" -> "org.h2.Driver",
-      "url" -> "jdbc:h2:mem:hello",
-      "user" -> "user",
-      "password" -> "pass",
-      "schema" -> "hello"
-    ).asJava)
-    val adapter: H2Adapter = new H2Adapter(config)
     adapter(CheckConnection) should be (ConnectionOk)
     adapter.schemaName should be ("hello")
   }
 
   "should found schema by name" in {
-    val config: Config = ConfigFactory.parseMap(Map(
-      "driver" -> "org.h2.Driver",
-      "url" -> "jdbc:h2:mem:hello",
-      "user" -> "user",
-      "password" -> "pass",
-      "schema" -> "hello"
-    ).asJava)
-    val adapter: H2Adapter = new H2Adapter(config)
-
     implicit val session: DBSession = AutoSession
     sql"CREATE SCHEMA hello".execute().apply()
     sql"SET SCHEMA hello".execute().apply()
@@ -51,13 +42,16 @@ class H2AdapterSpec extends WordSpec with Matchers {
          |    FOREIGN KEY (sample_id) REFERENCES sample (id)
          |)""".stripMargin.execute().apply()
 
-    adapter(DiscoverSchema("hello")) should be (
-      SchemaFound(
-        Schema("hello", Set(
-          Table("SAMPLE", Seq.empty),
-          Table("EXAMPLE", Seq.empty)
-        ))
-      )
+    adapter(DiscoverSchema("hello")) should be (SchemaFound("hello", Set("SAMPLE", "EXAMPLE")))
+  }
+
+  "should discover table by name and schema" in {
+    adapter(DiscoverTable("sample", "hello")) should be (
+      TableFound("sample", Seq(
+        Column("ID", ColumnTypes.BIGINT, false),
+        Column("NAME", ColumnTypes.VARCHAR(255), false),
+        Column("COMMENT", ColumnTypes.CLOB(2147483647, SizeMultipliers.N), true),
+      ))
     )
   }
 }
