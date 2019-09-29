@@ -48,9 +48,9 @@ class H2AdapterSpec extends WordSpec with Matchers {
   "should discover table by name and schema" in {
     adapter(DiscoverTable("sample", "hello")) should be (
       TableFound("sample", Seq(
-        Column("ID", ColumnTypes.BIGINT, false),
-        Column("NAME", ColumnTypes.VARCHAR(255), false),
-        Column("COMMENT", ColumnTypes.CLOB(2147483647, SizeMultipliers.N), true),
+        Column("ID", ColumnTypes.BIGINT, false, true, true),
+        Column("NAME", ColumnTypes.VARCHAR(255), false, false, false),
+        Column("COMMENT", ColumnTypes.CLOB(2147483647, SizeMultipliers.N), true, false, false),
       ))
     )
   }

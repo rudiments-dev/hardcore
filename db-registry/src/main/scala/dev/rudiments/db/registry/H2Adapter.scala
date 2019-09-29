@@ -37,7 +37,9 @@ class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
           Column(
             rs.string("field"),
             ColumnTypes.valueOf(rs.string("type")),
-            rs.string("null").equalsIgnoreCase("YES")
+            rs.string("null").equalsIgnoreCase("YES"),
+            !rs.string("default").equalsIgnoreCase("NULL"),
+            rs.string("key").equalsIgnoreCase("PRI")
           )
         }.toIterable().apply().toSeq
         TableFound(tableName, columns)
