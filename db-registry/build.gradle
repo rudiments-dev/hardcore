@@ -5,8 +5,14 @@ dependencies {
     compile 'ch.qos.logback:logback-classic:1.2.3'
 }
 
-//task run(type: JavaExec, dependsOn: classes) {
-//    classpath sourceSets.main.runtimeClasspath
-//    main = 'dev.rudiments.example.main.Main'
-//    standardInput = System.in
-//}
+task runH2(type: JavaExec, dependsOn: classes) {
+    classpath sourceSets.main.runtimeClasspath
+    main = 'dev.rudiments.db.registry.H2Server'
+    standardInput = System.in
+}
+
+task runApp(type: JavaExec, dependsOn: classes) {
+    classpath sourceSets.main.runtimeClasspath
+    main = 'dev.rudiments.db.registry.Application'
+    standardInput = System.in
+}

@@ -39,7 +39,7 @@ object Application extends App with LazyLogging {
     }
     db(Create(ID(discover.schemaName), schema))
 
-    logger.info("found: {}", db(Find(ID(discover.schemaName))))
+    logger.trace("found: {}", db(Find(ID(discover.schemaName))))
 
     import dev.rudiments.hardcore.http.CirceSupport._
     val port = new ReadOnlyHttpPort[Schema]("schema", IDPath[Schema, String], db)
