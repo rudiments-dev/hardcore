@@ -50,10 +50,10 @@ class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
   }
 
   def initConnectionPool(config: Config): String = {
-    val driver = config.getString("driver")
-    val url = config.getString("url")
-    val user = config.getString("user")
-    val password = config.getString("password")
+    val driver =    config.getString("driver")
+    val url =       config.getString("url")
+    val user =      config.getString("user")
+    val password =  config.getString("password")
     Class.forName(driver)
     ConnectionPool.singleton(url, user, password)
     config.getString("schema")
