@@ -35,6 +35,9 @@ class DataMemoryAdapter[T <: DTO : Type] extends Adapter[DataCommand[T], DataEve
         case None => NotFound(key)
       }
 
+    case FindAll() =>
+      FoundAll(content.values.toList)
+
     case Update(key, value) =>
       content.get(key) match {
         case Some(found) =>

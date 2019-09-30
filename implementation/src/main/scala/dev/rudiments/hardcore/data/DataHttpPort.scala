@@ -23,9 +23,9 @@ class DataHttpPort[T <: DTO : Type : Encoder : Decoder](
   }
 
   def pathRoute: Route = pathEndOrSingleSlash {
-    /*get {
-      responseWith(handler(Query.all))
-    } ~ */post {
+    get {
+      responseWith(f(FindAll[T]))
+    } ~ post {
       entity(as[T]) { value =>
         responseWith(f(Create(identify(value), value)))
       }
@@ -51,18 +51,19 @@ class DataHttpPort[T <: DTO : Type : Encoder : Decoder](
   }
 
   def responseWith(event: DataEvent[T]): StandardRoute = event match {
-    case Created(_, value) =>  complete(StatusCodes.Created, value)
-    case Found(_, value) =>   complete(StatusCodes.OK, value)
-    case Updated(_, _, newValue) =>  complete(StatusCodes.OK, newValue)
-    case Deleted(_, _) =>  complete(StatusCodes.NoContent)
+    case Created(_, value) =>       complete(StatusCodes.Created, value)
+    case Found(_, value) =>         complete(StatusCodes.OK, value)
+    case FoundAll(values) =>        complete(StatusCodes.OK, values)
+    case Updated(_, _, newValue) => complete(StatusCodes.OK, newValue)
+    case Deleted(_, _) =>           complete(StatusCodes.NoContent)
 
-    case AllCreated(_) => complete(StatusCodes.Created)
-    case AllDeleted() => complete(StatusCodes.NoContent)
+    case AllCreated(_) =>           complete(StatusCodes.Created)
+    case AllDeleted() =>            complete(StatusCodes.NoContent)
 
-    case NotFound(_) =>      complete(StatusCodes.NotFound)
-    case AlreadyExists(_, _) => complete(StatusCodes.Conflict)
+    case NotFound(_) =>             complete(StatusCodes.NotFound)
+    case AlreadyExists(_, _) =>     complete(StatusCodes.Conflict)
 
-    case _: Error => complete(StatusCodes.InternalServerError)
+    case _: Error =>                complete(StatusCodes.InternalServerError)
   }
 }
 

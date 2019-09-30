@@ -12,6 +12,7 @@ package object data {
 
   case class Create [T <: DTO : Type](key: ID[T], value: T)   extends DataCommand[T]
   case class Find   [T <: DTO : Type](key: ID[T])             extends DataCommand[T]
+  case class FindAll[T <: DTO : Type]()                       extends DataCommand[T]
   case class Update [T <: DTO : Type](key: ID[T], value: T)   extends DataCommand[T]
   case class Delete [T <: DTO : Type](key: ID[T])             extends DataCommand[T]
 
@@ -21,10 +22,11 @@ package object data {
   case class Count[T <: DTO : Type]()                         extends DataCommand[T]
 
 
-  case class Created[T <: DTO : Type](key: ID[T], value: T)                 extends DataEvent[T]
-  case class Found  [T <: DTO : Type](key: ID[T], value: T)                 extends DataEvent[T]
-  case class Updated[T <: DTO : Type](key: ID[T], oldValue: T, newValue: T) extends DataEvent[T]
-  case class Deleted[T <: DTO : Type](key: ID[T], value: T)                 extends DataEvent[T]
+  case class Created  [T <: DTO : Type](key: ID[T], value: T)                 extends DataEvent[T]
+  case class Found    [T <: DTO : Type](key: ID[T], value: T)                 extends DataEvent[T]
+  case class FoundAll [T <: DTO : Type](values: Seq[T])                       extends DataEvent[T]
+  case class Updated  [T <: DTO : Type](key: ID[T], oldValue: T, newValue: T) extends DataEvent[T]
+  case class Deleted  [T <: DTO : Type](key: ID[T], value: T)                 extends DataEvent[T]
 
   case class AllCreated[T <: DTO : Type](batch: Map[ID[T], T])              extends DataEvent[T]
   case class AllDeleted[T <: DTO : Type]()                                  extends DataEvent[T]
