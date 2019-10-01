@@ -9,6 +9,7 @@ import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.hardcore.data.{Create, DataMemoryAdapter, Find, ReadOnlyHttpPort}
 import dev.rudiments.hardcore.http.{IDPath, RootRouter, Router}
 import dev.rudiments.hardcore.types.{ID, Type}
+import io.circe.{Encoder, Json}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -42,6 +43,9 @@ object Application extends App with LazyLogging {
     logger.trace("found: {}", db(Find(ID(discover.schemaName))))
 
     import dev.rudiments.hardcore.http.CirceSupport._
+    implicit val columnTypeEncoder: Encoder[ColumnType] = new Encoder[ColumnType] {
+      override def apply(a: ColumnType): Json = Encoder.encodeString(a.toString)
+    }
     val port = new ReadOnlyHttpPort[Schema]("schema", IDPath[Schema, String], db)
     new RootRouter(config, port).bind()
   } catch {
