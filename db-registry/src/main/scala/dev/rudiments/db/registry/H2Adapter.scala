@@ -25,7 +25,7 @@ class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
         val tables = SQL("SHOW TABLES FROM " + schemaName).map { rs =>
           rs.string("table_name")
         }.toIterable().apply().toSet
-        SchemaFound(schemaName, tables)
+        SchemaDiscovered(schemaName, tables)
       } catch {
         case e: Exception => ConnectionFailure(e)
       }
@@ -42,7 +42,7 @@ class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
             rs.string("key").equalsIgnoreCase("PRI")
           )
         }.toIterable().apply().toSeq
-        TableFound(tableName, columns)
+        TableDiscovered(tableName, columns)
       } catch {
         case e: Exception => ConnectionFailure(e)
       }
@@ -68,5 +68,5 @@ case class DiscoverTable(tableName: String, schemaName: String) extends H2Comman
 trait H2Event extends Event
 case object ConnectionOk extends H2Event
 case class ConnectionFailure(e: Exception) extends H2Event
-case class SchemaFound(name: String, tables: Set[String]) extends H2Event
-case class TableFound(name: String, columns: Seq[Column]) extends H2Event
+case class SchemaDiscovered(name: String, tables: Set[String]) extends H2Event
+case class TableDiscovered(name: String, columns: Seq[Column]) extends H2Event

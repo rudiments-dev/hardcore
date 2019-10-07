@@ -59,12 +59,12 @@ class H2AdapterSpec extends WordSpec with Matchers {
          |    enum_column       ENUM('RED', 'GREEN', 'BLUE')
          |)""".stripMargin.execute().apply()
 
-    adapter(DiscoverSchema("hello")) should be (SchemaFound("hello", Set("SAMPLE", "EXAMPLE")))
+    adapter(DiscoverSchema("hello")) should be (SchemaDiscovered("hello", Set("SAMPLE", "EXAMPLE")))
   }
 
   "should discover table by name and schema" in {
     adapter(DiscoverTable("sample", "hello")) should be (
-      TableFound("sample", Seq(
+      TableDiscovered("sample", Seq(
         Column("ID", ColumnTypes.BIGINT, false, true, true),
         Column("NAME", ColumnTypes.VARCHAR(255), false, false, false),
         Column("COMMENT", ColumnTypes.CLOB(2147483647, N), true, false, false),
@@ -72,7 +72,7 @@ class H2AdapterSpec extends WordSpec with Matchers {
     )
 
     adapter(DiscoverTable("example", "hello")) should be (
-      TableFound("example", Seq(
+      TableDiscovered("example", Seq(
         Column("ID",                ColumnTypes.BIGINT,               false, true,  true),
         Column("INT_COLUMN",        ColumnTypes.INT,                  true,  false, false),
         Column("BOOL_COLUMN",       ColumnTypes.BOOLEAN,              true,  false, false),

@@ -28,11 +28,11 @@ object Application extends App with LazyLogging {
 
     val discover = new H2Adapter(config.getConfig("db"))
     val schema = discover(DiscoverSchema(discover.schemaName)) match {
-      case SchemaFound(name, tableNames) => Schema(
+      case SchemaDiscovered(name, tableNames) => Schema(
         name,
         tableNames
           .map(name => discover(DiscoverTable(name, discover.schemaName)) match {
-            case TableFound(tableName, columns) => Table(tableName, columns)
+            case TableDiscovered(tableName, columns) => Table(tableName, columns, columns.filter(_.pk))
             case ConnectionFailure(e) => throw e;
           })
       )

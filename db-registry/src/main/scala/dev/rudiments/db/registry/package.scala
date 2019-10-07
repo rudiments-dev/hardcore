@@ -4,8 +4,10 @@ import dev.rudiments.hardcore.types.DTO
 
 package object registry {
   case class Schema(name: String, tables: Set[Table]) extends DTO {}
-  case class Table(name: String, columns: Seq[Column]) extends DTO
+  case class Table(name: String, columns: Seq[Column], pk: Seq[Column]) extends DTO
   case class Column(name: String, `type`: ColumnType, nullable: Boolean, default: Boolean, pk: Boolean) extends DTO
+
+  case class FK(from: Table, to: Table, references: Seq[(Column, Column)])
 
   sealed abstract class ColumnType {}
   object ColumnTypes {
