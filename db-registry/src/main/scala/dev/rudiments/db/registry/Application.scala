@@ -25,22 +25,10 @@ object Application extends App with LazyLogging {
   try {
     val config = ConfigFactory.load()
     val db = new DataMemoryAdapter[Schema]
-
     val discover = new H2Adapter(config.getConfig("db"))
-    val schema = discover(DiscoverSchema(discover.schemaName)) match {
-      case SchemaDiscovered(name, tableNames) => Schema(
-        name,
-        tableNames
-          .map(name => discover(DiscoverTable(name, discover.schemaName)) match {
-            case TableDiscovered(tableName, columns) => Table(tableName, columns, columns.filter(_.pk))
-            case ConnectionFailure(e) => throw e;
-          })
-      )
-      case ConnectionFailure(e) => throw e;
-    }
-    db(Create(ID(discover.schemaName), schema))
+    val service = new H2Service(discover, db)
 
-    logger.trace("found: {}", db(Find(ID(discover.schemaName))))
+    service(ReadSchema(discover.schemaName))
 
     import dev.rudiments.hardcore.http.CirceSupport._
     implicit val columnTypeEncoder: Encoder[ColumnType] = new Encoder[ColumnType] {
