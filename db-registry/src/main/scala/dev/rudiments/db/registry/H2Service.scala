@@ -10,21 +10,36 @@ class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) exten
 
   implicit val t: Type[Schema] = Type[Schema]
   val f: Skill[SchemaCommand, SchemaEvent] = {
-    case ReadSchema(name) =>
-      adapter(DiscoverSchema(name)) match {
-        case SchemaDiscovered(name, tableNames) =>
-          persistent(Create(ID(name), Schema(
-            name,
-            tableNames.map(n => adapter(DiscoverTable(n, name)) match {
-              case TableDiscovered(tableName, columns) => Table(tableName, columns, columns.filter(_.pk))
-              case ConnectionFailure(e) => throw e
-            })
-          )))
-          persistent(Find(ID(name))) match {
-            case Found(_, value) => SchemaFound(value)
-          }
-        case ConnectionFailure(e) => Failed(e)
+    case ReadSchema(schemaName) =>
+      persistent(Create(ID(schemaName), discoverSchema(schemaName)))
+      persistent(Find(ID(schemaName))) match {
+        case Found(_, value) => SchemaFound(value)
       }
+  }
+
+  private def discoverSchema(name: String): Schema = {
+    adapter(DiscoverSchema(name)) match {
+      case SchemaDiscovered(schemaName, tableNames) =>
+        Schema(
+          schemaName,
+          tableNames
+            .map(n => discoverTable(n, schemaName))
+        )
+      case ConnectionFailure(e) => throw e
+    }
+  }
+
+  private def discoverTable(tableName: String, schemaName: String): Table = {
+    adapter(DiscoverTable(tableName, schemaName)) match {
+      case TableDiscovered(tableName, columns) =>
+        Table(
+          tableName,
+          columns,
+          columns
+            .filter(c => c.pk)
+        )
+      case ConnectionFailure(e) => throw e
+    }
   }
 }
 
