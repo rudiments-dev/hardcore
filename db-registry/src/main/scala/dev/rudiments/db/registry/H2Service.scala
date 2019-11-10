@@ -1,6 +1,6 @@
 package dev.rudiments.db.registry
 
-import dev.rudiments.hardcore.data.{Create, DataMemoryAdapter, Find, Found}
+import dev.rudiments.hardcore.data.{Create, DataMemoryAdapter, Find, Found, NotFound}
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.types.{ID, Type}
 
@@ -11,10 +11,16 @@ class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) exten
   implicit val t: Type[Schema] = Type[Schema]
   val f: Skill[SchemaCommand, SchemaEvent] = {
     case ReadSchema(schemaName) =>
-      persistent(Create(ID(schemaName), discoverSchema(schemaName)))
-      persistent(Find(ID(schemaName))) match {
-        case Found(_, value) => SchemaFound(value)
-      }
+      persistent(
+        Create(
+          ID(schemaName),
+          discoverSchema(schemaName)
+        )
+      )
+      findSchema(schemaName)
+
+    case FindSchema(schemaName) =>
+      findSchema(schemaName)
   }
 
   private def discoverSchema(name: String): Schema = {
@@ -41,13 +47,22 @@ class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) exten
       case ConnectionFailure(e) => throw e
     }
   }
+
+  private def findSchema(schemaName: String): SchemaEvent = {
+    persistent(Find(ID(schemaName))) match {
+      case Found(_, value) => SchemaFound(value)
+      case NotFound(_) => SchemaNotFound(schemaName)
+    }
+  }
 }
 
 sealed trait SchemaCommand extends Command
 case class ReadSchema(name: String) extends SchemaCommand
+case class FindSchema(name: String) extends SchemaCommand
 
 sealed trait SchemaEvent extends Event
 case class SchemaFound(schema: Schema) extends SchemaEvent
 
 sealed trait SchemaError extends SchemaEvent with Error
 case class Failed(e: Throwable) extends SchemaError
+case class SchemaNotFound(name: String) extends SchemaError
