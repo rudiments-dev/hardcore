@@ -26,10 +26,11 @@ class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) exten
   private def discoverSchema(name: String): Schema = {
     adapter(DiscoverSchema(name)) match {
       case SchemaDiscovered(schemaName, tableNames) =>
+        val tables = tableNames.map(n => n -> discoverTable(n, schemaName)).toMap
         Schema(
           schemaName,
-          tableNames
-            .map(n => discoverTable(n, schemaName))
+          tables.values.toSet,
+          discoverReferences(schemaName, tables)
         )
       case ConnectionFailure(e) => throw e
     }
@@ -44,6 +45,24 @@ class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) exten
           columns
             .filter(c => c.pk)
         )
+      case ConnectionFailure(e) => throw e
+    }
+  }
+
+  private def discoverReferences(schemaName: String, tables: Map[String, Table]): Set[FK] = {
+    adapter(DiscoverReferences(schemaName)) match {
+      case ReferencesDiscovered(_, references) =>
+        references.map { r =>
+          val table = tables(r.table)
+          val ref = tables(r.refTable)
+          val columns = r.columns.flatMap(c => table.columns.find(_.name == c))
+          val refColumns = r.columns.flatMap(c => ref.columns.find(_.name == c))
+          FK(
+            table,
+            ref,
+            columns.zip(refColumns).toMap
+          )
+        }
       case ConnectionFailure(e) => throw e
     }
   }

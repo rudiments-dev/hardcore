@@ -1,8 +1,6 @@
 package dev.rudiments.db.registry
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
@@ -34,6 +32,10 @@ object Application extends App with LazyLogging {
     implicit val columnTypeEncoder: Encoder[ColumnType] = new Encoder[ColumnType] {
       override def apply(a: ColumnType): Json = Encoder.encodeString(a.toString)
     }
+    implicit val refEncoder: Encoder[FK] = new Encoder[FK] {
+      override def apply(a: FK): Json = Encoder.encodeString(a.toString)
+    }
+
     val port = new ReadOnlyHttpPort[Schema]("schema", IDPath[Schema, String], db)
     new RootRouter(config, port).bind()
   } catch {

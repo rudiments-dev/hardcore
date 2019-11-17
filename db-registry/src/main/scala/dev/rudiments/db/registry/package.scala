@@ -3,11 +3,16 @@ package dev.rudiments.db
 import dev.rudiments.hardcore.types.DTO
 
 package object registry {
-  case class Schema(name: String, tables: Set[Table]) extends DTO {}
+  case class Schema(name: String, tables: Set[Table], references: Set[FK]) extends DTO {}
   case class Table(name: String, columns: Seq[Column], pk: Seq[Column]) extends DTO
   case class Column(name: String, `type`: ColumnType, nullable: Boolean, default: Boolean, pk: Boolean) extends DTO
 
-  case class FK(from: Table, to: Table, references: Seq[(Column, Column)])
+  case class FK(from: Table, to: Table, references: Map[Column, Column]) extends DTO {
+    override def toString: String = {
+      val refs = references.toSeq
+      from.name + "(" + refs.map(_._1).mkString(", ") + ") -> " + to.name + refs.map(_._2).mkString(", ") + ")"
+    }
+  }
 
   sealed abstract class ColumnType {}
   object ColumnTypes {
