@@ -59,6 +59,8 @@ class H2AdapterSpec extends WordSpec with Matchers {
          |    enum_column       ENUM('RED', 'GREEN', 'BLUE')
          |)""".stripMargin.execute().apply()
 
+    sql"ALTER TABLE example ADD CONSTRAINT ref_1 FOREIGN KEY (bigint_column) REFERENCES sample (id)".execute().apply()
+
     adapter(DiscoverSchema("hello")) should be (SchemaDiscovered("hello", Set("SAMPLE", "EXAMPLE")))
   }
 
@@ -94,6 +96,17 @@ class H2AdapterSpec extends WordSpec with Matchers {
         Column("ARRAY_COLUMN",      ColumnTypes.ARRAY(2147483647),    true,  false, false),
         Column("ENUM_COLUMN",       ColumnTypes.ENUM(5),              true,  false, false)
       ))
+    )
+  }
+
+  "should discover references of schema" in {
+    adapter(DiscoverReferences("HELLO")) should be (
+      ReferencesDiscovered(
+        "HELLO",
+        Set(
+          Reference("REF_1", "EXAMPLE", Seq("BIGINT_COLUMN"), "SAMPLE", Seq("ID"))
+        )
+      )
     )
   }
 }
