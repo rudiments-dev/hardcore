@@ -4,12 +4,11 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
 import dev.rudiments.hardcore.Port
-import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.hardcore.http.Router
 import dev.rudiments.hardcore.types.{DTO, ID, Type}
-import io.circe.{Decoder, Encoder}
+import io.circe.Encoder
 
-class ReadOnlyHttpPort[T <: DTO : Type : Encoder : Decoder](
+class ReadOnlyHttpPort[T <: DTO : Type : Encoder](
   prefix: String,
   idDirective: Directive1[ID[T]],
   override val f: DataSkill[T]
@@ -27,6 +26,7 @@ class ReadOnlyHttpPort[T <: DTO : Type : Encoder : Decoder](
     }
   }
 
+  import dev.rudiments.hardcore.http.CirceSupport._
   def responseWith(event: DataEvent[T]): StandardRoute = event match {
     case Found(_, value) =>   complete(StatusCodes.OK, value)
     case FoundAll(values) =>  complete(StatusCodes.OK, values)
