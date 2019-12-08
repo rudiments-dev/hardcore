@@ -5,19 +5,24 @@ import java.sql.{Date, Time, Timestamp}
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.universe.{Type => SysType}
 
-case class Type[T <: DTO](name: String, fields: Map[String, Field])
+case class TypeSystem(name: String, types: Map[String, Type[_]]) extends DTO
+object TypeSystem {
+  def apply(name: String, types: Type[_]*): TypeSystem = new TypeSystem(name, types.map(t => t.name -> t.asInstanceOf[Type[_ <: DTO]]).toMap)
+}
+
+case class Type[T <: DTO](name: String, fields: Map[String, Field]) extends DTO
 object Type {
   def apply[T <: DTO : TypeTag]: Type[T] = {
     new Type[T](
       typeOf[T].typeSymbol.name.toString.trim,
       typeOf[T].typeSymbol.asClass.primaryConstructor.typeSignature.paramLists(0).collect {
-        case m: TermSymbol => (m.name.toString.trim, Field(m))
+        case m: TermSymbol => m.name.toString.trim -> Field(m)
       }.toMap
     )
   }
 }
 
-case class Field(kind: FieldType, fieldFlag: FieldFlag)
+case class Field(kind: FieldType, fieldFlag: FieldFlag) extends DTO
 object Field {
   def apply(symbol: TermSymbol): Field = {
     if(symbol.typeSignature <:< typeOf[Option[_]]) {
