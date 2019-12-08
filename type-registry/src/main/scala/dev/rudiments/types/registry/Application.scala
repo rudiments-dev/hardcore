@@ -1,6 +1,6 @@
 package dev.rudiments.types.registry
 
-import java.sql.{Date, Timestamp}
+import java.sql.{Date, Time, Timestamp}
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
@@ -46,7 +46,7 @@ object Application extends App with LazyLogging {
       )
     }
 
-    db(Create(ID("sample"), TypeSystem("sample", Type[Example])))
+    db(Create(ID("sample"), TypeSystem("sample", Type[Example], Type[Sample])))
 
     val port = new ReadOnlyHttpPort[TypeSystem]("types", IDPath[TypeSystem, String], db)
     new RootRouter(config, port).bind()
@@ -71,5 +71,27 @@ object Application extends App with LazyLogging {
     question: List[Int] = List(42),
     when: Timestamp = Defaults.now,
     date: Option[Date] = Some(Defaults.today)
+  ) extends DTO
+
+  case class Sample(
+    string: String,
+    optString: Option[String],
+    defaultString: String = "default",
+    defaultOptString: Option[String] = None,
+    listOfStrings: Seq[String],
+    int: Int,
+    optInt: Option[Int],
+    double: Double,
+    optDouble: Option[Double],
+    long: Long,
+    optLong: Option[Long],
+    decimal: BigDecimal,
+    optDecimal: Option[BigDecimal],
+    timestamp: Timestamp,
+    optTimestamp: Option[Timestamp],
+    date: Date,
+    optDate: Option[Date],
+    time: Time,
+    optTime: Option[Time]
   ) extends DTO
 }
