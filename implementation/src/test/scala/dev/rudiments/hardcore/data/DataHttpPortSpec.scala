@@ -15,7 +15,8 @@ import org.scalatest.{Matchers, WordSpec}
 class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
   private case class Example(
     id: Long = Defaults.long,
-    name: String
+    name: String,
+    enum: MyEnum
   ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
@@ -29,7 +30,9 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
     repo
   )
   private val routes = Route.seal(router.routes)
-  private val sample = Example(42, "sample")
+
+  import MyEnum._
+  private val sample = Example(42, "sample", Red)
   private val id = ID(sample.id)
 
   "no element by ID" in {
@@ -46,9 +49,9 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
   }
 
   "update item in repository" in {
-    Put("/example/42", Example(42, "test")) ~> routes ~> check {
+    Put("/example/42", Example(42, "test", Red)) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Example] should be (Example(42, "test"))
+      responseAs[Example] should be (Example(42, "test", Red))
     }
   }
 
@@ -66,7 +69,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
 
   "endure 10.000 records" in {
     (1 to 10000).foreach { i =>
-      Post("/example", Example(i, s"$i'th element")) ~> routes ~> check {
+      Post("/example", Example(i, s"$i'th element", One)) ~> routes ~> check {
         response.status should be (StatusCodes.Created)
       }
     }
@@ -74,7 +77,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
   }
 
   "endure 190.000 batch" in {
-    Put("/example", (10001 to 200000).map(i => Example(i, s"$i'th element"))) ~> routes ~> check {
+    Put("/example", (10001 to 200000).map(i => Example(i, s"$i'th element", Two))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       repo(Count()(t)) should be (Counted(200000))
     }

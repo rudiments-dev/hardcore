@@ -2,6 +2,8 @@ package dev.rudiments.hardcore.types
 
 import java.sql.{Date, Time, Timestamp}
 
+import enumeratum._
+
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.universe.{Type => SysType}
 
@@ -45,16 +47,20 @@ object FieldType {
     else if (t =:= typeOf[Timestamp]) RudimentTypes.Timestamp
     else if (t =:= typeOf[Date]) RudimentTypes.Date
     else if (t =:= typeOf[Time]) RudimentTypes.Time
-    //TODO add enum
+    else if (t <:< typeOf[EnumEntry]) {
+      val ru = runtimeMirror(getClass.getClassLoader)
+      val companion = ru.reflectModule(ru.staticModule(t.toString)).instance.asInstanceOf[Enum[_ <: EnumEntry]]
+      RudimentTypes.Enum(t.toString, companion.values.map(v => v.entryName))
+    }
     else RudimentTypes.Unknown // TODO add error handling
   }
 }
 
 trait DTO extends Product with FieldType
 object RudimentTypes {
-  case object Text      extends FieldType
-  case object Number    extends FieldType
-  case object Enum      extends FieldType
+  case object Text                      extends FieldType
+  case object Number                    extends FieldType
+  case class  Enum(name: String, values: Seq[String]) extends FieldType
 
   case object Date      extends FieldType
   case object Time      extends FieldType

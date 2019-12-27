@@ -9,8 +9,10 @@ import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.hardcore.data.{Create, DataMemoryAdapter, Find, ReadOnlyHttpPort}
 import dev.rudiments.hardcore.http.{IDPath, RootRouter, Router}
 import dev.rudiments.hardcore.types.{CollectionFlags, DTO, Defaults, Field, FieldFlag, FieldFlags, FieldType, ID, Type, TypeSystem}
+import enumeratum.{Enum, EnumEntry}
 import io.circe.{Encoder, Json}
 
+import scala.collection.immutable
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
@@ -61,6 +63,15 @@ object Application extends App with LazyLogging {
       }
   }
 
+  sealed trait MyEnum extends EnumEntry
+  object MyEnum extends Enum[MyEnum] {
+    override def values: immutable.IndexedSeq[MyEnum] = findValues
+
+    case object One extends MyEnum
+    case object Two extends MyEnum
+    case object Red extends MyEnum
+  }
+
   case class Example(
     id: Long,
     name: String,
@@ -92,6 +103,8 @@ object Application extends App with LazyLogging {
     date: Date,
     optDate: Option[Date],
     time: Time,
-    optTime: Option[Time]
+    optTime: Option[Time],
+    enum: MyEnum,
+    optEnum: Option[MyEnum]
   ) extends DTO
 }
