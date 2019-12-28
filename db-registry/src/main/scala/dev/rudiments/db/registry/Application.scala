@@ -6,7 +6,7 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.hardcore.data.{Create, DataMemoryAdapter, Find, ReadOnlyHttpPort}
 import dev.rudiments.hardcore.http.{IDPath, RootRouter, Router}
-import dev.rudiments.hardcore.types.{ID, Type}
+import dev.rudiments.hardcore.types.{ID, HardType}
 import io.circe.{Encoder, Json}
 
 import scala.concurrent.ExecutionContext
@@ -18,7 +18,7 @@ object Application extends App with LazyLogging {
   implicit val ec: ExecutionContext = actorSystem.dispatcher
   implicit val mat: ActorMaterializer = ActorMaterializer()
 
-  implicit val t: Type[Schema] = Type[Schema]
+  implicit val t: HardType[Schema] = HardType[Schema]
 
   try {
     val config = ConfigFactory.load()

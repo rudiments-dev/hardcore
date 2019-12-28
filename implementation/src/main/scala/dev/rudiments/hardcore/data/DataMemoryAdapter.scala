@@ -5,7 +5,7 @@ import dev.rudiments.hardcore.Adapter
 
 import scala.collection.parallel.mutable
 
-class DataMemoryAdapter[T <: DTO : Type] extends Adapter[DataCommand[T], DataEvent[T]] {
+class DataMemoryAdapter[T <: DTO : HardType] extends Adapter[DataCommand[T], DataEvent[T]] {
   private val content = mutable.ParMap.empty[ID[T], T]
 
   override def isDefinedAt(x: DataCommand[T]): Boolean = x match { //TODO generify

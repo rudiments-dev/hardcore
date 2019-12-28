@@ -1,6 +1,6 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.types.{DTO, ID, Type}
+import dev.rudiments.hardcore.types.{DTO, ID, HardType}
 
 package object data {
   trait DataCommand [T <: DTO] extends Command
@@ -10,34 +10,34 @@ package object data {
   type DataSkill[T <: DTO] = Skill[DataCommand[T], DataEvent[T]]
 
 
-  case class Create [T <: DTO : Type](key: ID[T], value: T)   extends DataCommand[T]
-  case class Find   [T <: DTO : Type](key: ID[T])             extends DataCommand[T]
-  case class FindAll[T <: DTO : Type]()                       extends DataCommand[T]
-  case class Update [T <: DTO : Type](key: ID[T], value: T)   extends DataCommand[T]
-  case class Delete [T <: DTO : Type](key: ID[T])             extends DataCommand[T]
+  case class Create [T <: DTO : HardType](key: ID[T], value: T)   extends DataCommand[T]
+  case class Find   [T <: DTO : HardType](key: ID[T])             extends DataCommand[T]
+  case class FindAll[T <: DTO : HardType]()                       extends DataCommand[T]
+  case class Update [T <: DTO : HardType](key: ID[T], value: T)   extends DataCommand[T]
+  case class Delete [T <: DTO : HardType](key: ID[T])             extends DataCommand[T]
 
-  case class CreateAll[T <: DTO : Type](batch: Map[ID[T], T]) extends DataCommand[T]
-  case class DeleteAll[T <: DTO : Type]()                     extends DataCommand[T]
+  case class CreateAll[T <: DTO : HardType](batch: Map[ID[T], T]) extends DataCommand[T]
+  case class DeleteAll[T <: DTO : HardType]()                     extends DataCommand[T]
 
-  case class Count[T <: DTO : Type]()                         extends DataCommand[T]
-
-
-  case class Created  [T <: DTO : Type](key: ID[T], value: T)                 extends DataEvent[T]
-  case class Found    [T <: DTO : Type](key: ID[T], value: T)                 extends DataEvent[T]
-  case class FoundAll [T <: DTO : Type](values: Seq[T])                       extends DataEvent[T]
-  case class Updated  [T <: DTO : Type](key: ID[T], oldValue: T, newValue: T) extends DataEvent[T]
-  case class Deleted  [T <: DTO : Type](key: ID[T], value: T)                 extends DataEvent[T]
-
-  case class AllCreated[T <: DTO : Type](batch: Map[ID[T], T])              extends DataEvent[T]
-  case class AllDeleted[T <: DTO : Type]()                                  extends DataEvent[T]
-  case class Counted[T <: DTO : Type](total: Long)                          extends DataEvent[T]
+  case class Count[T <: DTO : HardType]()                         extends DataCommand[T]
 
 
-  case class NotFound       [T <: DTO : Type](key: ID[T])           extends DataErrorEvent[T]
-  case class AlreadyExists  [T <: DTO : Type](key: ID[T], value: T) extends DataErrorEvent[T]
-  case class FailedToCreate [T <: DTO : Type](key: ID[T], value: T) extends DataErrorEvent[T]
-  case class FailedToUpdate [T <: DTO : Type](key: ID[T], value: T) extends DataErrorEvent[T]
-  case class FailedToDelete [T <: DTO : Type](key: ID[T], value: T) extends DataErrorEvent[T]
+  case class Created  [T <: DTO : HardType](key: ID[T], value: T)                 extends DataEvent[T]
+  case class Found    [T <: DTO : HardType](key: ID[T], value: T)                 extends DataEvent[T]
+  case class FoundAll [T <: DTO : HardType](values: Seq[T])                       extends DataEvent[T]
+  case class Updated  [T <: DTO : HardType](key: ID[T], oldValue: T, newValue: T) extends DataEvent[T]
+  case class Deleted  [T <: DTO : HardType](key: ID[T], value: T)                 extends DataEvent[T]
 
-  case class BatchFailed [T <: DTO : Type]()                        extends DataErrorEvent[T]
+  case class AllCreated[T <: DTO : HardType](batch: Map[ID[T], T])              extends DataEvent[T]
+  case class AllDeleted[T <: DTO : HardType]()                                  extends DataEvent[T]
+  case class Counted[T <: DTO : HardType](total: Long)                          extends DataEvent[T]
+
+
+  case class NotFound       [T <: DTO : HardType](key: ID[T])           extends DataErrorEvent[T]
+  case class AlreadyExists  [T <: DTO : HardType](key: ID[T], value: T) extends DataErrorEvent[T]
+  case class FailedToCreate [T <: DTO : HardType](key: ID[T], value: T) extends DataErrorEvent[T]
+  case class FailedToUpdate [T <: DTO : HardType](key: ID[T], value: T) extends DataErrorEvent[T]
+  case class FailedToDelete [T <: DTO : HardType](key: ID[T], value: T) extends DataErrorEvent[T]
+
+  case class BatchFailed [T <: DTO : HardType]()                        extends DataErrorEvent[T]
 }

@@ -12,7 +12,7 @@ import ch.megard.akka.http.cors.scaladsl.CorsDirectives
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
-import dev.rudiments.hardcore.types.{DTO, ID, Type}
+import dev.rudiments.hardcore.types.{DTO, ID, HardType}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -56,7 +56,7 @@ class RootRouter(config: Config, routers: Router*)
 
 object IDPath {
   import scala.reflect.runtime.universe.{TypeTag, typeOf}
-  def apply[A <: DTO : Type, K: TypeTag]: Directive1[ID[A]] = {
+  def apply[A <: DTO : HardType, K: TypeTag]: Directive1[ID[A]] = {
     if(typeOf[K] =:= typeOf[Long])   pathPrefix(LongNumber).map(l => ID[A, Long](l))
     else if(typeOf[K] =:= typeOf[Int])    pathPrefix(IntNumber).map(i => ID[A, Int](i))
     else if(typeOf[K] =:= typeOf[String]) pathPrefix(Segment).map(s => ID[A, String](s))

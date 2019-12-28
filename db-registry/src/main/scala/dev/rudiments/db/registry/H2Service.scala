@@ -2,13 +2,13 @@ package dev.rudiments.db.registry
 
 import dev.rudiments.hardcore.data.{Create, DataMemoryAdapter, Find, Found, NotFound}
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.types.{ID, Type}
+import dev.rudiments.hardcore.types.{ID, HardType}
 
 class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) extends Service[SchemaCommand, SchemaEvent] {
   override def isDefinedAt(cmd: SchemaCommand): Boolean = f.isDefinedAt(cmd)
   override def apply(cmd: SchemaCommand): SchemaEvent = f(cmd)
 
-  implicit val t: Type[Schema] = Type[Schema]
+  implicit val t: HardType[Schema] = HardType[Schema]
   val f: Skill[SchemaCommand, SchemaEvent] = {
     case ReadSchema(schemaName) =>
       persistent(

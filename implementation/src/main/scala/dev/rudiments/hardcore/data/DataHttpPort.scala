@@ -4,12 +4,12 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
 import akka.http.scaladsl.server.Directives._
 import dev.rudiments.hardcore.Port
-import dev.rudiments.hardcore.types.{DTO, ID, Type}
+import dev.rudiments.hardcore.types.{DTO, ID, HardType}
 import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.hardcore.http.Router
 import io.circe.{Decoder, Encoder}
 
-class DataHttpPort[T <: DTO : Type : Encoder : Decoder](
+class DataHttpPort[T <: DTO : HardType : Encoder : Decoder](
   prefix: String,
   idDirective: Directive1[ID[T]],
   identify: T => ID[T],

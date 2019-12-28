@@ -5,10 +5,10 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
 import dev.rudiments.hardcore.Port
 import dev.rudiments.hardcore.http.Router
-import dev.rudiments.hardcore.types.{DTO, ID, Type}
+import dev.rudiments.hardcore.types.{DTO, ID, HardType}
 import io.circe.Encoder
 
-class ReadOnlyHttpPort[T <: DTO : Type : Encoder](
+class ReadOnlyHttpPort[T <: DTO : HardType : Encoder](
   prefix: String,
   idDirective: Directive1[ID[T]],
   override val f: DataSkill[T]

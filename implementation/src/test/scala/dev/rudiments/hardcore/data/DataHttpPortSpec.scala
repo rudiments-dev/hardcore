@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.hardcore.http.IDPath
-import dev.rudiments.hardcore.types.{DTO, Defaults, ID, Type}
+import dev.rudiments.hardcore.types.{DTO, Defaults, ID, HardType}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -20,7 +20,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
   ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val t: Type[Example] = Type[Example]
+  private implicit val t: HardType[Example] = HardType[Example]
   private val repo: DataMemoryAdapter[Example] = new DataMemoryAdapter[Example]
 
   private val router: DataHttpPort[Example] = new DataHttpPort[Example](

@@ -1,6 +1,6 @@
 package dev.rudiments.hardcore.data
 
-import dev.rudiments.hardcore.types.{DTO, ID, Type}
+import dev.rudiments.hardcore.types.{DTO, ID, HardType}
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.junit.JUnitRunner
@@ -16,7 +16,7 @@ class DataMemoryAdapterSpec extends WordSpec with Matchers {
     comment: Option[String] = None
   ) extends DTO
 
-  private implicit val t: Type[Example] = Type[Example]
+  private implicit val t: HardType[Example] = HardType[Example]
   private val repo: DataMemoryAdapter[Example] = new DataMemoryAdapter[Example]
   private val sample = Example(42, "sample", MyEnum.Red)
   private val id: ID[Example] = ID(sample.id)

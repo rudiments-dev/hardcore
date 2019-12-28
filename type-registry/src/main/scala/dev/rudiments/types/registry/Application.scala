@@ -23,14 +23,14 @@ object Application extends App with LazyLogging {
   implicit val ec: ExecutionContext = actorSystem.dispatcher
   implicit val mat: ActorMaterializer = ActorMaterializer()
 
-  implicit val t: Type[TypeSystem] = Type[TypeSystem]
+  implicit val t: HardType[TypeSystem] = HardType[TypeSystem]
 
   try {
     val config = ConfigFactory.load()
     val db = new DataMemoryAdapter[TypeSystem]
 
     import dev.rudiments.hardcore.http.CirceSupport._
-    implicit def typeEncoder: Encoder[Type[_]] = new Encoder[Type[_]] {
+    implicit def typeEncoder: Encoder[HardType[_]] = new Encoder[HardType[_]] {
 
       private def fieldFormat(t: FieldType): String = t match {
         case RudimentTypes.Text =>      RudimentTypes.Text.toString
@@ -52,7 +52,7 @@ object Application extends App with LazyLogging {
         case _ => throw new IllegalArgumentException
       }
 
-      override def apply(a: Type[_]): Json = Json.obj(
+      override def apply(a: HardType[_]): Json = Json.obj(
         "name" -> Json.fromString(a.name),
         "fields" -> Json.obj(
           a.fields.map { case (fieldName, Field(t, f)) =>
@@ -71,7 +71,7 @@ object Application extends App with LazyLogging {
       )
     }
 
-    db(Create(ID("sample"), TypeSystem("my-type-system", Type[Example], Type[Sample])))
+    db(Create(ID("sample"), TypeSystem("my-type-system", HardType[Example], HardType[Sample])))
 
     val port = new ReadOnlyHttpPort[TypeSystem]("types", IDPath[TypeSystem, String], db)
     new RootRouter(config, port).bind()
