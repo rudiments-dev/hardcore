@@ -8,7 +8,7 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.hardcore.data.{Create, DataMemoryAdapter, ReadOnlyHttpPort}
 import dev.rudiments.hardcore.http.{IDPath, RootRouter}
-import dev.rudiments.hardcore.types._
+import dev.rudiments.hardcore.types.{FieldType, _}
 import enumeratum.{Enum, EnumEntry}
 import io.circe.{Encoder, Json}
 
@@ -17,6 +17,7 @@ import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
 object Application extends App with LazyLogging {
+  logger.info("Starting application")
 
   implicit val actorSystem: ActorSystem = ActorSystem()
   implicit val ec: ExecutionContext = actorSystem.dispatcher
@@ -30,18 +31,40 @@ object Application extends App with LazyLogging {
 
     import dev.rudiments.hardcore.http.CirceSupport._
     implicit def typeEncoder: Encoder[Type[_]] = new Encoder[Type[_]] {
+
+      private def fieldFormat(t: FieldType): String = t match {
+        case RudimentTypes.Text =>      RudimentTypes.Text.toString
+        case RudimentTypes.Number =>    RudimentTypes.Number.toString
+
+        case RudimentTypes.Date =>      RudimentTypes.Date.toString
+        case RudimentTypes.Time =>      RudimentTypes.Time.toString
+        case RudimentTypes.Timestamp => RudimentTypes.Timestamp.toString
+
+        case RudimentTypes.Enum(n, v) => n.split("\\.").last + v.mkString("[", ",", "]")
+
+        case RudimentTypes.List(f) => fieldFormat(f) // CollectionFlag will do the thing
+        case RudimentTypes.Set(f) =>  fieldFormat(f) // CollectionFlag will do the thing
+        case RudimentTypes.Index(k, v) => fieldFormat(k) + "->" + fieldFormat(v)
+
+        case RudimentTypes.Reference(another) => "*" + another.name
+
+        case RudimentTypes.Unknown => "UNKNOWN"
+        case _ => throw new IllegalArgumentException
+      }
+
       override def apply(a: Type[_]): Json = Json.obj(
         "name" -> Json.fromString(a.name),
         "fields" -> Json.obj(
           a.fields.map { case (fieldName, Field(t, f)) =>
+            val formated = fieldFormat(t)
             fieldName -> (f match {
-              case FieldFlags.Optional => Json.fromString(t.toString + "?")
-              case FieldFlags.Required => Json.fromString(t.toString + "!")
-              case FieldFlags.WithDefault => Json.fromString(t.toString + "+")
-              case CollectionFlags.CanBeEmpty => Json.fromString(t.toString + "[]")
-              case CollectionFlags.NonEmpty => Json.fromString(t.toString + "[!]")
-              case CollectionFlags.Nullable => Json.fromString(t.toString + "[]?")
-              case CollectionFlags.WithDefault => Json.fromString(t.toString + "[+]")
+              case FieldFlags.Optional => Json.fromString(formated + "?")
+              case FieldFlags.Required => Json.fromString(formated + "!")
+              case FieldFlags.WithDefault => Json.fromString(formated + "+")
+              case CollectionFlags.CanBeEmpty => Json.fromString(formated + "[]")
+              case CollectionFlags.NonEmpty => Json.fromString(formated + "[!]")
+              case CollectionFlags.Nullable => Json.fromString(formated + "[]?")
+              case CollectionFlags.WithDefault => Json.fromString(formated + "[+]")
             })
           }.toSeq: _*
         ),
@@ -81,7 +104,13 @@ object Application extends App with LazyLogging {
     arrayWithDefault: Seq[Int] = Seq.empty,
     question: List[Int] = List(42),
     when: Timestamp = Defaults.now,
-    date: Option[Date] = Some(Defaults.today)
+    date: Option[Date] = Some(Defaults.today),
+    mapIntDate: Map[Int, Date] = Map.empty,
+    sample: Sample,
+    optSample: Option[Sample],
+    seqSample: Seq[Sample] = Seq.empty,
+    setSample: Set[Sample] = Set.empty,
+    mapSample: Map[String, Sample] = Map.empty
   ) extends DTO
 
   case class Sample(
