@@ -6,9 +6,9 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import dev.rudiments.hardcore.data.{Create, DataMemoryAdapter, Find, ReadOnlyHttpPort}
-import dev.rudiments.hardcore.http.{IDPath, RootRouter, Router}
-import dev.rudiments.hardcore.types.{CollectionFlags, DTO, Defaults, Field, FieldFlag, FieldFlags, FieldType, ID, Type, TypeSystem}
+import dev.rudiments.hardcore.data.{Create, DataMemoryAdapter, ReadOnlyHttpPort}
+import dev.rudiments.hardcore.http.{IDPath, RootRouter}
+import dev.rudiments.hardcore.types._
 import enumeratum.{Enum, EnumEntry}
 import io.circe.{Encoder, Json}
 
@@ -48,7 +48,7 @@ object Application extends App with LazyLogging {
       )
     }
 
-    db(Create(ID("sample"), TypeSystem("sample", Type[Example], Type[Sample])))
+    db(Create(ID("sample"), TypeSystem("my-type-system", Type[Example], Type[Sample])))
 
     val port = new ReadOnlyHttpPort[TypeSystem]("types", IDPath[TypeSystem, String], db)
     new RootRouter(config, port).bind()
