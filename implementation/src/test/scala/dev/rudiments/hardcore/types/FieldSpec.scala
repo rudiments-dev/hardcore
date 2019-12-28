@@ -16,7 +16,7 @@ class FieldSpec extends WordSpec with Matchers {
       "optString" ->        Field(RudimentTypes.Text,       FieldFlags.Optional),
       "defaultString" ->    Field(RudimentTypes.Text,       FieldFlags.WithDefault),
       "defaultOptString" -> Field(RudimentTypes.Text,       FieldFlags.Optional),
-      "listOfStrings" ->    Field(RudimentTypes.Text,       CollectionFlags.CanBeEmpty),
+      "listOfStrings" ->    Field(RudimentTypes.List(RudimentTypes.Text), CollectionFlags.CanBeEmpty),
       "int" ->              Field(RudimentTypes.Number,     FieldFlags.Required),
       "optInt" ->           Field(RudimentTypes.Number,     FieldFlags.Optional),
       "double" ->           Field(RudimentTypes.Number,     FieldFlags.Required),
@@ -39,7 +39,7 @@ class FieldSpec extends WordSpec with Matchers {
     t.fields("optString")         should be (Field(RudimentTypes.Text,  FieldFlags.Optional))
     t.fields("defaultString")     should be (Field(RudimentTypes.Text,  FieldFlags.WithDefault))
     t.fields("defaultOptString")  should be (Field(RudimentTypes.Text,  FieldFlags.Optional))
-    t.fields("listOfStrings")     should be (Field(RudimentTypes.Text,  CollectionFlags.CanBeEmpty))
+    t.fields("listOfStrings")     should be (Field(RudimentTypes.List(RudimentTypes.Text),  CollectionFlags.CanBeEmpty))
   }
 
   "Int -> Number" in {
