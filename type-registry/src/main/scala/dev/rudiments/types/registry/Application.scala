@@ -30,7 +30,7 @@ object Application extends App with LazyLogging {
     val db = new DataMemoryAdapter[TypeSystem]
 
     import dev.rudiments.hardcore.http.CirceSupport._
-    implicit def typeEncoder: Encoder[HardType[_]] = new Encoder[HardType[_]] {
+    implicit def typeEncoder: Encoder[Type] = new Encoder[Type] {
 
       private def fieldFormat(t: FieldType): String = t match {
         case RudimentTypes.Text =>      RudimentTypes.Text.toString
@@ -52,7 +52,7 @@ object Application extends App with LazyLogging {
         case _ => throw new IllegalArgumentException
       }
 
-      override def apply(a: HardType[_]): Json = Json.obj(
+      override def apply(a: Type): Json = Json.obj(
         "name" -> Json.fromString(a.name),
         "fields" -> Json.obj(
           a.fields.map { case (fieldName, Field(t, f)) =>

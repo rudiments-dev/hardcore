@@ -7,21 +7,37 @@ import enumeratum._
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.universe.{Type => SysType}
 
-case class TypeSystem(name: String, types: Map[String, HardType[_]]) extends DTO
-object TypeSystem {
-  def apply(name: String, types: HardType[_]*): TypeSystem = new TypeSystem(name, types.map(t => t.name -> t.asInstanceOf[HardType[_ <: DTO]]).toMap)
+object TypeOps {
+  def collect(t: Symbol): Map[String, Field] =
+    t.asClass.primaryConstructor.typeSignature.paramLists.head.collect {
+      case m: TermSymbol => m.name.toString.trim -> Field(m)
+    }.toMap
 }
 
-case class HardType[T <: DTO](name: String, fields: Map[String, Field]) extends DTO
+case class TypeSystem(name: String, types: Map[String, Type]) extends DTO
+object TypeSystem {
+  def apply(name: String, types: Type*): TypeSystem = new TypeSystem(name, types.map(t => t.name -> t).toMap)
+}
+
+case class Type(name: String, fields: Map[String, Field]) extends DTO
+object Type {
+  def apply[T <: DTO : TypeTag]: Type = apply(typeOf[T].typeSymbol)
+
+  def apply(t: Symbol): Type = {
+    new Type(
+      t.name.toString.trim,
+      TypeOps.collect(t)
+    )
+  }
+}
+class HardType[T <: DTO](name: String, fields: Map[String, Field]) extends Type(name, fields)
 object HardType {
   def apply[T <: DTO : TypeTag]: HardType[T] = apply(typeOf[T].typeSymbol)
 
   def apply[T <: DTO](t: Symbol): HardType[T] = {
     new HardType[T](
       t.name.toString.trim,
-      t.asClass.primaryConstructor.typeSignature.paramLists.head.collect {
-        case m: TermSymbol => m.name.toString.trim -> Field(m)
-      }.toMap
+      TypeOps.collect(t)
     )
   }
 }
@@ -63,7 +79,7 @@ object FieldType {
       RudimentTypes.Index(FieldType(t.typeArgs.head), FieldType(t.typeArgs.last))
     }
     else if (t <:< typeOf[DTO]) {
-      RudimentTypes.Reference(HardType[AnotherDTO](t.typeSymbol))
+      RudimentTypes.Reference(Type.apply(t.typeSymbol))
     }
     else RudimentTypes.Unknown // TODO add error handling
   }
@@ -85,7 +101,7 @@ object RudimentTypes {
   case class List(of: FieldType) extends FieldType
   case class Index(of: FieldType, over: FieldType) extends FieldType
 
-  case class Reference(of: HardType[AnotherDTO]) extends FieldType
+  case class Reference(of: Type) extends FieldType
 
   case object Unknown   extends FieldType
 }
