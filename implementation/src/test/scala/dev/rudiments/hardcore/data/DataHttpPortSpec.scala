@@ -4,9 +4,10 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.hardcore.http.IDPath
-import dev.rudiments.hardcore.types.{DTO, Defaults, ID, HardType}
+import dev.rudiments.hardcore.types.{DTO, Defaults, HardType, ID}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}

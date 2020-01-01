@@ -1,6 +1,9 @@
 package dev.rudiments.hardcore.data
 
-import dev.rudiments.hardcore.types.{DTO, ID, HardType}
+import dev.rudiments.hardcore.data.Batch._
+import dev.rudiments.hardcore.data.CRUD._
+import dev.rudiments.hardcore.data.ReadOnly._
+import dev.rudiments.hardcore.types.{DTO, HardType, ID}
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.junit.JUnitRunner

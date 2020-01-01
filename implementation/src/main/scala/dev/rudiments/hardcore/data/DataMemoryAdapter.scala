@@ -2,6 +2,9 @@ package dev.rudiments.hardcore.data
 
 import dev.rudiments.hardcore.types._
 import dev.rudiments.hardcore.Adapter
+import dev.rudiments.hardcore.data.Batch._
+import dev.rudiments.hardcore.data.CRUD._
+import dev.rudiments.hardcore.data.ReadOnly._
 
 import scala.collection.parallel.mutable
 

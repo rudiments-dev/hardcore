@@ -86,7 +86,7 @@ object FieldType {
 }
 
 trait DTO extends Product
-case class AnotherDTO() extends DTO
+
 object RudimentTypes {
   case object Text    extends FieldType
   case object Number  extends FieldType

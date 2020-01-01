@@ -4,8 +4,10 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
 import akka.http.scaladsl.server.Directives._
 import dev.rudiments.hardcore.Port
-import dev.rudiments.hardcore.types.{DTO, ID, HardType}
-import dev.rudiments.hardcore.http.CirceSupport._
+import dev.rudiments.hardcore.data.Batch._
+import dev.rudiments.hardcore.data.CRUD._
+import dev.rudiments.hardcore.data.ReadOnly._
+import dev.rudiments.hardcore.types.{DTO, HardType, ID}
 import dev.rudiments.hardcore.http.Router
 import io.circe.{Decoder, Encoder}
 
@@ -21,6 +23,8 @@ class DataHttpPort[T <: DTO : HardType : Encoder : Decoder](
       idRoute(id)
     }
   }
+
+  import dev.rudiments.hardcore.http.CirceSupport._
 
   def pathRoute: Route = pathEndOrSingleSlash {
     get {
