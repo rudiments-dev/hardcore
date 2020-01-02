@@ -6,7 +6,6 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http.CirceSupport._
-import dev.rudiments.hardcore.http.IDPath
 import dev.rudiments.hardcore.types.{DTO, Defaults, HardType, ID}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -59,11 +58,18 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
     Post("/example", sample) ~> routes ~> check {
       response.status should be (StatusCodes.Conflict)
     }
+    Get("/example/42") ~> routes ~> check {
+      response.status should be (StatusCodes.OK)
+      responseAs[Example] should be (Example(42, "test", Red))
+    }
   }
 
   "delete item from repository" in {
     Delete("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
+    }
+    Get("/example/42") ~> routes ~> check {
+      response.status should be (StatusCodes.NotFound)
     }
   }
 
@@ -74,12 +80,20 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
       }
     }
     repo(Count()(t)) should be (Counted(10000))
+    Get("/example/24") ~> routes ~> check {
+      response.status should be (StatusCodes.OK)
+      responseAs[Example] should be (Example(24, "24'th element", One))
+    }
   }
 
   "endure 190.000 batch" in {
     Put("/example", (10001 to 200000).map(i => Example(i, s"$i'th element", Two))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       repo(Count()(t)) should be (Counted(200000))
+    }
+    Get("/example/10024") ~> routes ~> check {
+      response.status should be (StatusCodes.OK)
+      responseAs[Example] should be (Example(10024, "10024'th element", Two))
     }
   }
 
