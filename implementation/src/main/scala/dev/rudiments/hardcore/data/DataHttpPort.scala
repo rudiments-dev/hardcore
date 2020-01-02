@@ -14,7 +14,6 @@ import io.circe.{Decoder, Encoder}
 import scala.reflect.runtime.universe.TypeTag
 class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
   prefix: String,
-  idDirective: Directive1[ID[T]],
   identify: T => ID[T],
   override val f: DataSkill[T]
 ) extends Port[DataCommand[T], DataEvent[T]] with Router {
