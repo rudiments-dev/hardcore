@@ -24,7 +24,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
   private implicit val t: HardType[Example] = HardType[Example]
   private val repo: DataMemoryAdapter[Example] = new DataMemoryAdapter[Example]
 
-  private val router: DataHttpPort[Example] = new DataHttpPort[Example](
+  private val router: DataHttpPort[Example, Long] = new DataHttpPort[Example, Long](
     "example",
     IDPath[Example, Long],
     e => ID[Example, Long](e.id),

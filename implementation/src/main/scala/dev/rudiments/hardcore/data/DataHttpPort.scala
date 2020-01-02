@@ -8,10 +8,11 @@ import dev.rudiments.hardcore.data.Batch._
 import dev.rudiments.hardcore.data.CRUD._
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.types.{DTO, HardType, ID}
-import dev.rudiments.hardcore.http.Router
+import dev.rudiments.hardcore.http.{CompositeRouter, DeletePort, GetIDPort, GetPort, IDPath, IDRouter, PostPort, PutPort, ResourceRouter, Router}
 import io.circe.{Decoder, Encoder}
 
-class DataHttpPort[T <: DTO : HardType : Encoder : Decoder](
+import scala.reflect.runtime.universe.TypeTag
+class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
   prefix: String,
   idDirective: Directive1[ID[T]],
   identify: T => ID[T],
@@ -19,40 +20,24 @@ class DataHttpPort[T <: DTO : HardType : Encoder : Decoder](
 ) extends Port[DataCommand[T], DataEvent[T]] with Router {
 
   override val routes: Route = pathPrefix(prefix) {
-    pathRoute ~ idDirective { id =>
-      idRoute(id)
-    }
+    pathRoute ~ idRoute
   }
 
   import dev.rudiments.hardcore.http.CirceSupport._
 
-  def pathRoute: Route = pathEndOrSingleSlash {
-    get {
-      responseWith(f(FindAll[T]))
-    } ~ post {
-      entity(as[T]) { value =>
-        responseWith(f(Create(identify(value), value)))
-      }
-    } ~ put {
-      entity(as[List[T]]) { batch =>
-        responseWith(f(CreateAll(batch.groupBy(identify).mapValues(_.head))))
-      }
-    } ~ delete {
-      responseWith(f(DeleteAll[T]()))
-    }
-  }
+  def pathRoute: Route = CompositeRouter(
+    GetPort(FindAll[T], f, responseWith),
+    PostPort((value: T) => Create(identify(value), value), f, responseWith),
+    PutPort((batch: Seq[T]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), f, responseWith),
+    DeletePort(DeleteAll[T], f, responseWith)
+  ).routes
 
-  def idRoute(id: ID[T]): Route = pathEndOrSingleSlash {
-    get {
-      responseWith(f(Find(id)))
-    } ~ put {
-      entity(as[T]) { newValue =>
-        responseWith(f(Update(id, newValue)))
-      }
-    } ~ delete {
-      responseWith(f(Delete(id)))
-    }
-  }
+  def idRoute: Route = IDRouter(
+    IDPath[T, K],
+    { id: ID[T] => GetPort(Find[T](id), f, responseWith) },
+    { id: ID[T] => PutPort((value: T) => Update[T](id, value), f, responseWith) },
+    { id: ID[T] => DeletePort(Delete[T](id), f, responseWith) }
+  ).routes
 
   def responseWith(event: DataEvent[T]): StandardRoute = event match {
     case Created(_, value) =>       complete(StatusCodes.Created, value)
