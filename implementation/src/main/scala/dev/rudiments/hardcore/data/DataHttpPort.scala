@@ -30,7 +30,8 @@ class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
       { id: ID[T] => GetPort(Find[T](id), f, responseWith) },
       { id: ID[T] => PutPort((value: T) => Update[T](id, value), f, responseWith) },
       { id: ID[T] => DeletePort(Delete[T](id), f, responseWith) }
-    )).routes
+    )
+  ).routes
 
   import dev.rudiments.hardcore.http.CirceSupport._
   def responseWith(event: DataEvent[T]): StandardRoute = event match {
