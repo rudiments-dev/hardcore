@@ -34,6 +34,11 @@ class FieldSpec extends WordSpec with Matchers {
     ))
   }
 
+  "order of fields should be honored" in {
+    t.fields.head should be ("string" -> Field(RudimentTypes.Text,  FieldFlags.Required))
+    t.fields.last should be ("optTime" -> Field(RudimentTypes.Time, FieldFlags.Optional))
+  }
+
   "String -> Text" in {
     t.fields("string")            should be (Field(RudimentTypes.Text,  FieldFlags.Required))
     t.fields("optString")         should be (Field(RudimentTypes.Text,  FieldFlags.Optional))

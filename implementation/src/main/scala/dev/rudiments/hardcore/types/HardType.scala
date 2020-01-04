@@ -4,14 +4,15 @@ import java.sql.{Date, Time, Timestamp}
 
 import enumeratum._
 
+import scala.collection.immutable.ListMap
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.universe.{Type => SysType}
 
 object TypeOps {
   def collect(t: Symbol): Map[String, Field] =
-    t.asClass.primaryConstructor.typeSignature.paramLists.head.collect {
+    ListMap(t.asClass.primaryConstructor.typeSignature.paramLists.head.collect {
       case m: TermSymbol => m.name.toString.trim -> Field(m)
-    }.toMap
+    }: _*)
 }
 
 case class TypeSystem(name: String, types: Map[String, Type]) extends DTO
