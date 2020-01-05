@@ -1,4 +1,4 @@
-package dev.rudiments.hardcore.http.query.blueprints
+package dev.rudiments.hardcore.http.query.predicates
 
 object TypeTransformers {
   sealed trait Transformer[A, B] {
