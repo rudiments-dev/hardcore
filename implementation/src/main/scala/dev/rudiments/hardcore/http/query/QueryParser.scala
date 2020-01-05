@@ -16,16 +16,38 @@ object QueryParser {
 
     val blueprints: Seq[Either[RuntimeException, PredicateBlueprint[_]]] = httpQuery.parts.map { part =>
       val tt: Type = types(part.fieldName)
-      val fabrics = possibleQueries(tt)
+      if (tt <:< typeOf[Option[_]]) {
+        val ops: Seq[String => Option[OptionPredicate]] = Seq(
+          IsEmpty.create,
+          IsDefined.create
+        )
+        val predicate: Option[OptionPredicate] = ops.foldLeft(Option.empty[OptionPredicate]) {
+          (accum, op) => accum.orElse(op(part.text))
+        }
 
-      fabrics.foldLeft(Option.empty[PredicateBlueprint[_]]) { (accum, fabric) => accum.orElse(fabric(part.text)) }
-        .toRight(left = new RuntimeException(s"unsupported format: ${part.text}"))
+        val result = predicate.getOrElse(
+          ValuePredicate {
+            val fabrics = fieldPredicates(tt.typeArgs.head)
+
+            fabrics.foldLeft(Option.empty[FieldPredicateBlueprint[_]]) { (accum, fabric) => accum.orElse(fabric(part.text)) }
+              .toRight(left = new RuntimeException(s"unsupported format: ${part.text}")).right.get
+          }
+        )
+        Right(result)
+      } else {
+        val fabrics = fieldPredicates(tt)
+
+        fabrics.foldLeft(Option.empty[PredicateBlueprint[_]]) { (accum, fabric) => accum.orElse(fabric(part.text)) }
+          .toRight(left = new RuntimeException(s"unsupported format: ${part.text}"))
+      }
     }
 
     sequence(blueprints).map(_.toSet).map(QueryBlueprint.apply[E])
   }
 
-  val possibleQueries: Map[universe.Type, Seq[String => Option[PredicateBlueprint[_]]]] = Map(
+
+
+  val fieldPredicates: Map[universe.Type, Seq[String => Option[FieldPredicateBlueprint[_]]]] = Map(
     typeOf[String] -> Seq(
       StartsWith.create,
       StringEqualsBlueprint.create
