@@ -4,9 +4,12 @@ import java.sql.{Date, Time, Timestamp}
 
 import enumeratum._
 
+import scala.collection.immutable
 import scala.collection.immutable.ListMap
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.universe.{Type => SysType}
+
+trait DTO extends Product
 
 object TypeOps {
   def collect(t: Symbol): Map[String, Field] =
@@ -58,12 +61,12 @@ case class Field(kind: FieldType, fieldFlag: FieldFlag) extends DTO
 object Field {
   def apply(symbol: TermSymbol): Field = {
     if(symbol.typeSignature <:< typeOf[Option[_]]) {
-      new Field(FieldType(symbol.typeSignature.typeArgs.head), FieldFlags.Optional)
+      new Field(FieldType(symbol.typeSignature.typeArgs.head), FieldFlag.Optional)
     } else if(symbol.typeSignature <:< typeOf[Iterable[_]]) {
-      new Field(FieldType(symbol.typeSignature), if(symbol.isParamWithDefault) CollectionFlags.WithDefault else CollectionFlags.CanBeEmpty)
+      new Field(FieldType(symbol.typeSignature), if(symbol.isParamWithDefault) FieldFlag.CanBeEmpty else FieldFlag.NonEmpty)
       //TODO add support on non-empty and nullable collections
     }else {
-      new Field(FieldType(symbol.typeSignature), if(symbol.isParamWithDefault) FieldFlags.WithDefault else FieldFlags.Required)
+      new Field(FieldType(symbol.typeSignature), if(symbol.isParamWithDefault) FieldFlag.WithDefault else FieldFlag.Required)
     }
   }
 }
@@ -97,8 +100,6 @@ object FieldType {
   }
 }
 
-trait DTO extends Product
-
 object RudimentTypes {
   case object Text    extends FieldType
   case object Number  extends FieldType
@@ -118,17 +119,14 @@ object RudimentTypes {
   case object Unknown   extends FieldType
 }
 
-sealed trait FieldFlag {}
-object FieldFlags {
+sealed trait FieldFlag extends EnumEntry
+object FieldFlag extends Enum[FieldFlag] {
+  override def values: immutable.IndexedSeq[FieldFlag] = findValues
+
   case object Required    extends FieldFlag
   case object Optional    extends FieldFlag
   case object WithDefault extends FieldFlag
-}
 
-sealed trait CollectionFlag extends FieldFlag {}
-object CollectionFlags {
-  case object NonEmpty    extends CollectionFlag
-  case object CanBeEmpty  extends CollectionFlag
-  case object Nullable    extends CollectionFlag
-  case object WithDefault extends CollectionFlag
+  case object NonEmpty    extends FieldFlag
+  case object CanBeEmpty  extends FieldFlag
 }

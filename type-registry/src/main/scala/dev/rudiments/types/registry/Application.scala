@@ -7,11 +7,10 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.hardcore.data.CRUD.Create
-import dev.rudiments.hardcore.data.{DataMemoryAdapter, ReadOnlyHttpPort}
-import dev.rudiments.hardcore.http.{IDPath, RootRouter}
-import dev.rudiments.hardcore.types.{FieldType, _}
+import dev.rudiments.hardcore.data.{DataHttpPort, DataMemoryAdapter}
+import dev.rudiments.hardcore.http.RootRouter
+import dev.rudiments.hardcore.types._
 import enumeratum.{Enum, EnumEntry}
-import io.circe.{Encoder, Json}
 
 import scala.collection.immutable
 import scala.concurrent.ExecutionContext
@@ -29,52 +28,10 @@ object Application extends App with LazyLogging {
   try {
     val config = ConfigFactory.load()
     val db = new DataMemoryAdapter[TypeSystem]
-
-    import dev.rudiments.hardcore.http.CirceSupport._
-    implicit def typeEncoder: Encoder[Type] = new Encoder[Type] {
-
-      private def fieldFormat(t: FieldType): String = t match {
-        case RudimentTypes.Text =>      RudimentTypes.Text.toString
-        case RudimentTypes.Number =>    RudimentTypes.Number.toString
-
-        case RudimentTypes.Date =>      RudimentTypes.Date.toString
-        case RudimentTypes.Time =>      RudimentTypes.Time.toString
-        case RudimentTypes.Timestamp => RudimentTypes.Timestamp.toString
-
-        case RudimentTypes.Enum(n, v) => n.split("\\.").last + v.mkString("[", ",", "]")
-
-        case RudimentTypes.List(f) => fieldFormat(f) // CollectionFlag will do the thing
-        case RudimentTypes.Set(f) =>  fieldFormat(f) // CollectionFlag will do the thing
-        case RudimentTypes.Index(k, v) => fieldFormat(k) + "->" + fieldFormat(v)
-
-        case RudimentTypes.Reference(another) => "*" + another.name
-
-        case RudimentTypes.Unknown => "UNKNOWN"
-        case _ => throw new IllegalArgumentException
-      }
-
-      override def apply(a: Type): Json = Json.obj(
-        "name" -> Json.fromString(a.name),
-        "fields" -> Json.obj(
-          a.fields.map { case (fieldName, Field(t, f)) =>
-            val formated = fieldFormat(t)
-            fieldName -> (f match {
-              case FieldFlags.Optional => Json.fromString(formated + "?")
-              case FieldFlags.Required => Json.fromString(formated + "!")
-              case FieldFlags.WithDefault => Json.fromString(formated + "+")
-              case CollectionFlags.CanBeEmpty => Json.fromString(formated + "[]")
-              case CollectionFlags.NonEmpty => Json.fromString(formated + "[!]")
-              case CollectionFlags.Nullable => Json.fromString(formated + "[]?")
-              case CollectionFlags.WithDefault => Json.fromString(formated + "[+]")
-            })
-          }.toSeq: _*
-        ),
-      )
-    }
-
     db(Create(ID("sample"), TypeSystem("my-type-system", HardType[Example], HardType[Sample])))
 
-    val port = new ReadOnlyHttpPort[TypeSystem]("types", IDPath[TypeSystem, String], db)
+    import dev.rudiments.hardcore.http.CirceSupport._
+    val port = new DataHttpPort[TypeSystem, String]("types", ts => ID[TypeSystem, String](ts.name), db)
     new RootRouter(config, port).bind()
   } catch {
     case e: Throwable =>
@@ -111,7 +68,9 @@ object Application extends App with LazyLogging {
     optSample: Option[Sample],
     seqSample: Seq[Sample] = Seq.empty,
     setSample: Set[Sample] = Set.empty,
-    mapSample: Map[String, Sample] = Map.empty
+    mapSample: Map[String, Sample] = Map.empty,
+    multimapSample: Map[String, Set[Sample]] = Map.empty,
+    deepMapSample: Map[String, Map[String, Set[Sample]]] = Map.empty,
   ) extends DTO
 
   case class Sample(
