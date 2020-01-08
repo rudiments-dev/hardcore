@@ -16,36 +16,36 @@ object QueryParser {
 
     val blueprints: Seq[Either[RuntimeException, PredicateBlueprint[_]]] = httpQuery.parts.map { part =>
       val tt: Type = types(part.fieldName)
-      if (tt <:< typeOf[Option[_]]) {
-        val ops: Seq[String => Option[OptionPredicate]] = Seq(
-          IsEmpty.create,
-          IsDefined.create
-        )
-        val predicate: Option[OptionPredicate] = ops.foldLeft(Option.empty[OptionPredicate]) {
-          (accum, op) => accum.orElse(op(part.text))
-        }
-
-        val result = predicate.getOrElse(
-          ValuePredicate {
-            val fabrics = fieldPredicates(tt.typeArgs.head)
-
-            fabrics.foldLeft(Option.empty[FieldPredicateBlueprint[_]]) { (accum, fabric) => accum.orElse(fabric(part.text)) }
-              .toRight(left = new RuntimeException(s"unsupported format: ${part.text}")).right.get
-          }
-        )
-        Right(result)
-      } else {
-        val fabrics = fieldPredicates(tt)
-
-        fabrics.foldLeft(Option.empty[PredicateBlueprint[_]]) { (accum, fabric) => accum.orElse(fabric(part.text)) }
-          .toRight(left = new RuntimeException(s"unsupported format: ${part.text}"))
-      }
+      recurs(tt, part)
     }
 
     sequence(blueprints).map(_.toSet).map(QueryBlueprint.apply[E])
   }
 
+  private def recurs(fieldType: Type, part: Param):Either[RuntimeException, PredicateBlueprint[_]] = {
+    val result = if (fieldType <:< typeOf[Option[_]])  {
+      IsEmpty.create(part.text)
+        .orElse(IsDefined.create(part.text))
+        .orElse {
+          fieldType.typeArgs.headOption.flatMap { tt =>
+            recurs(tt, part).toOption.flatMap(OptionValuePredicate.create(part, _))
+          }
+        }
+    } else if (fieldType <:< typeOf[Product]) {
+      val p = Param(
+        part.text.replaceFirst(part.fieldName + ".", "")
+      )
+      val relativeTypes: Map[String, universe.Type] = fieldType.members.filter(!_.isMethod).map { member =>
+        member.name.toString.trim -> member.typeSignature
+      }.toMap
+      recurs(relativeTypes(p.fieldName), p).toOption.flatMap(ProductFieldPredicate.create(part.text, _))
+    } else {
+      val fabrics = fieldPredicates(fieldType)
+      fabrics.foldLeft(Option.empty[PredicateBlueprint[_]]) { (accum, fabric) => accum.orElse(fabric(part.text)) }
+    }
 
+    result.toRight(left = new RuntimeException(s"unsupported format: ${part.text}"))
+  }
 
   val fieldPredicates: Map[universe.Type, Seq[String => Option[FieldPredicateBlueprint[_]]]] = Map(
     typeOf[String] -> Seq(

@@ -3,10 +3,11 @@ package dev.rudiments.hardcore.http.query.blueprints
 import scala.reflect.runtime.universe.TypeTag
 import scala.util.matching.Regex
 
-trait PredicateBlueprint[T]
+trait PredicateBlueprint[T] {
+  val fieldName: String
+}
 
 abstract class FieldPredicateBlueprint[T] extends PredicateBlueprint[T] {
-  val fieldName: String
   val value: T
 }
 

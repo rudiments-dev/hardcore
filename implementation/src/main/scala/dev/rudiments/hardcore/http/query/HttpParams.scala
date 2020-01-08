@@ -1,10 +1,15 @@
 package dev.rudiments.hardcore.http.query
 
 case class HttpParams(query: String) {
-  //todo think about ;
+
   val parts: Seq[Param] = query.split(";").map { str =>
+    val splited = str.split("=").head
+
+    val fieldName = if (splited.contains(".")) {
+      splited.split("\\.").head
+    } else splited
     Param(
-      str.split("=").head,
+      fieldName,
       str
     )
   }.toSeq
@@ -12,3 +17,12 @@ case class HttpParams(query: String) {
 }
 
 case class Param(fieldName: String, text: String)
+
+object Param {
+  def apply(string: String): Param = {
+    val parts = string.split("=")
+    new Param(
+      parts.head, string
+    )
+  }
+}

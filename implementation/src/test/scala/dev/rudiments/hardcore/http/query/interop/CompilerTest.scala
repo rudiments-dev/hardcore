@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore.http.query.interop
 
-import dev.rudiments.hardcore.http.query.blueprints.{IntEqualsBlueprint, IsDefined, IsEmpty, StringEqualsBlueprint, ValuePredicate}
-import dev.rudiments.hardcore.http.query.QueryBlueprint
+import dev.rudiments.hardcore.http.query.blueprints.{IntEqualsBlueprint, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StringEqualsBlueprint}
+import dev.rudiments.hardcore.http.query.{HttpParams, QueryBlueprint, QueryParser}
 import dev.rudiments.hardcore.types.DTO
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -10,7 +10,8 @@ import org.scalatest.{Matchers, WordSpec}
 @RunWith(classOf[JUnitRunner])
 class CompilerTest extends WordSpec with Matchers {
 
-  case class Foo(a: Int, b: String, d: Option[Int] = None) extends DTO
+  case class Baz(f: Int) extends DTO
+  case class Foo(a: Int, b: String, d: Option[Int] = None, baz: Option[Baz] = None) extends DTO
 
 
   "simple query" in {
@@ -58,7 +59,7 @@ class CompilerTest extends WordSpec with Matchers {
 
   "simple query by option field" in {
     val queryBlueprint = QueryBlueprint[Foo](Set(
-      ValuePredicate(IntEqualsBlueprint("d", 1))
+      OptionValuePredicate("d", IntEqualsBlueprint("d", 1))
     ))
 
     val input = Seq(
@@ -120,4 +121,34 @@ class CompilerTest extends WordSpec with Matchers {
       Foo(3, "hi", Some(1))
     ))
   }
+
+  "compile query with object field predicate" in {
+    val blueprint = QueryBlueprint[Foo](Set(
+      OptionValuePredicate(
+        "baz",
+        ProductFieldPredicate(
+          "baz",
+          IntEqualsBlueprint(
+            "f",
+            1
+          )
+        )
+      )
+    ))
+
+    val input = Seq(
+      Foo(3, "hi", Some(1)),
+      Foo(4, "bay", Some(1), Some(Baz(1))),
+      Foo(5, "bay"),
+      Foo(6, "tra")
+    )
+
+    val query = Compiler.compile(blueprint)
+
+    val result = input.flatMap(foo => query.testFunction(foo))
+    result should be (Seq(
+      Foo(4, "bay", Some(1), Some(Baz(1))),
+    ))
+  }
+
 }
