@@ -2,16 +2,15 @@ package dev.rudiments.hardcore.http.query.interop
 
 import java.lang.reflect.Field
 
-import dev.rudiments.hardcore.http.query.{Query, QueryBlueprint}
-import dev.rudiments.hardcore.http.query.blueprints.{IntEqualsBlueprint, IntLessBlueprint, IntMoreBlueprint, IsDefined, IsEmpty, OptionValuePredicate, PredicateBlueprint, ProductFieldPredicate, StartsWith, StringEqualsBlueprint}
+import dev.rudiments.hardcore.http.query.Query
+import dev.rudiments.hardcore.http.query.blueprints.{IntEquals, IntLess, IntMore, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StartsWith, StringEquals}
 import dev.rudiments.hardcore.types.DTO
 
 import scala.reflect.ClassTag
 
-object Compiler {
+object InMemoryQueryExecutor {
 
-  def compile[T <: DTO : ClassTag](blueprint: QueryBlueprint[T]): Query[T] = {
-
+  def apply[T <: DTO : ClassTag](blueprint: Query[T])(input: Seq[T]): Seq[T]  = {
     val queries = blueprint.parts.map { part =>
       dto: T => {
         val valueFunc = getFieldValue[T](part.fieldName)
@@ -20,8 +19,13 @@ object Compiler {
           Some(dto)
         } else None
       }
-    }.map(Query.apply)
-    queries.foldLeft(Query.pure[T])(_.compose(_))
+    }
+    val pure: T => Option[T] = { dto: T => Some(dto) }
+    val function = queries.foldLeft(pure) { case (acc, f) =>
+      dto: T => acc(dto).flatMap(f.apply)
+    }
+
+    input.flatMap(dto => function(dto))
   }
 
   private def getFieldValue[T: ClassTag](fieldName: String): T => Any = {
@@ -31,11 +35,11 @@ object Compiler {
     dto: T => reflect.get(dto)
   }
 
-  def fieldFunctions(param: Any): PartialFunction[PredicateBlueprint[_], Boolean] = {
-    case IntEqualsBlueprint(_, value) => param.asInstanceOf[Int] == value
-    case IntLessBlueprint(_, value) => param.asInstanceOf[Int] < value
-    case IntMoreBlueprint(_, value) => param.asInstanceOf[Int] > value
-    case StringEqualsBlueprint(_, value) => param.asInstanceOf[String] == value
+  def fieldFunctions(param: Any): PartialFunction[Predicate[_], Boolean] = {
+    case IntEquals(_, value) => param.asInstanceOf[Int] == value
+    case IntLess(_, value) => param.asInstanceOf[Int] < value
+    case IntMore(_, value) => param.asInstanceOf[Int] > value
+    case StringEquals(_, value) => param.asInstanceOf[String] == value
     case StartsWith(_, value) => param.asInstanceOf[String].startsWith(value)
     case IsEmpty(_) => param.asInstanceOf[Option[_]].isEmpty
     case IsDefined(_) => param.asInstanceOf[Option[_]].isDefined

@@ -9,20 +9,20 @@ object QueryParser {
 
   import dev.rudiments.hardcore.http.query.blueprints.TypeTransformers._
 
-  def parse[E <: DTO : TypeTag](httpQuery: HttpParams): Either[RuntimeException, QueryBlueprint[E]] = {
+  def parse[E <: DTO : TypeTag](httpQuery: HttpParams): Either[RuntimeException, Query[E]] = {
     val types: Map[String, universe.Type] = implicitly[TypeTag[E]].tpe.members.filter(!_.isMethod).map { member =>
       member.name.toString.trim -> member.typeSignature
     }.toMap
 
-    val blueprints: Seq[Either[RuntimeException, PredicateBlueprint[_]]] = httpQuery.parts.map { part =>
+    val blueprints: Seq[Either[RuntimeException, Predicate[_]]] = httpQuery.parts.map { part =>
       val tt: Type = types(part.fieldName)
       recurs(tt, part)
     }
 
-    sequence(blueprints).map(_.toSet).map(QueryBlueprint.apply[E])
+    sequence(blueprints).map(_.toSet).map(Query.apply[E])
   }
 
-  private def recurs(fieldType: Type, part: Param):Either[RuntimeException, PredicateBlueprint[_]] = {
+  private def recurs(fieldType: Type, part: Param):Either[RuntimeException, Predicate[_]] = {
     val result = if (fieldType <:< typeOf[Option[_]])  {
       IsEmpty.create(part.text)
         .orElse(IsDefined.create(part.text))
@@ -41,21 +41,21 @@ object QueryParser {
       recurs(relativeTypes(p.fieldName), p).toOption.flatMap(ProductFieldPredicate.create(part.text, _))
     } else {
       val fabrics = fieldPredicates(fieldType)
-      fabrics.foldLeft(Option.empty[PredicateBlueprint[_]]) { (accum, fabric) => accum.orElse(fabric(part.text)) }
+      fabrics.foldLeft(Option.empty[Predicate[_]]) { (accum, fabric) => accum.orElse(fabric(part.text)) }
     }
 
     result.toRight(left = new RuntimeException(s"unsupported format: ${part.text}"))
   }
 
-  val fieldPredicates: Map[universe.Type, Seq[String => Option[FieldPredicateBlueprint[_]]]] = Map(
+  val fieldPredicates: Map[universe.Type, Seq[String => Option[FieldPredicate[_]]]] = Map(
     typeOf[String] -> Seq(
       StartsWith.create,
-      StringEqualsBlueprint.create
+      StringEquals.create
     ),
     typeOf[Int] -> Seq(
-      IntEqualsBlueprint.create,
-      IntLessBlueprint.create,
-      IntMoreBlueprint.create
+      IntEquals.create,
+      IntLess.create,
+      IntMore.create
     )
   )
 

@@ -7,7 +7,7 @@ import scala.reflect.runtime.universe.TypeTag
 
 object Directives {
 
-  def query[T <: DTO : TypeTag]: Directive1[QueryBlueprint[T]] =
+  def query[T <: DTO : TypeTag]: Directive1[Query[T]] =
     parameter("query").map(HttpParams.apply).map(QueryParser.parse[T]).map {
       case Left(ex) => throw ex
       case Right(value) => value

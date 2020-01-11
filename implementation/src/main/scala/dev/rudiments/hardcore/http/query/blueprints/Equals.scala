@@ -3,32 +3,32 @@ package dev.rudiments.hardcore.http.query.blueprints
 import scala.util.matching.Regex
 import scala.reflect.runtime.universe.TypeTag
 
-private[blueprints] sealed trait EqualsBlueprint[T] extends FieldPredicateBlueprint[T]
+private[blueprints] sealed trait Equals[T] extends FieldPredicate[T]
 
-case class IntEqualsBlueprint(override val fieldName: String, override val value: Int) extends EqualsBlueprint[Int]
-case class StringEqualsBlueprint(override val fieldName: String, override val value: String) extends EqualsBlueprint[String]
-case class DoubleEqualsBlueprint(override val fieldName: String, override val value: Double) extends EqualsBlueprint[Double]
+case class IntEquals(override val fieldName: String, override val value: Int) extends Equals[Int]
+case class StringEquals(override val fieldName: String, override val value: String) extends Equals[String]
+case class DoubleEquals(override val fieldName: String, override val value: Double) extends Equals[Double]
 
-object IntEqualsBlueprint {
+object IntEquals {
   private val regexp: Regex = "(\\w+)=eq:(.*)".r
 
-  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Int]): Option[IntEqualsBlueprint] = {
-    FieldPredicateBlueprint.create[Int, IntEqualsBlueprint](from, regexp)(IntEqualsBlueprint.apply)
+  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Int]): Option[IntEquals] = {
+    FieldPredicate.create[Int, IntEquals](from, regexp)(IntEquals.apply)
   }
 }
 
-object DoubleEqualsBlueprint {
+object DoubleEquals {
   private val regexp: Regex = "(\\w+)=eq:(.*)".r
 
-  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Double]): Option[DoubleEqualsBlueprint] = {
-    FieldPredicateBlueprint.create[Double, DoubleEqualsBlueprint](from, regexp)(DoubleEqualsBlueprint.apply)
+  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Double]): Option[DoubleEquals] = {
+    FieldPredicate.create[Double, DoubleEquals](from, regexp)(DoubleEquals.apply)
   }
 }
 
-object StringEqualsBlueprint {
+object StringEquals {
   private val regexp: Regex = "(\\w+)=eq:(.*)".r
 
-  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, String]): Option[StringEqualsBlueprint] = {
-    FieldPredicateBlueprint.create[String, StringEqualsBlueprint](from, regexp)(StringEqualsBlueprint.apply)
+  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, String]): Option[StringEquals] = {
+    FieldPredicate.create[String, StringEquals](from, regexp)(StringEquals.apply)
   }
 }

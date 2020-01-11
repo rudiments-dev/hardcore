@@ -2,23 +2,23 @@ package dev.rudiments.hardcore.http.query.blueprints
 
 import scala.util.matching.Regex
 
-private[blueprints] sealed trait MoreBlueprint[T] extends FieldPredicateBlueprint[T]
+private[blueprints] sealed trait More[T] extends FieldPredicate[T]
 
-case class IntMoreBlueprint(override val fieldName: String, override val value: Int) extends MoreBlueprint[Int]
-case class DoubleMoreBlueprint(override val fieldName: String, override val value: Double) extends MoreBlueprint[Double]
+case class IntMore(override val fieldName: String, override val value: Int) extends More[Int]
+case class DoubleMore(override val fieldName: String, override val value: Double) extends More[Double]
 
-object IntMoreBlueprint {
+object IntMore {
   private val regexp: Regex = "(\\w+)=more:(.*)".r
 
-  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Int]): Option[IntMoreBlueprint] = {
-    FieldPredicateBlueprint.create[Int, IntMoreBlueprint](from, regexp)(IntMoreBlueprint.apply)
+  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Int]): Option[IntMore] = {
+    FieldPredicate.create[Int, IntMore](from, regexp)(IntMore.apply)
   }
 }
 
-object DoubleMoreBlueprint {
+object DoubleMore {
   private val regexp: Regex = "(\\w+)=more:(.*)".r
 
-  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Double]): Option[DoubleMoreBlueprint] = {
-    FieldPredicateBlueprint.create[Double, DoubleMoreBlueprint](from, regexp)(DoubleMoreBlueprint.apply)
+  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Double]): Option[DoubleMore] = {
+    FieldPredicate.create[Double, DoubleMore](from, regexp)(DoubleMore.apply)
   }
 }

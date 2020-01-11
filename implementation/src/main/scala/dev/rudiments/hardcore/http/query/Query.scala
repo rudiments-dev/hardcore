@@ -1,14 +1,6 @@
 package dev.rudiments.hardcore.http.query
 
-case class Query[T](testFunction: T => Option[T] ) {
+import dev.rudiments.hardcore.http.query.blueprints.Predicate
+import dev.rudiments.hardcore.types.DTO
 
-  def compose(query : Query[T]) : Query[T] = {
-    Query { entity => this.testFunction(entity).flatMap(query.testFunction) }
-  }
-
-}
-
-object Query {
-
-  def pure[T]: Query[T] = Query { dto: T => Some(dto)}
-}
+case class Query[T <: DTO](parts: Set[Predicate[_]])

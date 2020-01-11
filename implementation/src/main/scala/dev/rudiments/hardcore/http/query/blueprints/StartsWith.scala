@@ -2,12 +2,12 @@ package dev.rudiments.hardcore.http.query.blueprints
 
 import scala.util.matching.Regex
 
-case class StartsWith(override val fieldName: String, override val value: String) extends FieldPredicateBlueprint[String]
+case class StartsWith(override val fieldName: String, override val value: String) extends FieldPredicate[String]
 
 object StartsWith {
   private val regexp: Regex = "(\\w+)=starts:(.*)".r
 
   def create(from: String)(implicit tr: TypeTransformers.Transformer[String, String]): Option[StartsWith] = {
-    FieldPredicateBlueprint.create[String, StartsWith](from, regexp)(StartsWith.apply)
+    FieldPredicate.create[String, StartsWith](from, regexp)(StartsWith.apply)
   }
 }

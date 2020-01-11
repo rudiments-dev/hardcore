@@ -2,23 +2,23 @@ package dev.rudiments.hardcore.http.query.blueprints
 
 import scala.util.matching.Regex
 
-private[blueprints] sealed trait LessBlueprint[T] extends FieldPredicateBlueprint[T]
+private[blueprints] sealed trait Less[T] extends FieldPredicate[T]
 
-case class IntLessBlueprint(override val fieldName: String, override val value: Int) extends LessBlueprint[Int]
-case class DoubleLessBlueprint(override val fieldName: String, override val value: Double) extends LessBlueprint[Double]
+case class IntLess(override val fieldName: String, override val value: Int) extends Less[Int]
+case class DoubleLess(override val fieldName: String, override val value: Double) extends Less[Double]
 
-object IntLessBlueprint {
+object IntLess {
   private val regexp: Regex = "(\\w+)=less:(.*)".r
 
-  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Int]): Option[IntLessBlueprint] = {
-    FieldPredicateBlueprint.create[Int, IntLessBlueprint](from, regexp)(IntLessBlueprint.apply)
+  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Int]): Option[IntLess] = {
+    FieldPredicate.create[Int, IntLess](from, regexp)(IntLess.apply)
   }
 }
 
-object DoubleLessBlueprint {
+object DoubleLess {
   private val regexp: Regex = "(\\w+)=less:(.*)".r
 
-  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Double]): Option[DoubleLessBlueprint] = {
-    FieldPredicateBlueprint.create[Double, DoubleLessBlueprint](from, regexp)(DoubleLessBlueprint.apply)
+  def create(from: String)(implicit tr: TypeTransformers.Transformer[String, Double]): Option[DoubleLess] = {
+    FieldPredicate.create[Double, DoubleLess](from, regexp)(DoubleLess.apply)
   }
 }
