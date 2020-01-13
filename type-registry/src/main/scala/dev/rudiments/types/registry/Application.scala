@@ -31,6 +31,7 @@ object Application extends App with LazyLogging {
     db(Create(ID("sample"), TypeSystem("my-type-system", HardType[Example], HardType[Sample])))
 
     import dev.rudiments.hardcore.http.CirceSupport._
+    import dev.rudiments.types.registry.module.FieldFormat._
     val port = new DataHttpPort[TypeSystem, String]("types", ts => ID[TypeSystem, String](ts.name), db)
     new RootRouter(config, port).bind()
   } catch {

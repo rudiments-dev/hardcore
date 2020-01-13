@@ -19,3 +19,18 @@ object ID {
 }
 
 final case class Instance[T <: DTO](value: T) extends Ref[T]
+
+sealed abstract class SoftRef(val t: Type)
+sealed abstract class SoftID(override val t: Type) extends SoftRef(t)
+object SoftID {
+  final case class SoftID0(override val t: Type) extends SoftID(t)
+  final case class SoftID1(override val t: Type, key: Any) extends SoftID(t)
+  final case class SoftID2(override val t: Type, key1: Any, key2: Any) extends SoftID(t)
+  final case class SoftID3(override val t: Type, key1: Any, key2: Any, key3: Any) extends SoftID(t)
+
+  final def apply(t: Type): SoftID = SoftID0(t)
+  final def apply(t: Type, key: Any): SoftID = SoftID1(t, key)
+  final def apply(t: Type, key1: Any, key2: Any): SoftID = SoftID2(t, key1, key2)
+  final def apply(t: Type, key1: Any, key2: Any, key3: Any): SoftID = SoftID3(t, key1, key2, key3)
+}
+final case class SoftInstance(override val t: Type, fields: Map[String, Any]) extends SoftRef(t)

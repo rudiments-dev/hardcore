@@ -6,6 +6,7 @@ import io.circe._
 
 object FieldFormat {
   implicit val fieldEncoder: Encoder[Field] = new Encoder[Field] {
+
     private def fieldEncoder(field: Field): String = (field match {
       case Field(RudimentTypes.Number, _) => fieldTypeEncoder(RudimentTypes.Number)
       case Field(RudimentTypes.Text, _) => fieldTypeEncoder(RudimentTypes.Text)
@@ -57,19 +58,43 @@ object FieldFormat {
     override def apply(a: Field): Json = Encoder.encodeString.apply(fieldEncoder(a))
   }
 
-  implicit val typeDecoder: Decoder[Type] = new Decoder[Type] {
-    override def apply(c: HCursor): Result[Type] = implicitly[Decoder[String]].apply(c).flatMap { s =>
-      ???
+  implicit def fieldTypeDecoder(implicit d: Decoder[Map[String, Any]]): Decoder[Field] = new Decoder[Field] {
+
+    private def toFieldType(s: String): FieldType = s match {
+      case "Text" => RudimentTypes.Text
+      case "Number" => RudimentTypes.Number
+
+      case "Date" => RudimentTypes.Date
+      case "Time" => RudimentTypes.Time
+      case "Timestamp" => RudimentTypes.Timestamp
     }
 
-    private def decodeFieldType(s: String): FieldType = {
-            if(s.startsWith(RudimentTypes.Text.toString)) RudimentTypes.Text
-      else  if(s.startsWith(RudimentTypes.Number.toString)) RudimentTypes.Number
-      else  if(s.startsWith(RudimentTypes.Date.toString)) RudimentTypes.Date
-      else  if(s.startsWith(RudimentTypes.Time.toString)) RudimentTypes.Time
-      else  if(s.startsWith(RudimentTypes.Timestamp.toString)) RudimentTypes.Timestamp
-              //TODO enum,
-      else  RudimentTypes.Unknown
+    private def toFieldFlag(s: String): FieldFlag = FieldFlag.withName(s)
+
+    private def toField(m: Map[String, Any]): Field = {
+      if (m.contains("type") && m("type") == "Plain") {
+        Field(toFieldType(m("kind").asInstanceOf[String]), toFieldFlag(m("flag").asInstanceOf[String]))
+      } else if (m.contains("type") && m("type") == "Collection") {
+        if (m.contains("set")) {
+          Field(RudimentTypes.Set(toFieldType(m("set").asInstanceOf[String])), toFieldFlag(m("flag").asInstanceOf[String]))
+        } else if (m.contains("list")) {
+          Field(RudimentTypes.List(toFieldType(m("list").asInstanceOf[String])), toFieldFlag(m("list").asInstanceOf[String]))
+        } else if (m.contains("index")) {
+          Field(
+            RudimentTypes.Index(
+              toFieldType(m("index").asInstanceOf[String]),
+              toFieldType(m("over").asInstanceOf[String])
+            ),
+            toFieldFlag(m("list").asInstanceOf[String])
+          )
+        } else {
+          throw new IllegalArgumentException("Wrong structure")
+        }
+      } else {
+        throw new IllegalArgumentException("Wrong structure")
+      }
     }
+
+    override def apply(c: HCursor): Result[Field] = Decoder[Map[String, Any]].map(toField)(c)
   }
 }
