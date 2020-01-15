@@ -48,11 +48,9 @@ object CirceSupport extends AutoDerivation with FailFastCirceSupport {
     override def apply(a: E): Json = a.entryName.asJson
 
     override def apply(c: HCursor): Result[E] = implicitly[Decoder[String]].apply(c).flatMap { s =>
-      val maybeMember = enum.withNameOption(s)
-      maybeMember match {
+      enum.withNameOption(s) match {
         case Some(member) => Right(member)
-        case _ =>
-          Left(DecodingFailure(s"'$s' is not a member of enum $enum", c.history))
+        case _ => Left(DecodingFailure(s"'$s' is not a member of enum $enum", c.history))
       }
     }
   }

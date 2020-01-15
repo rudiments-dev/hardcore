@@ -7,7 +7,6 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.data.DataMemoryAdapter
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http.CirceSupport._
-import dev.rudiments.hardcore.types.MyEnum.{One, Red, Two}
 import dev.rudiments.types.registry.module.TypeHttpPort
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner

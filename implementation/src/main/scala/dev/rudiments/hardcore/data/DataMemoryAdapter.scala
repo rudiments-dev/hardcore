@@ -11,16 +11,10 @@ import scala.collection.parallel.mutable
 class DataMemoryAdapter[T <: DTO : HardType] extends Adapter[DataCommand[T], DataEvent[T]] {
   private val content = mutable.ParMap.empty[ID[T], T]
 
-  override def isDefinedAt(x: DataCommand[T]): Boolean = x match { //TODO generify
-    case _: Create[T] => true
-    case _: Find[T] => true
-    case _: Update[T] => true
-    case _: Delete[T] => true
-    case _ => false
-  }
+  override def isDefinedAt(x: DataCommand[T]): Boolean = f.isDefinedAt(x)
+  override def apply(cmd: DataCommand[T]): DataEvent[T] = f(cmd)
 
-  override def apply(cmd: DataCommand[T]): DataEvent[T] = cmd match {
-
+  val f: DataSkill[T] = {
     case Create(key, value) =>
       content.get(key) match {
         case None =>
