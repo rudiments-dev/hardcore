@@ -10,6 +10,7 @@ import dev.rudiments.hardcore.data.CRUD.Create
 import dev.rudiments.hardcore.data.{DataHttpPort, DataMemoryAdapter}
 import dev.rudiments.hardcore.http.RootRouter
 import dev.rudiments.hardcore.types._
+import dev.rudiments.types.registry.module.TypeHttpPort
 import enumeratum.{Enum, EnumEntry}
 
 import scala.collection.immutable
@@ -23,17 +24,15 @@ object Application extends App with LazyLogging {
   implicit val ec: ExecutionContext = actorSystem.dispatcher
   implicit val mat: ActorMaterializer = ActorMaterializer()
 
-  implicit val t: HardType[TypeSystem] = HardType[TypeSystem]
+  implicit val t: HardType[Type] = HardType[Type]
 
   try {
     val config = ConfigFactory.load()
-    val db = new DataMemoryAdapter[TypeSystem]
-    db(Create(ID("sample"), TypeSystem("my-type-system", HardType[Example], HardType[Sample])))
+    val db = new DataMemoryAdapter[Type]
+    db(Create(ID("Example"), HardType[Example]))
+    db(Create(ID("Sample"), HardType[Sample]))
 
-    import dev.rudiments.hardcore.http.CirceSupport._
-    import dev.rudiments.types.registry.module.FieldFormat._
-    val port = new DataHttpPort[TypeSystem, String]("types", ts => ID[TypeSystem, String](ts.name), db)
-    new RootRouter(config, port).bind()
+    new RootRouter(config, TypeHttpPort("types", db)).bind()
   } catch {
     case e: Throwable =>
       logger.error("Error while initializing app, shutdown", e)
