@@ -99,8 +99,17 @@ configure(scalaModules()) {
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
 
-    test.reports.html.enabled = true
-    test.reports.junitXml.enabled = true
+    test {
+        reports {
+            html.enabled = true
+            junitXml.enabled = true
+        }
+        maxHeapSize = "2048m"
+        testLogging {
+            events "skipped", "failed"
+            exceptionFormat "short"
+        }
+    }
 
     dependencies {
         compile 'org.scala-lang:scala-library:2.12.8'
