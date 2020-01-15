@@ -4,13 +4,25 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import dev.rudiments.hardcore.data.DataMemoryAdapter
+import dev.rudiments.hardcore.data.{DataHttpPort, DataMemoryAdapter}
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http.CirceSupport._
 import dev.rudiments.types.registry.module.TypeHttpPort
+import enumeratum.{Enum, EnumEntry}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
+
+import scala.collection.immutable
+
+sealed trait MyEnum extends EnumEntry
+object MyEnum extends Enum[MyEnum] {
+  override def values: immutable.IndexedSeq[MyEnum] = findValues
+
+  case object One extends MyEnum
+  case object Two extends MyEnum
+  case object Red extends MyEnum
+}
 
 @RunWith(classOf[JUnitRunner])
 class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
@@ -22,16 +34,11 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val t: HardType[Type] = HardType[Type]
-  private val repo: DataMemoryAdapter[Type] = new DataMemoryAdapter[Type]
 
-  private val router: TypeHttpPort[Type, String] = new TypeHttpPort(
-    "example",
-    e => ID(e.name),
-    repo
-  )
-  private val routes = Route.seal(router.routes)
+  private val repo: DataMemoryAdapter[Type] = new DataMemoryAdapter[Type]
+  private val routes = Route.seal(TypeHttpPort("example", repo).routes)
+
   private val sample: Type = HardType[Example]
-  private val id = ID(sample.name)
 
   "no element by ID" in {
     Get("/example/-1") ~> routes ~> check {

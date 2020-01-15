@@ -3,6 +3,7 @@ package dev.rudiments.hardcore.data
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.hardcore.Port
 import dev.rudiments.hardcore.data.Batch._
 import dev.rudiments.hardcore.data.CRUD._
@@ -16,7 +17,7 @@ class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
   prefix: String,
   identify: T => ID[T],
   override val f: DataSkill[T]
-) extends Port[DataCommand[T], DataEvent[T]] with Router {
+) extends Port[DataCommand[T], DataEvent[T]] with Router with FailFastCirceSupport {
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
@@ -33,7 +34,6 @@ class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
     )
   ).routes
 
-  import dev.rudiments.hardcore.http.CirceSupport._
   def responseWith(event: DataEvent[T]): StandardRoute = event match {
     case Created(_, value) =>       complete(StatusCodes.Created, value)
     case Found(_, value) =>         complete(StatusCodes.OK, value)
