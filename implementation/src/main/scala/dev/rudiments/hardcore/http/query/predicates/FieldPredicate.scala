@@ -1,14 +1,12 @@
-package dev.rudiments.hardcore.http.query.blueprints
+package dev.rudiments.hardcore.http.query.predicates
 
 import scala.reflect.runtime.universe.TypeTag
 import scala.util.matching.Regex
 
-trait Predicate[T] {
-  val fieldName: String
-}
+trait Predicate[T] {}
 
 abstract class FieldPredicate[T] extends Predicate[T] {
-  val value: T
+  val fieldName: String
 }
 
 object FieldPredicate {

@@ -1,11 +1,11 @@
-package dev.rudiments.hardcore.http.query.blueprints
+package dev.rudiments.hardcore.http.query.predicates
 
 import scala.util.matching.Regex
 
-private[blueprints] sealed trait Less[T] extends FieldPredicate[T]
+private[predicates] sealed trait Less[T] extends FieldPredicate[T]
 
-case class IntLess(override val fieldName: String, override val value: Int) extends Less[Int]
-case class DoubleLess(override val fieldName: String, override val value: Double) extends Less[Double]
+case class IntLess(override val fieldName: String, value: Int) extends Less[Int]
+case class DoubleLess(override val fieldName: String, value: Double) extends Less[Double]
 
 object IntLess {
   private val regexp: Regex = "(\\w+)=less:(.*)".r

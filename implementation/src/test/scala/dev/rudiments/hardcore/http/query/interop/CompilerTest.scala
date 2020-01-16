@@ -1,6 +1,6 @@
 package dev.rudiments.hardcore.http.query.interop
 
-import dev.rudiments.hardcore.http.query.blueprints.{IntEquals, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StringEquals}
+import dev.rudiments.hardcore.http.query.predicates.{IntEquals, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StringEquals}
 import dev.rudiments.hardcore.http.query.{HttpParams, Query, QueryParser}
 import dev.rudiments.hardcore.types.DTO
 import org.junit.runner.RunWith
@@ -15,7 +15,7 @@ class CompilerTest extends WordSpec with Matchers {
 
 
   "simple query" in {
-    val queryBlueprint = Query[Foo](Set(
+    val query = Query[Foo](Set(
       StringEquals("b", "hi")
     ))
 
@@ -25,7 +25,7 @@ class CompilerTest extends WordSpec with Matchers {
       Foo(5, "tra")
     )
 
-    val result = InMemoryQueryExecutor(queryBlueprint)(input)
+    val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(3, "hi")
@@ -34,7 +34,7 @@ class CompilerTest extends WordSpec with Matchers {
 
 
   "simple query by two field" in {
-    val queryBlueprint = Query[Foo](Set(
+    val query = Query[Foo](Set(
       StringEquals("b", "bay"),
       IntEquals("a", 5)
     ))
@@ -46,7 +46,7 @@ class CompilerTest extends WordSpec with Matchers {
       Foo(6, "tra")
     )
 
-    val result = InMemoryQueryExecutor(queryBlueprint)(input)
+    val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(5, "bay")
@@ -54,7 +54,7 @@ class CompilerTest extends WordSpec with Matchers {
   }
 
   "simple query by option field" in {
-    val queryBlueprint = Query[Foo](Set(
+    val query = Query[Foo](Set(
       OptionValuePredicate("d", IntEquals("d", 1))
     ))
 
@@ -65,7 +65,7 @@ class CompilerTest extends WordSpec with Matchers {
       Foo(6, "tra")
     )
 
-    val result = InMemoryQueryExecutor(queryBlueprint)(input)
+    val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(3, "hi", Some(1)),
@@ -73,7 +73,7 @@ class CompilerTest extends WordSpec with Matchers {
   }
 
   "simple query by option field, is empty" in {
-    val queryBlueprint = Query[Foo](Set(
+    val query = Query[Foo](Set(
       IsEmpty("d")
     ))
 
@@ -84,7 +84,7 @@ class CompilerTest extends WordSpec with Matchers {
       Foo(6, "tra")
     )
 
-    val result = InMemoryQueryExecutor(queryBlueprint)(input)
+    val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(4, "bay"),
@@ -94,7 +94,7 @@ class CompilerTest extends WordSpec with Matchers {
   }
 
   "simple query by option field, is defined" in {
-    val queryBlueprint = Query[Foo](Set(
+    val query = Query[Foo](Set(
       IsDefined("d")
     ))
 
@@ -105,7 +105,7 @@ class CompilerTest extends WordSpec with Matchers {
       Foo(6, "tra")
     )
 
-    val result = InMemoryQueryExecutor(queryBlueprint)(input)
+    val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(3, "hi", Some(1))
@@ -113,7 +113,7 @@ class CompilerTest extends WordSpec with Matchers {
   }
 
   "compile query with object field predicate" in {
-    val blueprint = Query[Foo](Set(
+    val query = Query[Foo](Set(
       OptionValuePredicate(
         "baz",
         ProductFieldPredicate(
@@ -133,7 +133,7 @@ class CompilerTest extends WordSpec with Matchers {
       Foo(6, "tra")
     )
 
-    val result = InMemoryQueryExecutor(blueprint)(input)
+    val result = InMemoryQueryExecutor(query)(input)
     result should be (Seq(
       Foo(4, "bay", Some(1), Some(Baz(1))),
     ))

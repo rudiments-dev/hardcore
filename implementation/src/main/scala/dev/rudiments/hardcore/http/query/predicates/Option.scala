@@ -1,20 +1,19 @@
-package dev.rudiments.hardcore.http.query.blueprints
+package dev.rudiments.hardcore.http.query.predicates
 
 import dev.rudiments.hardcore.http.query.Param
-import dev.rudiments.hardcore.http.query.blueprints.StringEquals.regexp
 
 import scala.util.matching.Regex
 
-trait OptionPredicate extends Predicate[Option[_]]
+sealed trait OptionPredicate extends FieldPredicate[Option[_]]
 
-case class OptionValuePredicate(fieldName: String, underlying: Predicate[_]) extends OptionPredicate
+case class OptionValuePredicate(override val fieldName: String, underlying: FieldPredicate[_]) extends OptionPredicate
 
-case class IsEmpty(fieldName: String) extends OptionPredicate
-case class IsDefined(fieldName: String) extends OptionPredicate
+case class IsEmpty(override val fieldName: String) extends OptionPredicate
+case class IsDefined(override val fieldName: String) extends OptionPredicate
 
 object OptionValuePredicate {
 
-  def create(from: Param, underlyingPredicate: Predicate[_]): Some[OptionValuePredicate] = {
+  def create(from: Param, underlyingPredicate: FieldPredicate[_]): Some[OptionValuePredicate] = {
     Some(
       OptionValuePredicate(from.fieldName, underlyingPredicate)
     )

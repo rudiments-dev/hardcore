@@ -1,13 +1,13 @@
-package dev.rudiments.hardcore.http.query.blueprints
+package dev.rudiments.hardcore.http.query.predicates
 
 import scala.util.matching.Regex
 import scala.reflect.runtime.universe.TypeTag
 
-private[blueprints] sealed trait Equals[T] extends FieldPredicate[T]
+private[predicates] sealed trait Equals[T] extends FieldPredicate[T]
 
-case class IntEquals(override val fieldName: String, override val value: Int) extends Equals[Int]
-case class StringEquals(override val fieldName: String, override val value: String) extends Equals[String]
-case class DoubleEquals(override val fieldName: String, override val value: Double) extends Equals[Double]
+case class IntEquals(override val fieldName: String, value: Int) extends Equals[Int]
+case class StringEquals(override val fieldName: String, value: String) extends Equals[String]
+case class DoubleEquals(override val fieldName: String, value: Double) extends Equals[Double]
 
 object IntEquals {
   private val regexp: Regex = "(\\w+)=eq:(.*)".r

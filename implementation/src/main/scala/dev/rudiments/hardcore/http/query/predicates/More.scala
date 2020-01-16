@@ -1,11 +1,11 @@
-package dev.rudiments.hardcore.http.query.blueprints
+package dev.rudiments.hardcore.http.query.predicates
 
 import scala.util.matching.Regex
 
-private[blueprints] sealed trait More[T] extends FieldPredicate[T]
+private[predicates] sealed trait More[T] extends FieldPredicate[T]
 
-case class IntMore(override val fieldName: String, override val value: Int) extends More[Int]
-case class DoubleMore(override val fieldName: String, override val value: Double) extends More[Double]
+case class IntMore(override val fieldName: String, value: Int) extends More[Int]
+case class DoubleMore(override val fieldName: String, value: Double) extends More[Double]
 
 object IntMore {
   private val regexp: Regex = "(\\w+)=more:(.*)".r
