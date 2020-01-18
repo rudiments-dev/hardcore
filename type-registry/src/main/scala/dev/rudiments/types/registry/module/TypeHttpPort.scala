@@ -7,8 +7,6 @@ object TypeHttpPort {
   private implicit val t: HardType[Type] = HardType[Type]
 
   import dev.rudiments.hardcore.http.CirceSupport._
-//  import dev.rudiments.types.registry.module.FieldFormat._
-
   def apply(prefix: String, f: DataSkill[Type]): DataHttpPort[Type, String] = new DataHttpPort[Type, String](
     prefix,
     e => ID(e.name),

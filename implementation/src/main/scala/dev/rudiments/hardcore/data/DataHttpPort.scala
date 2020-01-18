@@ -13,6 +13,7 @@ import dev.rudiments.hardcore.types.{DTO, HardType, ID}
 import io.circe.{Decoder, Encoder}
 
 import scala.reflect.runtime.universe.TypeTag
+
 class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
   prefix: String,
   identify: T => ID[T],
@@ -21,10 +22,10 @@ class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
-      GetPort(FindAll[T], f, responseWith),
+      GetPort(FindAll[T](), f, responseWith),
       PostPort((value: T) => Create(identify(value), value), f, responseWith),
       PutPort((batch: Seq[T]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), f, responseWith),
-      DeletePort(DeleteAll[T], f, responseWith)
+      DeletePort(DeleteAll[T](), f, responseWith)
     ),
     IDRouter(
       IDPath[T, K],

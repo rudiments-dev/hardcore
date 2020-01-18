@@ -97,7 +97,7 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
         response.status should be (StatusCodes.Created)
       }
     }
-    repo(Count()(t)) should be (Counted(10000))
+    repo(Count()) should be (Counted(10000))
     Get("/example/Example-24") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Type] should be (Type("Example-24", Map(
@@ -113,7 +113,7 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
       s"name-$i" -> Field(RudimentTypes.Text, FieldFlag.Required)
     )))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      repo(Count()(t)) should be (Counted(200000))
+      repo(Count()) should be (Counted(200000))
     }
     Get("/example/Example-10024") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
@@ -127,7 +127,7 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
-      repo(Count()(t)) should be (Counted(0))
+      repo(Count()) should be (Counted(0))
     }
   }
 

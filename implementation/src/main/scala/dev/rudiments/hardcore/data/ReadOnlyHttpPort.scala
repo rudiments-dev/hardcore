@@ -18,7 +18,7 @@ class ReadOnlyHttpPort[T <: DTO : HardType : Encoder](
   override val routes: Route = pathPrefix(prefix) {
     get {
       pathEndOrSingleSlash {
-        responseWith(f(FindAll[T]))
+        responseWith(f(FindAll[T]()))
       } ~ idDirective { id =>
         pathEndOrSingleSlash {
           responseWith(f(Find(id)))
