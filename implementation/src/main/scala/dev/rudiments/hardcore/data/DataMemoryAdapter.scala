@@ -66,9 +66,18 @@ class DataMemoryAdapter[T <: DTO : HardType] extends Adapter[DataCommand[T], Dat
         case _: Exception => BatchFailed()
       }
 
+    case ReplaceAll(batch) =>
+      try {
+        content --= content.keysIterator
+        content ++= batch
+        AllReplaced(batch)
+      } catch {
+        case e: Exception => BatchFailed()
+      }
+
     case DeleteAll() =>
       try {
-        content.clear()
+        content --= content.keysIterator
         AllDeleted()
       } catch {
         case _: Exception => BatchFailed()

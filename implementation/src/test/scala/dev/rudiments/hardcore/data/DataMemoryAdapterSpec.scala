@@ -81,8 +81,20 @@ class DataMemoryAdapterSpec extends WordSpec with Matchers {
       Example(rnd, s"$rnd'th element", if(rnd > 100000) MyEnum.Two else MyEnum.One)))
   }
 
+  "endure 100.000 replace" in {
+    val batch = (200001 to 300000).map(i => (ID[Example, Long](i), Example(i, s"$i item", MyEnum.Red))).toMap
+    repo(ReplaceAll(batch)) should be (AllReplaced(batch))
+
+    repo(Count[Example]()) should be (Counted(100000))
+
+    val rnd = new Random().nextInt(100000) + 200000
+    repo(Find(ID[Example, Long](rnd))) should be (Found(
+      ID[Example, Long](rnd),
+      Example(rnd, s"$rnd item", MyEnum.Red)))
+  }
+
   "clear repository" in {
-    repo(Count[Example]()) should be (Counted(200000))
+    repo(Count[Example]()) should be (Counted(100000))
     repo(DeleteAll[Example]()) should be (AllDeleted[Example]())
     repo(Count[Example]()) should be (Counted(0))
   }
