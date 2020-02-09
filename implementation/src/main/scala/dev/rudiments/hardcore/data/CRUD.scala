@@ -23,6 +23,19 @@ object CRUD {
       }
   }
 
+  case class CreateAuto[T <: DTO](value: T) extends DataCommand[T]
+  case class FailedToCreateAuto[T <: DTO](key: ID[T], value: T) extends DataErrorEvent[T]
+
+  def createAuto[T <: DTO](generator: () => ID[T])(implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
+    case CreateAuto(value) =>
+      val key = generator()
+      content.put(key, value)
+      content.get(key) match {
+        case Some(created) => Created(key, created)
+        case None => FailedToCreateAuto(key, value)
+      }
+  }
+
   case class Update[T <: DTO](key: ID[T], value: T) extends DataCommand[T]
   case class Updated[T <: DTO](key: ID[T], oldValue: T, newValue: T) extends DataEvent[T]
   case class FailedToUpdate[T <: DTO](key: ID[T], value: T) extends DataErrorEvent[T]

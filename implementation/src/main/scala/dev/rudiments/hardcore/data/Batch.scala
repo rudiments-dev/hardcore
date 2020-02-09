@@ -17,6 +17,19 @@ object Batch {
       }
   }
 
+  case class CreateAllAuto  [T <: DTO](batch: Seq[T]) extends DataCommand[T]
+  case class AllAutoCreated [T <: DTO](batch: Map[ID[T], T]) extends DataEvent[T]
+  def createAllAuto[T <: DTO](generator: () => ID[T])(implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
+    case CreateAllAuto(batch) =>
+      try {
+        val withAuto = batch.map(i => (generator(), i)).toMap
+        content ++= withAuto
+        AllAutoCreated(withAuto)
+      } catch {
+        case _: Exception => BatchFailed()
+      }
+  }
+
   case class ReplaceAll [T <: DTO](batch: Map[ID[T], T]) extends DataCommand[T]
   case class AllReplaced[T <: DTO](batch: Map[ID[T], T]) extends DataEvent[T]
   def replaceAll[T <: DTO](implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {

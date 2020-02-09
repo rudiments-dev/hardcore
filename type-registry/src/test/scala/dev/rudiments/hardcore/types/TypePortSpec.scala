@@ -108,7 +108,7 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
   }
 
   "endure 190.000 batch" in {
-    Put("/example", (10001 to 200000).map(i => Type(s"Example-$i", Map(
+    Post("/example", (10001 to 200000).map(i => Type(s"Example-$i", Map(
       "id" -> Field(RudimentTypes.Number, FieldFlag.WithDefault),
       s"name-$i" -> Field(RudimentTypes.Text, FieldFlag.Required)
     )))) ~> routes ~> check {

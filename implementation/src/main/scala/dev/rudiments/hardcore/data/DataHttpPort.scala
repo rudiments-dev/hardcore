@@ -9,6 +9,7 @@ import dev.rudiments.hardcore.data.Batch._
 import dev.rudiments.hardcore.data.CRUD._
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http._
+import dev.rudiments.hardcore.types.ID._
 import dev.rudiments.hardcore.types.{DTO, HardType, ID}
 import io.circe.{Decoder, Encoder}
 
@@ -23,8 +24,12 @@ class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
       GetPort(FindAll[T](), f, responseWith),
-      PostPort((value: T) => Create(identify(value), value), f, responseWith),
-      PutPort((batch: Seq[T]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), f, responseWith),
+      PostPort((value: T) => identify(value) match {
+        case AutoID() => CreateAuto(value)
+        case id => Create(id, value)
+      }, f, responseWith),
+      PostPort((batch: Seq[T]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), f, responseWith),
+      PutPort((batch: Seq[T]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), f, responseWith),
       DeletePort(DeleteAll[T](), f, responseWith)
     ),
     IDRouter(
@@ -43,6 +48,7 @@ class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
     case Deleted(_, _) =>           complete(StatusCodes.NoContent)
 
     case AllCreated(_) =>           complete(StatusCodes.Created)
+    case AllReplaced(_) =>          complete(StatusCodes.Created)
     case AllDeleted() =>            complete(StatusCodes.NoContent)
 
     case NotFound(_) =>             complete(StatusCodes.NotFound)

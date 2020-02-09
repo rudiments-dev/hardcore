@@ -80,7 +80,7 @@ class HardModuleSpec extends WordSpec with Matchers with ScalatestRouteTest {
   }
 
   "endure 190.000 batch" in {
-    Put("/api/example", (10001 to 200000).map(i => Example(i, s"$i'th element", Two))) ~> routes ~> check {
+    Post("/api/example", (10001 to 200000).map(i => Example(i, s"$i'th element", Two))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       repo(Count()) should be (Counted(200000))
     }
