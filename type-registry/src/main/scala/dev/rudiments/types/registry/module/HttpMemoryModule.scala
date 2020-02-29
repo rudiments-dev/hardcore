@@ -16,7 +16,7 @@ import io.circe.{Decoder, Encoder}
 import scala.collection.parallel
 import scala.reflect.runtime.universe.TypeTag
 
-class HttpMemoryModule[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
+class HttpMemoryModule[T : HardType : Encoder : Decoder, K : TypeTag](
   prefix: String,
   identify: T => ID[T]
 ) extends Port[DataCommand[T], DataEvent[T]] with Router with FailFastCirceSupport {

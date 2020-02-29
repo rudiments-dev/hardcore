@@ -31,7 +31,7 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
   }
 }
 object Type {
-  def apply[T <: DTO : TypeTag]: Type = apply(typeOf[T].typeSymbol)
+  def apply[T : TypeTag]: Type = apply(typeOf[T].typeSymbol)
 
   def apply(t: Symbol): Type = {
     new Type(
@@ -40,16 +40,16 @@ object Type {
     )
   }
 }
-class HardType[T <: DTO : TypeTag](name: String, fields: Map[String, Field]) extends Type(name, fields) {
+class HardType[T : TypeTag](name: String, fields: Map[String, Field]) extends Type(name, fields) {
   def construct(arguments: Any*): T = {
     val c = Class.forName(typeOf[T].typeSymbol.asClass.fullName)
     c.getConstructors()(0).newInstance(arguments.map(_.asInstanceOf[Object]): _*).asInstanceOf[T]
   }
 }
 object HardType {
-  def apply[T <: DTO : TypeTag]: HardType[T] = apply(typeOf[T].typeSymbol)
+  def apply[T : TypeTag]: HardType[T] = apply(typeOf[T].typeSymbol)
 
-  def apply[T <: DTO : TypeTag](t: Symbol): HardType[T] = {
+  def apply[T : TypeTag](t: Symbol): HardType[T] = {
     new HardType[T](
       t.name.toString.trim,
       TypeOps.collect(t)

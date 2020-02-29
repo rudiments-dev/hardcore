@@ -9,7 +9,7 @@ object QueryParser {
 
   import dev.rudiments.hardcore.http.query.blueprints.TypeTransformers._
 
-  def parse[E <: DTO : TypeTag](httpQuery: HttpParams): Either[RuntimeException, QueryBlueprint[E]] = {
+  def parse[E : TypeTag](httpQuery: HttpParams): Either[RuntimeException, QueryBlueprint[E]] = {
     val types: Map[String, universe.Type] = implicitly[TypeTag[E]].tpe.members.filter(!_.isMethod).map { member =>
       member.name.toString.trim -> member.typeSignature
     }.toMap

@@ -1,13 +1,13 @@
 package dev.rudiments.hardcore.data
 
-import dev.rudiments.hardcore.types.{DTO, ID}
+import dev.rudiments.hardcore.types.ID
 
 import scala.collection.parallel
 
 object Batch {
-  case class CreateAll  [T <: DTO](batch: Map[ID[T], T]) extends DataCommand[T]
-  case class AllCreated [T <: DTO](batch: Map[ID[T], T]) extends DataEvent[T]
-  def createAll[T <: DTO](implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
+  case class CreateAll  [T](batch: Map[ID[T], T]) extends DataCommand[T]
+  case class AllCreated [T](batch: Map[ID[T], T]) extends DataEvent[T]
+  def createAll[T](implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
     case CreateAll(batch) =>
       try {
         content ++= batch
@@ -17,9 +17,9 @@ object Batch {
       }
   }
 
-  case class CreateAllAuto  [T <: DTO](batch: Seq[T]) extends DataCommand[T]
-  case class AllAutoCreated [T <: DTO](batch: Map[ID[T], T]) extends DataEvent[T]
-  def createAllAuto[T <: DTO](generator: () => ID[T])(implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
+  case class CreateAllAuto  [T](batch: Seq[T]) extends DataCommand[T]
+  case class AllAutoCreated [T](batch: Map[ID[T], T]) extends DataEvent[T]
+  def createAllAuto[T](generator: () => ID[T])(implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
     case CreateAllAuto(batch) =>
       try {
         val withAuto = batch.map(i => (generator(), i)).toMap
@@ -30,9 +30,9 @@ object Batch {
       }
   }
 
-  case class ReplaceAll [T <: DTO](batch: Map[ID[T], T]) extends DataCommand[T]
-  case class AllReplaced[T <: DTO](batch: Map[ID[T], T]) extends DataEvent[T]
-  def replaceAll[T <: DTO](implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
+  case class ReplaceAll [T](batch: Map[ID[T], T]) extends DataCommand[T]
+  case class AllReplaced[T](batch: Map[ID[T], T]) extends DataEvent[T]
+  def replaceAll[T](implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
     case ReplaceAll(batch) =>
       try {
         content --= content.keysIterator
@@ -43,9 +43,9 @@ object Batch {
       }
   }
 
-  case class DeleteAll  [T <: DTO]() extends DataCommand[T]
-  case class AllDeleted [T <: DTO]() extends DataEvent[T]
-  def deleteAll[T <: DTO](implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
+  case class DeleteAll  [T]() extends DataCommand[T]
+  case class AllDeleted [T]() extends DataEvent[T]
+  def deleteAll[T](implicit content: parallel.mutable.ParMap[ID[T], T]): DataSkill[T] = {
     case DeleteAll() =>
       try {
         content --= content.keysIterator
@@ -55,5 +55,5 @@ object Batch {
       }
   }
 
-  case class BatchFailed[T <: DTO]() extends DataErrorEvent[T]
+  case class BatchFailed[T]() extends DataErrorEvent[T]
 }

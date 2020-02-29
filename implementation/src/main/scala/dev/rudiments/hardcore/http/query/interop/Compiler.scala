@@ -18,7 +18,7 @@ object Compiler {
   }
 
 
-  def compile[T <: DTO : ClassTag](blueprint: QueryBlueprint[T]): Query[T] = {
+  def compile[T : ClassTag](blueprint: QueryBlueprint[T]): Query[T] = {
     val queries = blueprint.parts.map {
       case IntEqualsBlueprint(fieldName, value) => Query[T] { dto: T =>
         val valueFunc = getFieldValue[T, Int](fieldName)

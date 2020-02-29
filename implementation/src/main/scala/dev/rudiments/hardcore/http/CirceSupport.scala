@@ -4,7 +4,7 @@ import java.sql.{Date, Timestamp}
 
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.hardcore.types.ID._
-import dev.rudiments.hardcore.types.{DTO, Instance, Ref}
+import dev.rudiments.hardcore.types.{Instance, Ref}
 import enumeratum._
 import io.circe.Decoder.Result
 import io.circe._
@@ -27,10 +27,10 @@ object CirceSupport extends AutoDerivation with FailFastCirceSupport {
     override def apply(c: HCursor): Result[Date] = Decoder.decodeString.map(Date.valueOf).apply(c)
   }
 
-  implicit def instanceEncoder[A <: DTO : Encoder]: Encoder[Instance[A]] =
+  implicit def instanceEncoder[A : Encoder]: Encoder[Instance[A]] =
     implicitly[Encoder[A]].contramap(_.value)
 
-  implicit def refFormat[A <: DTO : Encoder]: Encoder[Ref[A]] with Decoder[Ref[A]] = new Encoder[Ref[A]] with Decoder[Ref[A]] {
+  implicit def refFormat[A : Encoder]: Encoder[Ref[A]] with Decoder[Ref[A]] = new Encoder[Ref[A]] with Decoder[Ref[A]] {
     override def apply(a: Ref[A]): Json = a match {
       case i: Instance[A] => implicitly[Encoder[Instance[A]]].apply(i)
       case ID0() => Json.arr()

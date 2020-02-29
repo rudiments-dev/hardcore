@@ -4,7 +4,7 @@ import java.sql.Date
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
-import dev.rudiments.hardcore.types.{DTO, HardType, ID}
+import dev.rudiments.hardcore.types.ID
 
 trait Router {
   val routes: Route
@@ -26,14 +26,14 @@ case class PrefixRouter(prefix: String, routers: Router*) extends Router {
     }
 }
 
-case class IDRouter[T <: DTO](idDirective: Directive1[ID[T]], idRouters: (ID[T] => Router)*) extends Router {
+case class IDRouter[T](idDirective: Directive1[ID[T]], idRouters: (ID[T] => Router)*) extends Router {
   override val routes: Route = idDirective { id =>
     CompositeRouter(idRouters.map(t => t(id)): _*).routes
   }
 }
 
 import scala.reflect.runtime.universe.TypeTag
-case class ResourceRouter[T <: DTO : HardType, K : TypeTag](
+case class ResourceRouter[T, K : TypeTag](
   prefix: String,
   pathRouters: Seq[Router] = Seq.empty,
   idRouters: Seq[(ID[T] => Router)] = Seq.empty
@@ -46,7 +46,7 @@ case class ResourceRouter[T <: DTO : HardType, K : TypeTag](
 
 object IDPath {
   import scala.reflect.runtime.universe.{TypeTag, typeOf}
-  def apply[A <: DTO : HardType, K: TypeTag]: Directive1[ID[A]] = {
+  def apply[A, K: TypeTag]: Directive1[ID[A]] = {
           if(typeOf[K] =:= typeOf[Long])   pathPrefix(LongNumber).map(l => ID[A, Long](l))
     else  if(typeOf[K] =:= typeOf[Int])    pathPrefix(IntNumber).map(i => ID[A, Int](i))
     else  if(typeOf[K] =:= typeOf[String]) pathPrefix(Segment).map(s => ID[A, String](s))
