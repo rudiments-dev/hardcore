@@ -8,8 +8,8 @@ object FieldFormat {
   implicit val fieldEncoder: Encoder[Field] = new Encoder[Field] {
 
     private def fieldEncoder(field: Field): String = (field match {
-      case Field(RudimentTypes.Number, _) => fieldTypeEncoder(RudimentTypes.Number)
-      case Field(RudimentTypes.Text, _) => fieldTypeEncoder(RudimentTypes.Text)
+      case Field(RudimentTypes.Number(min, max, format), _) => fieldTypeEncoder(RudimentTypes.Number(min, max, format))
+      case Field(RudimentTypes.Text(size), _) => fieldTypeEncoder(RudimentTypes.Text(size))
 
       case Field(RudimentTypes.Date, _) => fieldTypeEncoder(RudimentTypes.Date)
       case Field(RudimentTypes.Time, _) => fieldTypeEncoder(RudimentTypes.Time)
@@ -36,8 +36,8 @@ object FieldFormat {
     })
 
     private def fieldTypeEncoder(t: FieldType): String = t match {
-      case RudimentTypes.Text => RudimentTypes.Text.toString
-      case RudimentTypes.Number => RudimentTypes.Number.toString
+      case RudimentTypes.Text(_) => RudimentTypes.Text.toString
+      case RudimentTypes.Number(_, _, _) => RudimentTypes.Number.toString
 
       case RudimentTypes.Date => RudimentTypes.Date.toString
       case RudimentTypes.Time => RudimentTypes.Time.toString
@@ -61,8 +61,8 @@ object FieldFormat {
   implicit def fieldTypeDecoder(implicit d: Decoder[Map[String, Any]]): Decoder[Field] = new Decoder[Field] {
 
     private def toFieldType(s: String): FieldType = s match {
-      case "Text" => RudimentTypes.Text
-      case "Number" => RudimentTypes.Number
+      case "Text" => RudimentTypes.Text(Int.MaxValue)
+      case "Number" => RudimentTypes.Number.ScalaInt
 
       case "Date" => RudimentTypes.Date
       case "Time" => RudimentTypes.Time
