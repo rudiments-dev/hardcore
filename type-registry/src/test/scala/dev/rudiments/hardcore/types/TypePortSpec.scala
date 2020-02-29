@@ -55,13 +55,13 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
 
   "update item in repository" in {
     Put("/example/Example", Type("Example", Map(
-      "id" -> Field(RudimentTypes.Number, FieldFlag.WithDefault),
-      "name" -> Field(RudimentTypes.Text, FieldFlag.Required)
+      "id" -> Field(RudimentTypes.Number.ScalaLong, FieldFlag.WithDefault),
+      "name" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Required)
     ))) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Type] should be (Type("Example", Map(
-        "id" -> Field(RudimentTypes.Number, FieldFlag.WithDefault),
-        "name" -> Field(RudimentTypes.Text, FieldFlag.Required)
+        "id" -> Field(RudimentTypes.Number.ScalaLong, FieldFlag.WithDefault),
+        "name" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Required)
       )))
     }
   }
@@ -73,8 +73,8 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
     Get("/example/Example") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Type] should be (Type("Example", Map(
-        "id" -> Field(RudimentTypes.Number, FieldFlag.WithDefault),
-        "name" -> Field(RudimentTypes.Text, FieldFlag.Required)
+        "id" -> Field(RudimentTypes.Number.ScalaLong, FieldFlag.WithDefault),
+        "name" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Required)
       )))
     }
   }
@@ -91,8 +91,8 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
   "endure 10.000 records" in {
     (1 to 10000).foreach { i =>
       Post("/example", Type(s"Example-$i", Map(
-        "id" -> Field(RudimentTypes.Number, FieldFlag.WithDefault),
-        s"name-$i" -> Field(RudimentTypes.Text, FieldFlag.Required)
+        "id" -> Field(RudimentTypes.Number.ScalaLong, FieldFlag.WithDefault),
+        s"name-$i" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Required)
       ))) ~> routes ~> check {
         response.status should be (StatusCodes.Created)
       }
@@ -101,16 +101,16 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
     Get("/example/Example-24") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Type] should be (Type("Example-24", Map(
-        "id" -> Field(RudimentTypes.Number, FieldFlag.WithDefault),
-        "name-24" -> Field(RudimentTypes.Text, FieldFlag.Required)
+        "id" -> Field(RudimentTypes.Number.ScalaLong, FieldFlag.WithDefault),
+        "name-24" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Required)
       )))
     }
   }
 
   "endure 190.000 batch" in {
     Post("/example", (10001 to 200000).map(i => Type(s"Example-$i", Map(
-      "id" -> Field(RudimentTypes.Number, FieldFlag.WithDefault),
-      s"name-$i" -> Field(RudimentTypes.Text, FieldFlag.Required)
+      "id" -> Field(RudimentTypes.Number.ScalaLong, FieldFlag.WithDefault),
+      s"name-$i" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Required)
     )))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       repo(Count()) should be (Counted(200000))
@@ -118,8 +118,8 @@ class TypePortSpec extends WordSpec with Matchers with ScalatestRouteTest {
     Get("/example/Example-10024") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Type] should be (Type("Example-10024", Map(
-        "id" -> Field(RudimentTypes.Number, FieldFlag.WithDefault),
-        "name-10024" -> Field(RudimentTypes.Text, FieldFlag.Required)
+        "id" -> Field(RudimentTypes.Number.ScalaLong, FieldFlag.WithDefault),
+        "name-10024" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Required)
       )))
     }
   }
