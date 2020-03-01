@@ -7,16 +7,16 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.hardcore.Port
 import dev.rudiments.hardcore.data.Batch._
 import dev.rudiments.hardcore.data.CRUD._
-import dev.rudiments.hardcore.data.{Batch, CRUD, DataCommand, DataEvent, DataSkill, ReadOnly}
 import dev.rudiments.hardcore.data.ReadOnly._
+import dev.rudiments.hardcore.data._
 import dev.rudiments.hardcore.http._
-import dev.rudiments.hardcore.types.{DTO, HardType, ID}
+import dev.rudiments.hardcore.types.ID
 import io.circe.{Decoder, Encoder}
 
 import scala.collection.parallel
 import scala.reflect.runtime.universe.TypeTag
 
-class HttpMemoryModule[T : HardType : Encoder : Decoder, K : TypeTag](
+class HttpMemoryModule[T : Encoder : Decoder, K : TypeTag](
   prefix: String,
   identify: T => ID[T]
 ) extends Port[DataCommand[T], DataEvent[T]] with Router with FailFastCirceSupport {

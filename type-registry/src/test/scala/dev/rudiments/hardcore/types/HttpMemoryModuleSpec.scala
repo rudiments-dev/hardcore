@@ -20,7 +20,6 @@ class HttpMemoryModuleSpec extends WordSpec with Matchers with ScalatestRouteTes
   ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val t: HardType[Example] = HardType[Example]
 
   private val router: HttpMemoryModule[Example, Long] = new HttpMemoryModule(
     "example",
