@@ -74,18 +74,19 @@ object Field {
 sealed trait FieldType {}
 object FieldType {
   def apply(t: SysType): FieldType = {
-    if      (t =:= typeOf[String]) RudimentTypes.Text(Int.MaxValue)
-    else if (t =:= typeOf[Byte]) RudimentTypes.Number.ScalaByte
-    else if (t =:= typeOf[Short]) RudimentTypes.Number.ScalaShort
-    else if (t =:= typeOf[Int]) RudimentTypes.Number.ScalaInt
-    else if (t =:= typeOf[Long]) RudimentTypes.Number.ScalaLong
-    else if (t =:= typeOf[Float]) RudimentTypes.Number.ScalaFloat
-    else if (t =:= typeOf[Double]) RudimentTypes.Number.ScalaDouble
-    else if (t =:= typeOf[BigInt]) RudimentTypes.Number.ScalaBigInteger
-    else if (t =:= typeOf[BigDecimal]) RudimentTypes.Number.ScalaBigDecimal
-    else if (t =:= typeOf[Date]) RudimentTypes.Date
-    else if (t =:= typeOf[Time]) RudimentTypes.Time
-    else if (t =:= typeOf[Timestamp]) RudimentTypes.Timestamp
+    if      (t =:= typeOf[Boolean])     RudimentTypes.Bool
+    else if (t =:= typeOf[String])      RudimentTypes.Text(Int.MaxValue)
+    else if (t =:= typeOf[Byte])        RudimentTypes.Number.ScalaByte
+    else if (t =:= typeOf[Short])       RudimentTypes.Number.ScalaShort
+    else if (t =:= typeOf[Int])         RudimentTypes.Number.ScalaInt
+    else if (t =:= typeOf[Long])        RudimentTypes.Number.ScalaLong
+    else if (t =:= typeOf[Float])       RudimentTypes.Number.ScalaFloat
+    else if (t =:= typeOf[Double])      RudimentTypes.Number.ScalaDouble
+    else if (t =:= typeOf[BigInt])      RudimentTypes.Number.ScalaBigInteger
+    else if (t =:= typeOf[BigDecimal])  RudimentTypes.Number.ScalaBigDecimal
+    else if (t =:= typeOf[Date])        RudimentTypes.Date
+    else if (t =:= typeOf[Time])        RudimentTypes.Time
+    else if (t =:= typeOf[Timestamp])   RudimentTypes.Timestamp
     else if (t <:< typeOf[EnumEntry]) {
       val ru = runtimeMirror(getClass.getClassLoader)
       val companion = ru.reflectModule(ru.staticModule(t.toString)).instance.asInstanceOf[Enum[_ <: EnumEntry]]
@@ -108,6 +109,7 @@ object FieldType {
 }
 
 object RudimentTypes {
+  case object Bool extends FieldType
   case class Text(maxSize: Int)    extends FieldType
   object Text {
     object ScalaString extends Text(Int.MaxValue)

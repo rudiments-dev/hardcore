@@ -12,6 +12,10 @@ class FieldSpec extends WordSpec with Matchers {
 
   "Type transforms all basic types to BasicTypes" in {
     t.fields should be (Map(
+      "bool" ->         Field(RudimentTypes.Bool, FieldFlag.Required),
+      "optBool" ->      Field(RudimentTypes.Bool, FieldFlag.Optional),
+      "defaultBool" ->  Field(RudimentTypes.Bool, FieldFlag.WithDefault),
+
       "string" ->           Field(RudimentTypes.Text.ScalaString, FieldFlag.Required),
       "optString" ->        Field(RudimentTypes.Text.ScalaString, FieldFlag.Optional),
       "defaultString" ->    Field(RudimentTypes.Text.ScalaString, FieldFlag.WithDefault),
@@ -45,8 +49,14 @@ class FieldSpec extends WordSpec with Matchers {
   }
 
   "order of fields should be honored" in {
-    t.fields.head should be ("string" -> Field(RudimentTypes.Text.ScalaString,  FieldFlag.Required))
+    t.fields.head should be ("bool" ->    Field(RudimentTypes.Bool, FieldFlag.Required))
     t.fields.last should be ("optTime" -> Field(RudimentTypes.Time, FieldFlag.Optional))
+  }
+
+  "Boolean -> Bool" in {
+    t.fields("bool")            should be (Field(RudimentTypes.Bool,  FieldFlag.Required))
+    t.fields("optBool")         should be (Field(RudimentTypes.Bool,  FieldFlag.Optional))
+    t.fields("defaultBool")     should be (Field(RudimentTypes.Bool,  FieldFlag.WithDefault))
   }
 
   "String -> Text" in {
@@ -114,6 +124,10 @@ class FieldSpec extends WordSpec with Matchers {
 }
 
 case class Example(
+  bool: Boolean,
+  optBool: Option[Boolean],
+  defaultBool: Boolean = true,
+
   string: String,
   optString: Option[String],
   defaultString: String = "default",
