@@ -98,14 +98,11 @@ object FieldType {
       val companion = ru.reflectModule(ru.staticModule(t.toString)).instance.asInstanceOf[Enum[_ <: EnumEntry]]
       RudimentTypes.Enum(t.toString, companion.values.map(v => v.entryName))
     }
-    else if (t <:< typeOf[Set[_]]) {
-      RudimentTypes.Set(FieldType(t.typeArgs.head))
-    }
-    else if (t <:< typeOf[Seq[_]]) {
-      RudimentTypes.List(FieldType(t.typeArgs.head))
-    }
     else if (t <:< typeOf[Map[_, _]]) {
       RudimentTypes.Index(FieldType(t.typeArgs.head), FieldType(t.typeArgs.last))
+    }
+    else if (t <:< typeOf[Iterable[_]]) {
+      RudimentTypes.List(FieldType(t.typeArgs.head))
     }
     else if (t <:< typeOf[DTO]) {
       RudimentTypes.Reference(Type.apply(t.typeSymbol))
@@ -140,7 +137,6 @@ object RudimentTypes {
 
   case class Enum(name: String, values: Seq[String]) extends FieldType
 
-  case class Set(of: FieldType) extends FieldType
   case class List(of: FieldType) extends FieldType
   case class Index(of: FieldType, over: FieldType) extends FieldType
 
