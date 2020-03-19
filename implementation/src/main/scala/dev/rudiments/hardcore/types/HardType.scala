@@ -136,6 +136,7 @@ object RudimentTypes {
   case object Timestamp extends FieldType
 
   case class Enum(name: String, values: Seq[String]) extends FieldType
+  final case class SoftEnum(enum: Enum, index: Int)
 
   case class List(of: FieldType) extends FieldType
   case class Index(of: FieldType, over: FieldType) extends FieldType
