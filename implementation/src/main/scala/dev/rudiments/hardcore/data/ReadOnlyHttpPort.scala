@@ -6,12 +6,12 @@ import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
 import dev.rudiments.hardcore.Port
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http.Router
-import dev.rudiments.hardcore.types.ID
+import dev.rudiments.hardcore.types.HardID
 import io.circe.Encoder
 
 class ReadOnlyHttpPort[T : Encoder](
   prefix: String,
-  idDirective: Directive1[ID[T]],
+  idDirective: Directive1[HardID[T]],
   override val f: DataSkill[T]
 ) extends Port[DataCommand[T], DataEvent[T]] with Router {
 

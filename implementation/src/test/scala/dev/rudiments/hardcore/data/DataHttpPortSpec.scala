@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http.CirceSupport._
-import dev.rudiments.hardcore.types.{DTO, Defaults, HardType, ID}
+import dev.rudiments.hardcore.types.{DTO, Defaults, HardID, HardType}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -25,14 +25,14 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest {
 
   private val router: DataHttpPort[Example, Long] = new DataHttpPort(
     "example",
-    e => ID(e.id),
+    e => HardID(e.id),
     repo
   )
   private val routes = Route.seal(router.routes)
 
   import MyEnum._
   private val sample = Example(42, "sample", Red)
-  private val id = ID(sample.id)
+  private val id = HardID(sample.id)
 
   "no element by ID" in {
     Get("/example/42") ~> routes ~> check {

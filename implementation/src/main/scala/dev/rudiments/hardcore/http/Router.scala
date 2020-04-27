@@ -4,7 +4,7 @@ import java.sql.Date
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
-import dev.rudiments.hardcore.types.ID
+import dev.rudiments.hardcore.types.HardID
 
 trait Router {
   val routes: Route
@@ -26,7 +26,7 @@ case class PrefixRouter(prefix: String, routers: Router*) extends Router {
     }
 }
 
-case class IDRouter[T](idDirective: Directive1[ID[T]], idRouters: (ID[T] => Router)*) extends Router {
+case class IDRouter[T](idDirective: Directive1[HardID[T]], idRouters: (HardID[T] => Router)*) extends Router {
   override val routes: Route = idDirective { id =>
     CompositeRouter(idRouters.map(t => t(id)): _*).routes
   }
@@ -36,7 +36,7 @@ import scala.reflect.runtime.universe.TypeTag
 case class ResourceRouter[T, K : TypeTag](
   prefix: String,
   pathRouters: Seq[Router] = Seq.empty,
-  idRouters: Seq[(ID[T] => Router)] = Seq.empty
+  idRouters: Seq[(HardID[T] => Router)] = Seq.empty
 ) extends Router {
   override val routes: Route = PrefixRouter(prefix,
     IDRouter(IDPath[T, K], idRouters: _*),
@@ -46,11 +46,11 @@ case class ResourceRouter[T, K : TypeTag](
 
 object IDPath {
   import scala.reflect.runtime.universe.{TypeTag, typeOf}
-  def apply[A, K: TypeTag]: Directive1[ID[A]] = {
-          if(typeOf[K] =:= typeOf[Long])   pathPrefix(LongNumber).map(l => ID[A, Long](l))
-    else  if(typeOf[K] =:= typeOf[Int])    pathPrefix(IntNumber).map(i => ID[A, Int](i))
-    else  if(typeOf[K] =:= typeOf[String]) pathPrefix(Segment).map(s => ID[A, String](s))
-    else  if(typeOf[K] =:= typeOf[Date])   pathPrefix(Segment).map(s => ID[A, Date](Date.valueOf(s)))
+  def apply[A, K: TypeTag]: Directive1[HardID[A]] = {
+          if(typeOf[K] =:= typeOf[Long])   pathPrefix(LongNumber).map(l => HardID[A, Long](l))
+    else  if(typeOf[K] =:= typeOf[Int])    pathPrefix(IntNumber).map(i => HardID[A, Int](i))
+    else  if(typeOf[K] =:= typeOf[String]) pathPrefix(Segment).map(s => HardID[A, String](s))
+    else  if(typeOf[K] =:= typeOf[Date])   pathPrefix(Segment).map(s => HardID[A, Date](Date.valueOf(s)))
     else ??? //TODO enums
   }
 }

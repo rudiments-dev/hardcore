@@ -24,16 +24,16 @@ class TypeSpec extends WordSpec with Matchers {
 
   "can construct type of type" in {
     val m = tt.construct("FirstSyntheticType", ListMap(
-      "firstSyntheticField" -> Field(RudimentTypes.Number.ScalaLong, FieldFlag.Required),
-      "secondSyntheticField" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Optional)
+      "firstSyntheticField" -> Field(ScalaTypes.ScalaLong, FieldFlag.Required),
+      "secondSyntheticField" -> Field(ScalaTypes.ScalaString, FieldFlag.Optional)
     ))
-    m should be (Type[FirstSyntheticType])
+    m should be (HardType[FirstSyntheticType])
   }
 
   "synthetic type should be able to construct a Map with values of Type" in {
     val m = tt.construct("FirstSyntheticType", ListMap(
-      "firstSyntheticField" -> Field(RudimentTypes.Number.ScalaLong, FieldFlag.Required),
-      "secondSyntheticField" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Optional)
+      "firstSyntheticField" -> Field(ScalaTypes.ScalaLong, FieldFlag.Required),
+      "secondSyntheticField" -> Field(ScalaTypes.ScalaString, FieldFlag.Optional)
     ))
     m.constructMap(42L, Some("Because")) should be (Map(
       "firstSyntheticField" -> 42L,

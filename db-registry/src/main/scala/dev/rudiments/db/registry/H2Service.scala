@@ -4,7 +4,7 @@ import dev.rudiments.hardcore.data.DataMemoryAdapter
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.data.CRUD.Create
 import dev.rudiments.hardcore.data.ReadOnly._
-import dev.rudiments.hardcore.types.{HardType, ID}
+import dev.rudiments.hardcore.types.{HardID, HardType, ID}
 
 class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) extends Service[SchemaCommand, SchemaEvent] {
   override def isDefinedAt(cmd: SchemaCommand): Boolean = f.isDefinedAt(cmd)
@@ -15,7 +15,7 @@ class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) exten
     case ReadSchema(schemaName) =>
       persistent(
         Create(
-          ID(schemaName),
+          HardID(schemaName),
           discoverSchema(schemaName)
         )
       )
@@ -70,7 +70,7 @@ class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) exten
   }
 
   private def findSchema(schemaName: String): SchemaEvent = {
-    persistent(Find(ID(schemaName))) match {
+    persistent(Find(HardID(schemaName))) match {
       case Found(_, value) => SchemaFound(value)
       case NotFound(_) => SchemaNotFound(schemaName)
     }

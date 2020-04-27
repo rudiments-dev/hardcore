@@ -1,7 +1,5 @@
 package dev.rudiments.types.registry
 
-import java.sql.{Date, Time, Timestamp}
-
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
@@ -11,9 +9,7 @@ import dev.rudiments.hardcore.data.DataMemoryAdapter
 import dev.rudiments.hardcore.http.RootRouter
 import dev.rudiments.hardcore.types._
 import dev.rudiments.types.registry.module.TypeHttpPort
-import enumeratum.{Enum, EnumEntry}
 
-import scala.collection.immutable
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
@@ -27,8 +23,8 @@ object Application extends App with LazyLogging {
   try {
     val config = ConfigFactory.load()
     val db = new DataMemoryAdapter[Type]
-    db(Create(ID("CompatibleDTO"), HardType[CompatibleDTO]))
-    db(Create(ID("CompatiblePlainDTO"), HardType[CompatiblePlainDTO]))
+    db(Create(HardID("CompatibleDTO"), HardType[CompatibleDTO]))
+    db(Create(HardID("CompatiblePlainDTO"), HardType[CompatiblePlainDTO]))
 
     new RootRouter(config, TypeHttpPort("types", db)).bind()
   } catch {
