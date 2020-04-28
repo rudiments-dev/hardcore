@@ -49,14 +49,14 @@ object Batch {
   }
 
 
-  case class DeleteAll  () extends DataCommand
-  case class AllDeleted () extends DataEvent
+  case object DeleteAll extends DataCommand
+  case object AllDeleted extends DataEvent
 
   def deleteAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
-    case DeleteAll() =>
+    case DeleteAll =>
       try {
         content --= content.keysIterator
-        AllDeleted()
+        AllDeleted
       } catch {
         case _: Exception => BatchFailed()
       }
