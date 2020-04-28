@@ -7,7 +7,7 @@ import dev.rudiments.hardcore.data.MyEnum
 import dev.rudiments.hardcore.data.MyEnum._
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http.CirceSupport._
-import dev.rudiments.hardcore.types.{DTO, Defaults, ID}
+import dev.rudiments.hardcore.types.{DTO, Defaults, HardID}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -20,12 +20,12 @@ class HardModuleSpec extends WordSpec with Matchers with ScalatestRouteTest {
     enum: MyEnum
   ) extends DTO
 
-  private val module = new HardModule[Example, Long]("example", e => ID(e.id))
+  private val module = new HardModule[Example, Long]("example", e => HardID(e.id))
   private val app = new HardApp(ConfigFactory.load(), module)
   private val repo = module.adapter
   private val routes = app.routes
   private val sample = Example(42, "sample", Red)
-  private val id = ID(sample.id)
+  private val id = HardID(sample.id)
 
   "no element by ID" in {
     Get("/api/example/42") ~> routes ~> check {

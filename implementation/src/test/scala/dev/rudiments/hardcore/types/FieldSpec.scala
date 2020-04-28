@@ -12,108 +12,122 @@ class FieldSpec extends WordSpec with Matchers {
 
   "Type transforms all basic types to BasicTypes" in {
     t.fields should be (Map(
-      "string" ->           Field(RudimentTypes.Text.ScalaString, FieldFlag.Required),
-      "optString" ->        Field(RudimentTypes.Text.ScalaString, FieldFlag.Optional),
-      "defaultString" ->    Field(RudimentTypes.Text.ScalaString, FieldFlag.WithDefault),
-      "defaultOptString" -> Field(RudimentTypes.Text.ScalaString, FieldFlag.Optional),
-      "listOfStrings" ->    Field(RudimentTypes.List(RudimentTypes.Text.ScalaString), FieldFlag.NonEmpty),
+      "bool" ->         Field(Types.Bool, FieldFlag.Required),
+      "optBool" ->      Field(Types.Bool, FieldFlag.Optional),
+      "defaultBool" ->  Field(Types.Bool, FieldFlag.WithDefault),
 
-      "byte" ->       Field(RudimentTypes.Number.ScalaByte,       FieldFlag.Required),
-      "optByte" ->    Field(RudimentTypes.Number.ScalaByte,       FieldFlag.Optional),
-      "short" ->      Field(RudimentTypes.Number.ScalaShort,      FieldFlag.Required),
-      "optShort" ->   Field(RudimentTypes.Number.ScalaShort,      FieldFlag.Optional),
-      "int" ->        Field(RudimentTypes.Number.ScalaInt,        FieldFlag.Required),
-      "optInt" ->     Field(RudimentTypes.Number.ScalaInt,        FieldFlag.Optional),
-      "long" ->       Field(RudimentTypes.Number.ScalaLong,       FieldFlag.Required),
-      "optLong" ->    Field(RudimentTypes.Number.ScalaLong,       FieldFlag.Optional),
-      "float" ->      Field(RudimentTypes.Number.ScalaFloat,      FieldFlag.Required),
-      "optFloat" ->   Field(RudimentTypes.Number.ScalaFloat,      FieldFlag.Optional),
-      "double" ->     Field(RudimentTypes.Number.ScalaDouble,     FieldFlag.Required),
-      "optDouble" ->  Field(RudimentTypes.Number.ScalaDouble,     FieldFlag.Optional),
-      "integer" ->    Field(RudimentTypes.Number.ScalaBigInteger, FieldFlag.Required),
-      "optInteger" -> Field(RudimentTypes.Number.ScalaBigInteger, FieldFlag.Optional),
-      "decimal" ->    Field(RudimentTypes.Number.ScalaBigDecimal, FieldFlag.Required),
-      "optDecimal" -> Field(RudimentTypes.Number.ScalaBigDecimal, FieldFlag.Optional),
+      "string" ->           Field(ScalaTypes.ScalaString, FieldFlag.Required),
+      "optString" ->        Field(ScalaTypes.ScalaString, FieldFlag.Optional),
+      "defaultString" ->    Field(ScalaTypes.ScalaString, FieldFlag.WithDefault),
+      "defaultOptString" -> Field(ScalaTypes.ScalaString, FieldFlag.Optional),
+      "listOfStrings" ->    Field(Types.List(ScalaTypes.ScalaString), FieldFlag.NonEmpty),
 
-      "timestamp" ->        Field(RudimentTypes.Timestamp,  FieldFlag.Required),
-      "optTimestamp" ->     Field(RudimentTypes.Timestamp,  FieldFlag.Optional),
-      "date" ->             Field(RudimentTypes.Date,       FieldFlag.Required),
-      "optDate" ->          Field(RudimentTypes.Date,       FieldFlag.Optional),
-      "time" ->             Field(RudimentTypes.Time,       FieldFlag.Required),
-      "optTime" ->          Field(RudimentTypes.Time,       FieldFlag.Optional),
+      "byte" ->       Field(ScalaTypes.ScalaByte,       FieldFlag.Required),
+      "optByte" ->    Field(ScalaTypes.ScalaByte,       FieldFlag.Optional),
+      "short" ->      Field(ScalaTypes.ScalaShort,      FieldFlag.Required),
+      "optShort" ->   Field(ScalaTypes.ScalaShort,      FieldFlag.Optional),
+      "int" ->        Field(ScalaTypes.ScalaInt,        FieldFlag.Required),
+      "optInt" ->     Field(ScalaTypes.ScalaInt,        FieldFlag.Optional),
+      "long" ->       Field(ScalaTypes.ScalaLong,       FieldFlag.Required),
+      "optLong" ->    Field(ScalaTypes.ScalaLong,       FieldFlag.Optional),
+      "float" ->      Field(ScalaTypes.ScalaFloat,      FieldFlag.Required),
+      "optFloat" ->   Field(ScalaTypes.ScalaFloat,      FieldFlag.Optional),
+      "double" ->     Field(ScalaTypes.ScalaDouble,     FieldFlag.Required),
+      "optDouble" ->  Field(ScalaTypes.ScalaDouble,     FieldFlag.Optional),
+      "integer" ->    Field(ScalaTypes.ScalaBigInteger, FieldFlag.Required),
+      "optInteger" -> Field(ScalaTypes.ScalaBigInteger, FieldFlag.Optional),
+      "decimal" ->    Field(ScalaTypes.ScalaBigDecimal, FieldFlag.Required),
+      "optDecimal" -> Field(ScalaTypes.ScalaBigDecimal, FieldFlag.Optional),
+
+      "timestamp" ->        Field(Types.Timestamp,  FieldFlag.Required),
+      "optTimestamp" ->     Field(Types.Timestamp,  FieldFlag.Optional),
+      "date" ->             Field(Types.Date,       FieldFlag.Required),
+      "optDate" ->          Field(Types.Date,       FieldFlag.Optional),
+      "time" ->             Field(Types.Time,       FieldFlag.Required),
+      "optTime" ->          Field(Types.Time,       FieldFlag.Optional),
     ))
   }
 
   "order of fields should be honored" in {
-    t.fields.head should be ("string" -> Field(RudimentTypes.Text.ScalaString,  FieldFlag.Required))
-    t.fields.last should be ("optTime" -> Field(RudimentTypes.Time, FieldFlag.Optional))
+    t.fields.head should be ("bool" ->    Field(Types.Bool, FieldFlag.Required))
+    t.fields.last should be ("optTime" -> Field(Types.Time, FieldFlag.Optional))
+  }
+
+  "Boolean -> Bool" in {
+    t.fields("bool")            should be (Field(Types.Bool,  FieldFlag.Required))
+    t.fields("optBool")         should be (Field(Types.Bool,  FieldFlag.Optional))
+    t.fields("defaultBool")     should be (Field(Types.Bool,  FieldFlag.WithDefault))
   }
 
   "String -> Text" in {
-    t.fields("string")            should be (Field(RudimentTypes.Text.ScalaString,  FieldFlag.Required))
-    t.fields("optString")         should be (Field(RudimentTypes.Text.ScalaString,  FieldFlag.Optional))
-    t.fields("defaultString")     should be (Field(RudimentTypes.Text.ScalaString,  FieldFlag.WithDefault))
-    t.fields("defaultOptString")  should be (Field(RudimentTypes.Text.ScalaString,  FieldFlag.Optional))
-    t.fields("listOfStrings")     should be (Field(RudimentTypes.List(RudimentTypes.Text.ScalaString),  FieldFlag.NonEmpty))
+    t.fields("string")            should be (Field(ScalaTypes.ScalaString,  FieldFlag.Required))
+    t.fields("optString")         should be (Field(ScalaTypes.ScalaString,  FieldFlag.Optional))
+    t.fields("defaultString")     should be (Field(ScalaTypes.ScalaString,  FieldFlag.WithDefault))
+    t.fields("defaultOptString")  should be (Field(ScalaTypes.ScalaString,  FieldFlag.Optional))
+    t.fields("listOfStrings")     should be (Field(Types.List(ScalaTypes.ScalaString),  FieldFlag.NonEmpty))
   }
 
   "Byte -> Number" in {
-    t.fields("byte")    should be (Field(RudimentTypes.Number.ScalaByte, FieldFlag.Required))
-    t.fields("optByte") should be (Field(RudimentTypes.Number.ScalaByte, FieldFlag.Optional))
+    t.fields("byte")    should be (Field(ScalaTypes.ScalaByte, FieldFlag.Required))
+    t.fields("optByte") should be (Field(ScalaTypes.ScalaByte, FieldFlag.Optional))
   }
 
   "Short -> Number" in {
-    t.fields("short")    should be (Field(RudimentTypes.Number.ScalaShort, FieldFlag.Required))
-    t.fields("optShort") should be (Field(RudimentTypes.Number.ScalaShort, FieldFlag.Optional))
+    t.fields("short")    should be (Field(ScalaTypes.ScalaShort, FieldFlag.Required))
+    t.fields("optShort") should be (Field(ScalaTypes.ScalaShort, FieldFlag.Optional))
   }
 
   "Int -> Number" in {
-    t.fields("int")    should be (Field(RudimentTypes.Number.ScalaInt,    FieldFlag.Required))
-    t.fields("optInt") should be (Field(RudimentTypes.Number.ScalaInt,    FieldFlag.Optional))
+    t.fields("int")    should be (Field(ScalaTypes.ScalaInt,    FieldFlag.Required))
+    t.fields("optInt") should be (Field(ScalaTypes.ScalaInt,    FieldFlag.Optional))
   }
 
   "Long -> Number" in {
-    t.fields("long")    should be (Field(RudimentTypes.Number.ScalaLong, FieldFlag.Required))
-    t.fields("optLong") should be (Field(RudimentTypes.Number.ScalaLong, FieldFlag.Optional))
+    t.fields("long")    should be (Field(ScalaTypes.ScalaLong, FieldFlag.Required))
+    t.fields("optLong") should be (Field(ScalaTypes.ScalaLong, FieldFlag.Optional))
   }
 
   "Float -> Number" in {
-    t.fields("float")    should be (Field(RudimentTypes.Number.ScalaFloat, FieldFlag.Required))
-    t.fields("optFloat") should be (Field(RudimentTypes.Number.ScalaFloat, FieldFlag.Optional))
+    t.fields("float")    should be (Field(ScalaTypes.ScalaFloat, FieldFlag.Required))
+    t.fields("optFloat") should be (Field(ScalaTypes.ScalaFloat, FieldFlag.Optional))
   }
 
   "Double -> Number" in {
-    t.fields("double")    should be (Field(RudimentTypes.Number.ScalaDouble, FieldFlag.Required))
-    t.fields("optDouble") should be (Field(RudimentTypes.Number.ScalaDouble, FieldFlag.Optional))
+    t.fields("double")    should be (Field(ScalaTypes.ScalaDouble, FieldFlag.Required))
+    t.fields("optDouble") should be (Field(ScalaTypes.ScalaDouble, FieldFlag.Optional))
   }
 
   "BigInt -> Number" in {
-    t.fields("integer")    should be (Field(RudimentTypes.Number.ScalaBigInteger, FieldFlag.Required))
-    t.fields("optInteger") should be (Field(RudimentTypes.Number.ScalaBigInteger, FieldFlag.Optional))
+    t.fields("integer")    should be (Field(ScalaTypes.ScalaBigInteger, FieldFlag.Required))
+    t.fields("optInteger") should be (Field(ScalaTypes.ScalaBigInteger, FieldFlag.Optional))
   }
 
   "BigDecimal -> Number" in {
-    t.fields("decimal")    should be (Field(RudimentTypes.Number.ScalaBigDecimal, FieldFlag.Required))
-    t.fields("optDecimal") should be (Field(RudimentTypes.Number.ScalaBigDecimal, FieldFlag.Optional))
+    t.fields("decimal")    should be (Field(ScalaTypes.ScalaBigDecimal, FieldFlag.Required))
+    t.fields("optDecimal") should be (Field(ScalaTypes.ScalaBigDecimal, FieldFlag.Optional))
   }
 
   "sql.Date -> Date" in {
-    t.fields("date")         should be (Field(RudimentTypes.Date,      FieldFlag.Required))
-    t.fields("optDate")      should be (Field(RudimentTypes.Date,      FieldFlag.Optional))
+    t.fields("date")         should be (Field(Types.Date,      FieldFlag.Required))
+    t.fields("optDate")      should be (Field(Types.Date,      FieldFlag.Optional))
   }
 
   "sql.Time -> Time" in {
-    t.fields("time")         should be (Field(RudimentTypes.Time,      FieldFlag.Required))
-    t.fields("optTime")      should be (Field(RudimentTypes.Time,      FieldFlag.Optional))
+    t.fields("time")         should be (Field(Types.Time,      FieldFlag.Required))
+    t.fields("optTime")      should be (Field(Types.Time,      FieldFlag.Optional))
   }
 
   "sql.Timestamp -> Timestamp" in {
-    t.fields("timestamp")    should be (Field(RudimentTypes.Timestamp, FieldFlag.Required))
-    t.fields("optTimestamp") should be (Field(RudimentTypes.Timestamp, FieldFlag.Optional))
+    t.fields("timestamp")    should be (Field(Types.Timestamp, FieldFlag.Required))
+    t.fields("optTimestamp") should be (Field(Types.Timestamp, FieldFlag.Optional))
   }
 }
 
 case class Example(
+  bool: Boolean,
+  optBool: Option[Boolean],
+  defaultBool: Boolean = true,
+
   string: String,
   optString: Option[String],
   defaultString: String = "default",

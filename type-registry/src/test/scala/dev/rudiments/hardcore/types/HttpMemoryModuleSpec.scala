@@ -20,17 +20,16 @@ class HttpMemoryModuleSpec extends WordSpec with Matchers with ScalatestRouteTes
   ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val t: HardType[Example] = HardType[Example]
 
   private val router: HttpMemoryModule[Example, Long] = new HttpMemoryModule(
     "example",
-    e => ID(e.id)
+    e => HardID(e.id)
   )
   private val routes = Route.seal(router.routes)
 
   import MyEnum._
   private val sample = Example(42, "sample", Red)
-  private val id = ID(sample.id)
+  private val id = HardID(sample.id)
 
   "no element by ID" in {
     Get("/example/42") ~> routes ~> check {

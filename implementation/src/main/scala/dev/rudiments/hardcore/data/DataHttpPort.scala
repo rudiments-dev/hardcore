@@ -9,15 +9,15 @@ import dev.rudiments.hardcore.data.Batch._
 import dev.rudiments.hardcore.data.CRUD._
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http._
-import dev.rudiments.hardcore.types.ID._
-import dev.rudiments.hardcore.types.{DTO, HardType, ID}
+import dev.rudiments.hardcore.types.HardID
+import dev.rudiments.hardcore.types.HardID.HardAutoID
 import io.circe.{Decoder, Encoder}
 
 import scala.reflect.runtime.universe.TypeTag
 
-class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
+class DataHttpPort[T : Encoder : Decoder, K : TypeTag](
   prefix: String,
-  identify: T => ID[T],
+  identify: T => HardID[T],
   override val f: DataSkill[T]
 ) extends Port[DataCommand[T], DataEvent[T]] with Router with FailFastCirceSupport {
 
@@ -25,18 +25,18 @@ class DataHttpPort[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
     CompositeRouter(
       GetPort(FindAll[T](), f, responseWith),
       PostPort((value: T) => identify(value) match {
-        case AutoID() => CreateAuto(value)
+        case HardAutoID() => CreateAuto(value)
         case id => Create(id, value)
       }, f, responseWith),
       PostPort((batch: Seq[T]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), f, responseWith),
       PutPort((batch: Seq[T]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), f, responseWith),
       DeletePort(DeleteAll[T](), f, responseWith)
     ),
-    IDRouter(
+    HardIDRouter(
       IDPath[T, K],
-      { id: ID[T] => GetPort(Find[T](id), f, responseWith) },
-      { id: ID[T] => PutPort((value: T) => Update[T](id, value), f, responseWith) },
-      { id: ID[T] => DeletePort(Delete[T](id), f, responseWith) }
+      { id: HardID[T] => GetPort(Find[T](id), f, responseWith) },
+      { id: HardID[T] => PutPort((value: T) => Update[T](id, value), f, responseWith) },
+      { id: HardID[T] => DeletePort(Delete[T](id), f, responseWith) }
     )
   ).routes
 

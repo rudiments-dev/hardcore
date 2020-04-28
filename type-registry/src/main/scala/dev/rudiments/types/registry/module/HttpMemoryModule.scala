@@ -7,21 +7,21 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.hardcore.Port
 import dev.rudiments.hardcore.data.Batch._
 import dev.rudiments.hardcore.data.CRUD._
-import dev.rudiments.hardcore.data.{Batch, CRUD, DataCommand, DataEvent, DataSkill, ReadOnly}
 import dev.rudiments.hardcore.data.ReadOnly._
+import dev.rudiments.hardcore.data._
 import dev.rudiments.hardcore.http._
-import dev.rudiments.hardcore.types.{DTO, HardType, ID}
+import dev.rudiments.hardcore.types.HardID
 import io.circe.{Decoder, Encoder}
 
 import scala.collection.parallel
 import scala.reflect.runtime.universe.TypeTag
 
-class HttpMemoryModule[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
+class HttpMemoryModule[T : Encoder : Decoder, K : TypeTag](
   prefix: String,
-  identify: T => ID[T]
+  identify: T => HardID[T]
 ) extends Port[DataCommand[T], DataEvent[T]] with Router with FailFastCirceSupport {
 
-  private implicit val content: parallel.mutable.ParMap[ID[T], T] = parallel.mutable.ParMap.empty[ID[T], T]
+  private implicit val content: parallel.mutable.ParMap[HardID[T], T] = parallel.mutable.ParMap.empty[HardID[T], T]
   val f: DataSkill[T] = ReadOnly.count
 
   override val routes: Route = PrefixRouter(prefix,
@@ -31,11 +31,11 @@ class HttpMemoryModule[T <: DTO : HardType : Encoder : Decoder, K : TypeTag](
       PutPort((batch: Seq[T]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), Batch.createAll, responseWith),
       DeletePort(DeleteAll[T](), Batch.deleteAll, responseWith)
     ),
-    IDRouter(
+    HardIDRouter(
       IDPath[T, K],
-      { id: ID[T] => GetPort(Find[T](id), ReadOnly.find, responseWith) },
-      { id: ID[T] => PutPort((value: T) => Update[T](id, value), CRUD.update, responseWith) },
-      { id: ID[T] => DeletePort(Delete[T](id), CRUD.delete, responseWith) }
+      { id: HardID[T] => GetPort(Find[T](id), ReadOnly.find, responseWith) },
+      { id: HardID[T] => PutPort((value: T) => Update[T](id, value), CRUD.update, responseWith) },
+      { id: HardID[T] => DeletePort(Delete[T](id), CRUD.delete, responseWith) }
     )
   ).routes
 
