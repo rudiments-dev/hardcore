@@ -10,10 +10,32 @@ object     TypeSystem {
 }
 
 case class Type(name: String, fields: Map[String, Field]) extends DTO {
-  def constructSoft(arguments: Any*): SoftInstance = { SoftInstance(
-    fields.zip(arguments).map { case ((name, _), argument) =>
-      name -> argument //TODO type check
-    })(this)
+  def constructSoft(arguments: Any*): SoftInstance =
+    SoftInstance(
+      fields
+        .zip(arguments)
+        .map { case ((name, _), argument) => name -> argument }
+    )(this)
+
+  def softFromHard(hard: Any): SoftInstance = hard match {
+    case p: Product => constructSoft(p.productIterator.toSeq.map(wrapComposite): _*)
+    case other      => ???
+  }
+
+  private def wrapComposite(v: Any): Any = v match {
+    case i: String => i
+    case i: Byte => i
+    case i: Short => i
+    case i: Int => i
+    case i: Long => i
+    case i: Float => i
+    case i: Double => i
+    case i: BigInt => i
+    case i: BigDecimal => i
+    //TODO enums
+    case m: Map[String, Any] => m.mapValues(wrapComposite)
+    case i: Iterable[_] => i.map(wrapComposite)
+    case p: Product => constructSoft(p.productIterator.toSeq.map(wrapComposite))
   }
 
   def extract(value: Instance, field: String): Any = value match {

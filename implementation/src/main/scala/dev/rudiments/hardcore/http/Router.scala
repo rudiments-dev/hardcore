@@ -4,7 +4,9 @@ import java.sql.Date
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
-import dev.rudiments.hardcore.types.HardID
+import dev.rudiments.hardcore.types.{FieldType, HardID, ID, ScalaTypes, Type, Types}
+
+import scala.language.implicitConversions
 
 trait Router {
   val routes: Route
@@ -44,7 +46,20 @@ case class ResourceRouter[T, K : TypeTag](
   ).routes
 }
 
+
+import dev.rudiments.hardcore.types.SoftID.SoftID1
+import dev.rudiments.hardcore.types.Types
 object IDPath {
+  implicit def toID(directive: Directive1[SoftID1]): Directive1[ID] = directive.map(_.asInstanceOf[ID])
+
+  def apply(f: FieldType)(implicit t: Type): Directive1[ID] = f match {
+    case ScalaTypes.ScalaLong =>  pathPrefix(LongNumber).map(l => SoftID1(l))
+    case ScalaTypes.ScalaInt =>   pathPrefix(IntNumber).map(l => SoftID1(l))
+    case Types.Text(_) =>         pathPrefix(Segment).map(s => SoftID1(s))
+    case Types.Date =>            pathPrefix(Segment).map(s => SoftID1(Date.valueOf(s)))
+    case other => ???
+  }
+
   import scala.reflect.runtime.universe.{TypeTag, typeOf}
   def apply[A, K: TypeTag]: Directive1[HardID[A]] = {
           if(typeOf[K] =:= typeOf[Long])   pathPrefix(LongNumber).map(l => HardID[A, Long](l))
