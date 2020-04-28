@@ -10,10 +10,24 @@ object     TypeSystem {
 }
 
 case class Type(name: String, fields: Map[String, Field]) extends DTO {
-  def constructMap(arguments: Any*): Map[String, Any] = {
+  def constructSoft(arguments: Any*): SoftInstance = { SoftInstance(
     fields.zip(arguments).map { case ((name, _), argument) =>
       name -> argument //TODO type check
-    }
+    })(this)
+  }
+
+  def extract(value: Instance, field: String): Any = value match {
+    case s: SoftInstance          => s.fields(field)
+    case HardInstance(v: Product) => productField(v, field)
+    case other                    => ???
+  }
+
+  def productField(p: Product, f: String): Any = {
+    fields
+      .zipWithIndex
+      .filter { case ((n, _), _) => n == f }
+      .collectFirst { case ((_, _), i) => p.productElement(i) }
+      .get
   }
 }
 

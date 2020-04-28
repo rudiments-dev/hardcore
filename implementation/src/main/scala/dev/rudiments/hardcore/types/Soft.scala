@@ -21,7 +21,7 @@ object                SoftID {
 
 final case class SoftInstance(fields: Map[String, Any])(implicit t: Type) extends SoftRef()(t) with Instance
 object           SoftInstance {
-  def apply(fields: Seq[Any])(implicit t: Type): SoftInstance = SoftInstance(t.constructMap(fields:_*))(t)
+  def apply(fields: Seq[Any])(implicit t: Type): SoftInstance = t.constructSoft(fields: _*)
 }
 
 final case class SoftEnum(enum: Types.Enum, index: Int)

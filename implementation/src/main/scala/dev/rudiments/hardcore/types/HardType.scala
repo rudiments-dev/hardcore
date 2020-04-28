@@ -13,6 +13,11 @@ class HardType[T : TypeTag](name: String, fields: Map[String, Field]) extends Ty
     val c = Class.forName(typeOf[T].typeSymbol.asClass.fullName)
     c.getConstructors()(0).newInstance(arguments.map(_.asInstanceOf[Object]): _*).asInstanceOf[T]
   }
+
+  def extract(value: T, field: String): Any = value match {
+    case v: Product => productField(v, field)
+    case other      => ???
+  }
 }
 object HardType {
   def apply[T : TypeTag]: HardType[T] = apply(typeOf[T].typeSymbol)
