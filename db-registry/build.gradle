@@ -1,0 +1,18 @@
+dependencies {
+    compile project(':implementation')
+//    compile 'mysql:mysql-connector-java:8.0.13'
+    compile 'com.h2database:h2:1.4.199'
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+}
+
+task runH2(type: JavaExec, dependsOn: classes) {
+    classpath sourceSets.main.runtimeClasspath
+    main = 'dev.rudiments.db.registry.H2Server'
+    standardInput = System.in
+}
+
+task runApp(type: JavaExec, dependsOn: classes) {
+    classpath sourceSets.main.runtimeClasspath
+    main = 'dev.rudiments.db.registry.Application'
+    standardInput = System.in
+}

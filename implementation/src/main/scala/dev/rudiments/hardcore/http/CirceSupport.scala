@@ -3,11 +3,13 @@ package dev.rudiments.hardcore.http
 import java.sql.{Date, Timestamp}
 
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
+import enumeratum._
 import io.circe.Decoder.Result
-import io.circe.generic.extras.{AutoDerivation, Configuration}
 import io.circe._
-import dev.rudiments.hardcore.dsl.SortOrder.{Asc, Desc}
-import dev.rudiments.hardcore.dsl._
+import io.circe.generic.extras.{AutoDerivation, Configuration}
+import io.circe.syntax._
+
+import scala.language.implicitConversions
 
 object CirceSupport extends AutoDerivation with FailFastCirceSupport {
   implicit val configuration: Configuration = Configuration.default.withDefaults
@@ -23,17 +25,14 @@ object CirceSupport extends AutoDerivation with FailFastCirceSupport {
     override def apply(c: HCursor): Result[Date] = Decoder.decodeString.map(Date.valueOf).apply(c)
   }
 
-  implicit def filterEncoder[A]: Encoder[Filter[A]] = new Encoder[Filter[A]] {
-    override def apply(a: Filter[A]): Json = Encoder.encodeString.apply(a.toString)
-  }
+  implicit def enumFormat[E <: EnumEntry](enum: Enum[E]): Encoder[E] with Decoder[E] = new Encoder[E] with Decoder[E] {
+    override def apply(a: E): Json = a.entryName.asJson
 
-  implicit def sortEncoder[A]: Encoder[Sort[A]] = new Encoder[Sort[A]] {
-    override def apply(a: Sort[A]): Json = Encoder.encodeString.apply(a.order match {
-      case Desc => "!" + a.field
-      case Asc => a.field
-    })
+    override def apply(c: HCursor): Result[E] = implicitly[Decoder[String]].apply(c).flatMap { s =>
+      enum.withNameOption(s) match {
+        case Some(member) => Right(member)
+        case _ => Left(DecodingFailure(s"'$s' is not a member of enum $enum", c.history))
+      }
+    }
   }
-
-  implicit def instance[A: Encoder]: Encoder[Instance[A]] =
-    implicitly[Encoder[A]].contramap(_.value)
 }
