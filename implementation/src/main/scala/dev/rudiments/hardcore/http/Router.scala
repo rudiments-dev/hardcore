@@ -28,20 +28,38 @@ case class PrefixRouter(prefix: String, routers: Router*) extends Router {
     }
 }
 
-case class IDRouter[T](idDirective: Directive1[HardID[T]], idRouters: (HardID[T] => Router)*) extends Router {
+case class IDRouter(idDirective: Directive1[ID], idRouters: (ID => Router)*) extends Router {
+  override val routes: Route = idDirective { id =>
+    CompositeRouter(idRouters.map(t => t(id)): _*).routes
+  }
+}
+
+case class ResourceRouter(
+  prefix: String,
+  idField: String,
+  pathRouters: Seq[Router] = Seq.empty,
+  idRouters: Seq[ID => Router] = Seq.empty
+)(implicit t: Type) extends Router {
+  override val routes: Route = PrefixRouter(prefix,
+    IDRouter(IDPath(t.fields(idField).kind)(t), idRouters: _*),
+    CompositeRouter(pathRouters: _*)
+  ).routes
+}
+
+case class HardIDRouter[T](idDirective: Directive1[HardID[T]], idRouters: (HardID[T] => Router)*) extends Router {
   override val routes: Route = idDirective { id =>
     CompositeRouter(idRouters.map(t => t(id)): _*).routes
   }
 }
 
 import scala.reflect.runtime.universe.TypeTag
-case class ResourceRouter[T, K : TypeTag](
+case class HardResourceRouter[T, K : TypeTag](
   prefix: String,
   pathRouters: Seq[Router] = Seq.empty,
   idRouters: Seq[(HardID[T] => Router)] = Seq.empty
 ) extends Router {
   override val routes: Route = PrefixRouter(prefix,
-    IDRouter(IDPath[T, K], idRouters: _*),
+    HardIDRouter(IDPath[T, K], idRouters: _*),
     CompositeRouter(pathRouters: _*)
   ).routes
 }

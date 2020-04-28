@@ -31,7 +31,7 @@ object SoftDecoder {
           c.downField(name).as(Decoder.decodeMap(KeyDecoder.decodeKeyString, plainRequiredFieldDecoder(over)))
       }.foldRight(Right(scala.Nil): Either[DecodingFailure, scala.List[Any]]) {
         (e, acc) => for (xs <- acc.right; x <- e.right) yield x :: xs
-      }.map(values => SoftInstance(values)(t))
+      }.map(values => SoftInstance(values: _*)(t))
     }
   }
 

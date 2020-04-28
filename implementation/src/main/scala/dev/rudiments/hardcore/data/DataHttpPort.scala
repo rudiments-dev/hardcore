@@ -32,7 +32,7 @@ class DataHttpPort[T : Encoder : Decoder, K : TypeTag](
       PutPort((batch: Seq[T]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), f, responseWith),
       DeletePort(DeleteAll[T](), f, responseWith)
     ),
-    IDRouter(
+    HardIDRouter(
       IDPath[T, K],
       { id: HardID[T] => GetPort(Find[T](id), f, responseWith) },
       { id: HardID[T] => PutPort((value: T) => Update[T](id, value), f, responseWith) },

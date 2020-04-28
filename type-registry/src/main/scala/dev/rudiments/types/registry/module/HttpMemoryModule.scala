@@ -31,7 +31,7 @@ class HttpMemoryModule[T : Encoder : Decoder, K : TypeTag](
       PutPort((batch: Seq[T]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), Batch.createAll, responseWith),
       DeletePort(DeleteAll[T](), Batch.deleteAll, responseWith)
     ),
-    IDRouter(
+    HardIDRouter(
       IDPath[T, K],
       { id: HardID[T] => GetPort(Find[T](id), ReadOnly.find, responseWith) },
       { id: HardID[T] => PutPort((value: T) => Update[T](id, value), CRUD.update, responseWith) },
