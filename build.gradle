@@ -2,7 +2,7 @@ import org.gradle.plugins.signing.Sign
 
 allprojects {
     group 'dev.rudiments'
-    version '0.1'
+    version '0.2'
 
     repositories {
         mavenLocal()
