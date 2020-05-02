@@ -13,6 +13,7 @@ class Controlled(skill: Skill)(implicit flow: ControlFlow) extends Skill {
 
   override def apply(cmd: Command): Event = cmd match {
     case c: AlwaysDo => execute(c)
+    case c: BulkRead => execute(c)
     case c: SideEffect => execute(c) //TODO think!
     case c: CacheSingle =>
       flow.cachedContext.get(c.key) match {

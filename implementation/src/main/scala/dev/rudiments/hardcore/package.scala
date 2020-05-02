@@ -8,6 +8,10 @@ package object hardcore {
 
   trait Message extends DTO {
     def toEither: Either[Message, Event] = Left(this)
+    def expecting[R]: Either[Message, R] = this match {
+      case it: R if it.isInstanceOf[R] => Right(it)
+      case other => Left(other)
+    }
   }
   trait Command extends Message {}
   trait Effect extends Message {}
@@ -34,6 +38,6 @@ package object hardcore {
   }
 
   implicit def asSkill[C <: Command, E <: Event](from: HardSkill[C, E]): Skill = {
-    case cmd: C if from.isDefinedAt(cmd) => from(cmd)
+    case cmd: C if cmd.isInstanceOf[C] && from.isDefinedAt(cmd) => from(cmd)
   }
 }

@@ -1,0 +1,27 @@
+GET http://localhost:8080/todo
+Accept: application/json
+
+###
+
+GET http://localhost:8080/todo/4
+Accept: application/json
+
+###
+
+POST http://localhost:8080/todo
+Content-Type: application/json
+
+{
+  "id": 4,
+  "name": "TODO Item #4",
+  "done": true,
+  "comment": null
+}
+
+###
+
+POST http://localhost:8080/todo/4/done
+
+###
+
+POST http://localhost:8080/todo/4/undone
