@@ -3,7 +3,7 @@ package dev.rudiments.data
 import dev.rudiments.data.Batch._
 import dev.rudiments.data.CRUD._
 import dev.rudiments.data.ReadOnly._
-import dev.rudiments.hardcore.types.{DTO, HardType, ID, SoftID, SoftInstance, Type}
+import dev.rudiments.hardcore.types._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}

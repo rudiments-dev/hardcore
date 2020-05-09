@@ -7,7 +7,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http.{SoftDecoder, SoftEncoder}
-import dev.rudiments.hardcore.types.{DTO, Defaults, HardType, SoftID, SoftInstance, Type}
+import dev.rudiments.hardcore.types._
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
