@@ -1,5 +1,7 @@
 package dev.rudiments.hardcore.types
 
+import java.util.UUID
+
 import enumeratum.{Enum, EnumEntry}
 
 import scala.collection.immutable
@@ -23,7 +25,9 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
   }
 
   private def wrapComposite(v: Any): Any = v match {
+    case i: Boolean => i
     case i: String => i
+    case i: UUID => i
     case i: Byte => i
     case i: Short => i
     case i: Int => i
@@ -70,6 +74,8 @@ object Types {
   case object Date        extends FieldType
   case object Time        extends FieldType
   case object Timestamp   extends FieldType
+
+  case object UUID        extends FieldType
 
   case class Enum(
     name: String,

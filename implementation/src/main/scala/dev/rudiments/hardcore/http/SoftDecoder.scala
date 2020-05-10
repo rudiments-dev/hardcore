@@ -7,7 +7,6 @@ import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
 object SoftDecoder {
 
-  import dev.rudiments.hardcore.types.Types.Number._
   def apply(implicit t: Type): Decoder[SoftInstance] = new Decoder[SoftInstance] {
     override def apply(c: HCursor): Result[SoftInstance] = {
       t.fields.map {
@@ -58,6 +57,10 @@ object SoftDecoder {
     case Types.Time => Decoder.decodeString.map(java.sql.Time.valueOf)
     case Types.Timestamp => Decoder.decodeString.map(java.sql.Timestamp.valueOf)
 
+    case Types.UUID => Decoder.decodeUUID
+
     case e@Types.Enum(_, values) => Decoder.decodeString.map(i => SoftEnum(e, values.indexOf(i)))
+
+    case other => ???
   }
 }

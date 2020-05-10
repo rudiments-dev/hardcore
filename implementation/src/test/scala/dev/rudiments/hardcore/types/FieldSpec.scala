@@ -1,6 +1,7 @@
 package dev.rudiments.hardcore.types
 
 import java.sql.{Date, Time, Timestamp}
+import java.util.UUID
 
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
@@ -45,12 +46,15 @@ class FieldSpec extends WordSpec with Matchers {
       "optDate" ->          Field(Types.Date,       FieldFlag.Optional),
       "time" ->             Field(Types.Time,       FieldFlag.Required),
       "optTime" ->          Field(Types.Time,       FieldFlag.Optional),
+
+      "uuid" ->             Field(Types.UUID,       FieldFlag.Required),
+      "optUuid" ->          Field(Types.UUID,       FieldFlag.Optional),
     ))
   }
 
   "order of fields should be honored" in {
     t.fields.head should be ("bool" ->    Field(Types.Bool, FieldFlag.Required))
-    t.fields.last should be ("optTime" -> Field(Types.Time, FieldFlag.Optional))
+    t.fields.last should be ("optUuid" -> Field(Types.UUID, FieldFlag.Optional))
   }
 
   "Boolean -> Bool" in {
@@ -121,6 +125,11 @@ class FieldSpec extends WordSpec with Matchers {
     t.fields("timestamp")    should be (Field(Types.Timestamp, FieldFlag.Required))
     t.fields("optTimestamp") should be (Field(Types.Timestamp, FieldFlag.Optional))
   }
+
+  "utils.UUID -> UUID" in {
+    t.fields("uuid")    should be (Field(Types.UUID, FieldFlag.Required))
+    t.fields("optUuid") should be (Field(Types.UUID, FieldFlag.Optional))
+  }
 }
 
 case class Example(
@@ -156,5 +165,8 @@ case class Example(
   date: Date,
   optDate: Option[Date],
   time: Time,
-  optTime: Option[Time]
+  optTime: Option[Time],
+
+  uuid: UUID,
+  optUuid: Option[UUID]
 ) extends DTO

@@ -1,12 +1,12 @@
 package dev.rudiments.db.registry
 
-import dev.rudiments.hardcore.data.DataMemoryAdapter
+import dev.rudiments.hardcore.data.HardCache
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.data.CRUD.Create
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.types.{HardID, HardType, ID}
 
-class H2Service(adapter: H2Adapter, persistent: DataMemoryAdapter[Schema]) extends Service[SchemaCommand, SchemaEvent] {
+class H2Service(adapter: H2Adapter, persistent: HardCache[Schema]) extends Service[SchemaCommand, SchemaEvent] {
   override def isDefinedAt(cmd: SchemaCommand): Boolean = f.isDefinedAt(cmd)
   override def apply(cmd: SchemaCommand): SchemaEvent = f(cmd)
 
