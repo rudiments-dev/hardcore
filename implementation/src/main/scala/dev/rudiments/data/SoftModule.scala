@@ -12,6 +12,6 @@ class SoftModule (
     case other => ???
   }
 
-  val adapter = new SoftCache
-  val port = new DataHttpPort(prefix, idField, identify, adapter)
+  val cache = new SoftCache
+  val port = new DataHttpPort(prefix, idField, identify, cache)
 }

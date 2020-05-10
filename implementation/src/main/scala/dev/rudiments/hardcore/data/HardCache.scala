@@ -6,7 +6,7 @@ import dev.rudiments.hardcore.types.HardID.HardID1
 
 import scala.collection.parallel
 
-class DataMemoryAdapter[T] extends Adapter[DataCommand[T], DataEvent[T]] {
+class HardCache[T] extends Adapter[DataCommand[T], DataEvent[T]] {
   private implicit val content: parallel.mutable.ParMap[HardID[T], T] = parallel.mutable.ParMap.empty[HardID[T], T]
 
   override def isDefinedAt(x: DataCommand[T]): Boolean = f.isDefinedAt(x)

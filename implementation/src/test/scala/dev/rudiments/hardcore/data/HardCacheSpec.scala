@@ -11,7 +11,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.util.Random
 
 @RunWith(classOf[JUnitRunner])
-class DataMemoryAdapterSpec extends WordSpec with Matchers {
+class HardCacheSpec extends WordSpec with Matchers {
   private case class Example(
     id: Long,
     name: String,
@@ -20,7 +20,7 @@ class DataMemoryAdapterSpec extends WordSpec with Matchers {
   ) extends DTO
 
   private implicit val t: HardType[Example] = HardType[Example]
-  private val repo: DataMemoryAdapter[Example] = new DataMemoryAdapter[Example]
+  private val repo: HardCache[Example] = new HardCache[Example]
   private val sample = Example(42, "sample", MyEnum.Red)
   private val id: HardID[Example] = HardID(sample.id)
 

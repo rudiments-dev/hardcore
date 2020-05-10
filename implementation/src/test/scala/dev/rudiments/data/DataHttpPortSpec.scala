@@ -22,13 +22,13 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val t: Type = HardType[Example]
-  private val repo: MemoryAdapter = new MemoryAdapter
+  private val cache: SoftCache = new SoftCache
 
   private val router: DataHttpPort = new DataHttpPort(
     "example",
     "id",
     i => SoftID(t.extract(i, "id")),
-    repo
+    cache
   )
   private implicit val en: Encoder[SoftInstance] = SoftEncoder(t)
   private implicit val de: Decoder[SoftInstance] = SoftDecoder(t)
@@ -96,7 +96,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         response.status should be (StatusCodes.Created)
       }
     }
-    repo(Count) should be (Counted(10000))
+    cache(Count) should be (Counted(10000))
     Get("/example/24") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[SoftInstance] should be (SoftInstance(24L, "24'th element"))
@@ -106,7 +106,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   "endure 190.000 batch" in {
     Post("/example", (10001 to 200000).map(i => SoftInstance(i.toLong, s"$i'th element"))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      repo(Count) should be (Counted(200000))
+      cache(Count) should be (Counted(200000))
     }
     Get("/example/10024") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
@@ -117,7 +117,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
-      repo(Count) should be (Counted(0))
+      cache(Count) should be (Counted(0))
     }
   }
 

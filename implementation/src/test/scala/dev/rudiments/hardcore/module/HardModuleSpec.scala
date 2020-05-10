@@ -22,7 +22,7 @@ class HardModuleSpec extends WordSpec with Matchers with ScalatestRouteTest {
 
   private val module = new HardModule[Example, Long]("example", e => HardID(e.id))
   private val app = new HardApp(ConfigFactory.load(), module)
-  private val repo = module.adapter
+  private val repo = module.cache
   private val routes = app.routes
   private val sample = Example(42, "sample", Red)
   private val id = HardID(sample.id)

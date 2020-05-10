@@ -7,7 +7,7 @@ import dev.rudiments.hardcore.types._
 
 import scala.collection.parallel
 
-class MemoryAdapter(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
+class SoftCache(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
   private implicit val content: parallel.mutable.ParMap[ID, Instance] = parallel.mutable.ParMap.empty[ID, Instance]
 
   override def isDefinedAt(x: DataCommand): Boolean = f.isDefinedAt(x)
