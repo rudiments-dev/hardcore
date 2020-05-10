@@ -30,6 +30,8 @@ object SoftEncoder {
         .mapValues(v => requiredFieldEncoder(over)(v))
         .toSeq: _*
     )
+
+    case other => ???
   }
 
   private def requiredFieldEncoder(f: FieldType): Any => Json = f match {
@@ -55,9 +57,13 @@ object SoftEncoder {
     case Types.Time => value => Json.fromString(value.asInstanceOf[java.sql.Time].toString)
     case Types.Timestamp => value => Json.fromString(value.asInstanceOf[java.sql.Timestamp].toString)
 
+    case Types.UUID => value => Json.fromString(value.asInstanceOf[java.util.UUID].toString)
+
     case Types.Enum(_, _) => value => Json.fromString(value.asInstanceOf[EnumEntry].entryName)
 
     case Types.Reference(of) => value => SoftEncoder(of)(value.asInstanceOf[SoftInstance])
+
+    case other => ???
   }
 
   private def optionalFieldEncoder(f: FieldType): Any => Json = f match {
@@ -89,5 +95,7 @@ object SoftEncoder {
       .asInstanceOf[Option[SoftInstance]]
       .map(v => SoftEncoder(of)(v))
       .getOrElse(Json.Null)
+
+    case other => ???
   }
 }

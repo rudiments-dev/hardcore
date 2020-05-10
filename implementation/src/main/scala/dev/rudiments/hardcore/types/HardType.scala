@@ -1,6 +1,7 @@
 package dev.rudiments.hardcore.types
 
 import java.sql.{Date, Time, Timestamp}
+import java.util.UUID
 
 import enumeratum._
 
@@ -68,6 +69,8 @@ object HardFieldType {
     else if (t =:= typeOf[Date])        Types.Date
     else if (t =:= typeOf[Time])        Types.Time
     else if (t =:= typeOf[Timestamp])   Types.Timestamp
+
+    else if (t =:= typeOf[UUID])        Types.UUID
 
     else if (t <:< typeOf[EnumEntry]) {
       val ru = runtimeMirror(getClass.getClassLoader)

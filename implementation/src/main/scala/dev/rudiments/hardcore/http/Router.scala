@@ -1,6 +1,7 @@
 package dev.rudiments.hardcore.http
 
 import java.sql.Date
+import java.util.UUID
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
@@ -83,6 +84,7 @@ object IDPath {
           if(typeOf[K] =:= typeOf[Long])   pathPrefix(LongNumber).map(l => HardID[A, Long](l))
     else  if(typeOf[K] =:= typeOf[Int])    pathPrefix(IntNumber).map(i => HardID[A, Int](i))
     else  if(typeOf[K] =:= typeOf[String]) pathPrefix(Segment).map(s => HardID[A, String](s))
+    else  if(typeOf[K] =:= typeOf[UUID])   pathPrefix(JavaUUID).map(s => HardID[A, UUID](s))
     else  if(typeOf[K] =:= typeOf[Date])   pathPrefix(Segment).map(s => HardID[A, Date](Date.valueOf(s)))
     else ??? //TODO enums
   }
