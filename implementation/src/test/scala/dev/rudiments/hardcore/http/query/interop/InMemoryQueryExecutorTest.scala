@@ -8,7 +8,7 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
-class CompilerTest extends WordSpec with Matchers {
+class InMemoryQueryExecutorTest extends WordSpec with Matchers {
 
   case class Baz(f: Int) extends DTO
   case class Foo(a: Int, b: String, d: Option[Int] = None, baz: Option[Baz] = None) extends DTO

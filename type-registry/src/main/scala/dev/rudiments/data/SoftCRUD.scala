@@ -5,7 +5,7 @@ import dev.rudiments.hardcore.types.{ID, Instance}
 
 import scala.collection.parallel
 
-object CRUD {
+object SoftCRUD {
   case class Create(key: ID, value: Instance) extends DataCommand
   case class Created(key: ID, value: Instance) extends DataEvent
   case class AlreadyExists(key: ID, value: Instance) extends DataErrorEvent

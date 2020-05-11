@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.{Route, StandardRoute}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.hardcore.Port
 import dev.rudiments.data.Batch._
-import dev.rudiments.data.CRUD._
+import dev.rudiments.data.SoftCRUD._
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.types.{AutoID, ID, Instance, SoftInstance, Type}

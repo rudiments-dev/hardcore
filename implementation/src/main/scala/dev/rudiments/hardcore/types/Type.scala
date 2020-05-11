@@ -9,7 +9,8 @@ object     TypeSystem {
   def apply(name: String, types: Type*): TypeSystem = new TypeSystem(name, types.map(t => t.name -> t).toMap)
 }
 
-case class Type(name: String, fields: Map[String, Field]) extends DTO {
+//todo fix primary keys
+case class Type(name: String, fields: Map[String, Field], primaryKeys: Seq[String] = Seq.empty) extends DTO {
   def constructSoft(arguments: Any*): SoftInstance =
     SoftInstance(
       fields

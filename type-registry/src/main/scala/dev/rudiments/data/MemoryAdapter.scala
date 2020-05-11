@@ -20,10 +20,10 @@ class MemoryAdapter(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
       ReadOnly.find,
       ReadOnly.findAll,
 
-      CRUD.create,
-      CRUD.createAuto(generator),
-      CRUD.update,
-      CRUD.delete,
+      SoftCRUD.create,
+      SoftCRUD.createAuto(generator),
+      SoftCRUD.update,
+      SoftCRUD.delete,
 
       Batch.createAll,
       Batch.createAllAuto(generator),

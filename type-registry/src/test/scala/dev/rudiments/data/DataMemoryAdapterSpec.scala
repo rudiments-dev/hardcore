@@ -1,7 +1,7 @@
 package dev.rudiments.data
 
 import dev.rudiments.data.Batch._
-import dev.rudiments.data.CRUD._
+import dev.rudiments.data.SoftCRUD._
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.types.{DTO, HardType, ID, SoftID, SoftInstance, Type}
 import org.junit.runner.RunWith

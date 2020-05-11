@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import dev.rudiments.data.CRUD.Create
+import dev.rudiments.data.SoftCRUD.Create
 import dev.rudiments.data.{MemoryAdapter, ReadOnlyHttpPort}
 import dev.rudiments.hardcore.http.RootRouter
 import dev.rudiments.hardcore.types._
