@@ -33,6 +33,7 @@ case class Type(name: String, fields: Map[String, Field], primaryKeys: Seq[Strin
     case i: Double => i
     case i: BigInt => i
     case i: BigDecimal => i
+    case i: Option[_] => i
     //TODO enums
     case m: Map[String, Any] => m.mapValues(wrapComposite)
     case i: Iterable[_] => i.map(wrapComposite)

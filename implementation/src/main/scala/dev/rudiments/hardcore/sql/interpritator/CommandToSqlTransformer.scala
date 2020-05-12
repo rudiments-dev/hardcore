@@ -1,23 +1,22 @@
 package dev.rudiments.hardcore.sql.interpritator
 
-import dev.rudiments.hardcore.data.CRUD.{Create, Delete, Update}
+import dev.rudiments.hardcore.data.soft.SoftCRUD.{Create, Delete, Update}
 import dev.rudiments.hardcore.http.query.Query
 import dev.rudiments.hardcore.http.query.predicates._
 import dev.rudiments.hardcore.sql.parts._
 import dev.rudiments.hardcore.sql.schema.{Column, Schema, Table}
 import dev.rudiments.hardcore.sql.{DeleteSql, InsertSql, SelectSql, SqlEntity, SqlValue, UpdateSql}
-import dev.rudiments.hardcore.types.HardID.{HardID0, HardID1, HardID2, HardID3}
-import dev.rudiments.hardcore.types.{DTO, HardType, ID, Type}
+import dev.rudiments.hardcore.types.SoftID.{SoftID0, SoftID1, SoftID2}
+import dev.rudiments.hardcore.types.{ID, SoftID, Type}
 
-case class QueryToSql(schema: Schema) {
+class CommandToSqlTransformer(schema: Schema) {
 
-  //todo mappings
-  def queryToSelectSql[T <: DTO](query: Query[T], tt: Type): SelectSql = {
-    val table = schema.tables(tt)
+  def queryToSelectSql(query: Query): SelectSql = {
+    val table = schema.tables(query.softType)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
 
-    val selectors = tt.fields.keys.map { field =>
+    val selectors = query.softType.fields.keys.map { field =>
       Selector(
         fieldToColumn(field), None
       )
@@ -32,13 +31,13 @@ case class QueryToSql(schema: Schema) {
     )
   }
 
-  def createToInsertSql[T <: DTO : HardType](create: Create[T]): InsertSql = {
-    val tt = implicitly[HardType[T]]
-    val table = schema.tables(tt)
+  def createToInsertSql(create: Create): InsertSql = {
+    val t = create.key.asInstanceOf[SoftID].t
+    val table = schema.tables(t)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
-    val entity = SqlEntity(tt.fields.keys.map { field =>
-      SqlValue(fieldToColumn(field), tt.extract(create.value, field))
+    val entity = SqlEntity(t.fields.keys.map { field =>
+      SqlValue(fieldToColumn(field), t.extract(create.value, field))
     }.toSeq)
 
     InsertSql(
@@ -47,34 +46,31 @@ case class QueryToSql(schema: Schema) {
     )
   }
 
-  def deleteToDropSql[T <: DTO : HardType](command: Delete[T]): DeleteSql = {
-    val tt = implicitly[HardType[T]]
-    val table = schema.tables(tt)
+  def deleteToDropSql(command: Delete): DeleteSql = {
+    val t = command.key.asInstanceOf[SoftID].t
+    val table = schema.tables(t)
 
-    //todo current by id
     DeleteSql(
       table,
-      idToWhere(table, tt)(command.key)
+      idToWhere(table, t)(command.key)
     )
   }
 
-  def updateToUpdateSql[T <: DTO : HardType](command: Update[T]): UpdateSql = {
-    val tt = implicitly[HardType[T]]
-    val table = schema.tables(tt)
+  def updateToUpdateSql(command: Update): UpdateSql = {
+    val t = command.key.asInstanceOf[SoftID].t
+    val table = schema.tables(t)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
-    val entity = SqlEntity(tt.fields.keys.map { field =>
-      SqlValue(fieldToColumn(field), tt.extract(command.value, field))
+    val entity = SqlEntity(t.fields.keys.map { field =>
+      SqlValue(fieldToColumn(field), t.extract(command.value, field))
     }.toSeq)
 
     UpdateSql(
       table,
       entity,
-      idToWhere(table, tt)(command.key)
+      idToWhere(table, t)(command.key)
     )
   }
-
-
 
   private def partToWhereExpression(table: Table): PartialFunction[Predicate[_], ColumnWhereExpression] = {
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
@@ -101,11 +97,11 @@ case class QueryToSql(schema: Schema) {
     }
   }
 
-  private def idToWhere(table: Table, t: HardType[_]): PartialFunction[ID, Where] = {
+  private def idToWhere(table: Table, t: Type): PartialFunction[ID, Where] = {
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
     val function: PartialFunction[ID, Set[WhereExpression]] = {
-      case _: HardID0[_] => throw new UnsupportedOperationException("SoftID0 not supported for where expression")
-      case id: HardID1[_, _] =>
+      case _: SoftID0 => throw new UnsupportedOperationException("SoftID0 not supported for where expression")
+      case id: SoftID1 =>
         val keys = t.primaryKeys
         Set(
           ColumnWhereExpression(
@@ -113,7 +109,7 @@ case class QueryToSql(schema: Schema) {
             Equals(id.key)
           )
         )
-      case id: HardID2[_, _, _] =>
+      case id: SoftID2 =>
         val keys = t.primaryKeys
         Set(
           ColumnWhereExpression(
@@ -123,22 +119,6 @@ case class QueryToSql(schema: Schema) {
           ColumnWhereExpression(
             fieldToColumn(keys(1)),
             Equals(id.key2)
-          )
-        )
-      case id: HardID3[_, _, _, _] =>
-        val keys = t.primaryKeys
-        Set(
-          ColumnWhereExpression(
-            fieldToColumn(keys.head),
-            Equals(id.key1)
-          ),
-          ColumnWhereExpression(
-            fieldToColumn(keys(1)),
-            Equals(id.key2)
-          ),
-          ColumnWhereExpression(
-            fieldToColumn(keys(2)),
-            Equals(id.key3)
           )
         )
       case other => throw new UnsupportedOperationException(s"Not supported generation for : ${other}")

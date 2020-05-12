@@ -2,7 +2,7 @@ package dev.rudiments.hardcore.sql.materializer
 
 
 import dev.rudiments.hardcore.sql.parts.{Between, ColumnWhereExpression, Equals, From, Greater, GreaterOrEquals, In, IsNull, Lesser, LesserOrEquals, NotEquals, NotNull, Select, Selector, Where}
-import dev.rudiments.hardcore.sql.{SQL, SQLDataClass, SqlEntity, parts}
+import dev.rudiments.hardcore.sql.{SQL, SQLDataClass}
 
 trait SQLMaterializer[T <: SQL[_]] {
 
@@ -42,11 +42,12 @@ trait SQLMaterializer[T <: SQL[_]] {
               s"$column != {$bindingKey}",
               Seq(Binding(bindingKey, value))
             )
-          //        case In(in) =>
-          //          (
-          //            s"$column = {$bindingKey}",
-          //            Seq(Binding(bindingKey, value))
-          //          )
+          case In(in) =>
+            val bindings = in.zipWithIndex.map { case (value, i) => Binding(s"${bindingKey}_$i", value)}
+            (
+              s"$column IN {${bindings.map(_.key).mkString(", ")}}",
+              bindings
+            )
           case Greater(value) =>
             (
               s"$column > {$bindingKey}",

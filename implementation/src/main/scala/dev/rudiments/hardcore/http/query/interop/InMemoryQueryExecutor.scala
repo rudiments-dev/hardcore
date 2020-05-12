@@ -1,39 +1,29 @@
 package dev.rudiments.hardcore.http.query.interop
 
-import java.lang.reflect.Field
 
 import dev.rudiments.hardcore.http.query.Query
 import dev.rudiments.hardcore.http.query.predicates.{FieldPredicate, IntEquals, IntLess, IntMore, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StartsWith, StringEquals}
-import dev.rudiments.hardcore.types.DTO
+import dev.rudiments.hardcore.types.{DTO, SoftInstance}
 
-import scala.reflect.ClassTag
 
 object InMemoryQueryExecutor {
 
-  def apply[T : ClassTag](query: Query[T])(input: Seq[T]): Seq[T]  = {
+  def apply(query: Query)(input: Seq[SoftInstance]): Seq[SoftInstance]  = {
     val predicates = query.parts.map {
-      case predicate: FieldPredicate[_] => dto: T => {
-        val valueFunc = getFieldValue[T](predicate.fieldName)
-        val value = valueFunc(dto)
+      case predicate: FieldPredicate[_] => dto: SoftInstance => {
+        val value = dto.fields(predicate.fieldName)
         if (fieldFunctions(value)(predicate)) {
           Some(dto)
         } else None
       }
       case _: Predicate[_] => throw new NotImplementedError("")
     }
-    val pure: T => Option[T] = { dto: T => Some(dto) }
+    val pure: SoftInstance => Option[SoftInstance] = { dto: SoftInstance => Some(dto) }
     val function = predicates.foldLeft(pure) { case (acc, f) =>
-      dto: T => acc(dto).flatMap(f.apply)
+      dto: SoftInstance => acc(dto).flatMap(f.apply)
     }
 
     input.flatMap(dto => function(dto))
-  }
-
-  private def getFieldValue[T: ClassTag](fieldName: String): T => Any = {
-    val reflect: Field = implicitly[ClassTag[T]].runtimeClass.getDeclaredField(fieldName)
-    reflect.setAccessible(true)
-
-    dto: T => reflect.get(dto)
   }
 
   def fieldFunctions(param: Any): PartialFunction[Predicate[_], Boolean] = {

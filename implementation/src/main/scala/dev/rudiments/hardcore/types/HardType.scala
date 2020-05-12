@@ -8,7 +8,7 @@ import scala.collection.immutable.ListMap
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.universe.{Type => SysType}
 
-case class HardType[T : TypeTag](
+class HardType[T : TypeTag](
                                   override val name: String,
                                   override val fields: Map[String, Field],
                                   override val primaryKeys: Seq[String] = Seq.empty) extends Type(name, fields, primaryKeys) {

@@ -1,8 +1,8 @@
 package dev.rudiments.hardcore.http.query
 
-import dev.rudiments.hardcore.data.DataCommand
+import dev.rudiments.hardcore.data.soft.DataCommand
 import dev.rudiments.hardcore.http.query.predicates.Predicate
+import dev.rudiments.hardcore.types.Type
 
 
-//todo move to soft
-case class Query[T](parts: Set[Predicate[_]]) extends DataCommand[T]
+case class Query(parts: Set[Predicate[_]], softType: Type) extends DataCommand
