@@ -2,23 +2,38 @@ package dev.rudiments
 
 import dev.rudiments.hardcore.types.DTO
 
+import scala.language.implicitConversions
+
 package object hardcore {
 
-  trait Command extends DTO {}
-  trait Effect extends DTO {}
-  trait Event extends Effect {}
-  type Skill[C <: Command, E <: Event] = PartialFunction[C, E]
-
-  sealed trait LifeCycle extends Effect {}
-  object LifeCycle {
-    case object Waiting extends LifeCycle
-    case object InProgress extends LifeCycle
+  trait Message extends DTO {
+    def toEither: Either[Message, Event] = Left(this)
   }
+  trait Command extends Message {}
+  trait Effect extends Message {}
+  trait Event extends Effect {
+    override def toEither: Either[Message, Event] = Right(this)
+  }
+  type Skill = PartialFunction[Command, Event]
+  type HardSkill[C <: Command, E <: Event] = PartialFunction[C, E]
 
-  trait Error extends Event {}
+  type MessageProcessor = PartialFunction[Message, Message]
+
+  trait Error extends Event {
+    override def toEither: Either[Message, Event] = Left(this)
+  }
   object Error {
     case object NoHandler extends Error
     case object NotImplemented extends Error
     case class Internal(throwable: Throwable) extends Error
+  }
+
+  implicit def toMessage(value: Either[Message, Event]): Message = value match {
+    case Left(msg) => msg
+    case Right(evt) => evt
+  }
+
+  implicit def asSkill[C <: Command, E <: Event](from: HardSkill[C, E]): Skill = {
+    case cmd: C if from.isDefinedAt(cmd) => from(cmd)
   }
 }

@@ -1,5 +1,7 @@
 package dev.rudiments.data
 
+import dev.rudiments.hardcore.flow.{ControlFlow, Controlled}
+import dev.rudiments.hardcore.asSkill
 import dev.rudiments.hardcore.types.{ID, Instance, SoftID, SoftInstance, Type}
 
 class SoftModule (
@@ -12,6 +14,7 @@ class SoftModule (
     case other => ???
   }
 
-  val cache = new SoftCache
+  implicit val flow = new ControlFlow
+  val cache = new Controlled(asSkill(new SoftCache()))
   val port = new DataHttpPort(prefix, idField, identify, cache)
 }

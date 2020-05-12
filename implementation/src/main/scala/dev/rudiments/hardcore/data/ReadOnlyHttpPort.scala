@@ -3,7 +3,7 @@ package dev.rudiments.hardcore.data
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
-import dev.rudiments.hardcore.Port
+import dev.rudiments.hardcore.HardPort
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http.Router
 import dev.rudiments.hardcore.types.HardID
@@ -12,16 +12,16 @@ import io.circe.Encoder
 class ReadOnlyHttpPort[T : Encoder](
   prefix: String,
   idDirective: Directive1[HardID[T]],
-  override val f: DataSkill[T]
-) extends Port[DataCommand[T], DataEvent[T]] with Router {
+  override val h: DataSkill[T]
+) extends HardPort[DataCommand[T], DataEvent[T]](h) with Router {
 
   override val routes: Route = pathPrefix(prefix) {
     get {
       pathEndOrSingleSlash {
-        responseWith(f(FindAll[T]()))
+        responseWith(h(FindAll[T]()))
       } ~ idDirective { id =>
         pathEndOrSingleSlash {
-          responseWith(f(Find(id)))
+          responseWith(h(Find(id)))
         }
       }
     }
