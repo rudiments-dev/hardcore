@@ -1,6 +1,7 @@
 package dev.rudiments.hardcore.flow
 
 import dev.rudiments.hardcore._
+import dev.rudiments.hardcore.types.ID
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -10,10 +11,17 @@ class ControlFlow {
   private case class PromiseListener(pf: MessageProcessor, p: Promise[Message])
 
   val memory: mutable.Queue[(Command, Message)] = mutable.Queue.empty[(Command, Message)]
+  val cachedContext: mutable.Map[ID, (Command, Message)] = mutable.Map.empty
   private val listeners: ArrayBuffer[PromiseListener] = mutable.ArrayBuffer.empty
 
   def put(cmd: Command, msg: Message): Unit = {
     memory += cmd -> msg
+    (cmd, msg) match {
+      case (_, single: CacheSingle) => cachedContext += single.key -> (cmd, msg)
+      case (single: CacheSingle, _) => cachedContext += single.key -> (cmd, msg)
+      case _ =>
+    }
+
     listeners.foreach {
       case i@PromiseListener(pf, p) =>
         if(pf.isDefinedAt(msg)) {

@@ -66,6 +66,17 @@ case class PostPort[C <: Command, T : Decoder, E <: Event](
   }
 }
 
+case class EmptyPostPort[C <: Command, E <: Event](
+  command: C,
+  override val h: HardSkill[C, E],
+  result: E => StandardRoute
+) extends HardPort(h) with Router {
+
+  override val routes: Route = post {
+    ActionPort(command, h, result).routes
+  }
+}
+
 case class PutPort[C <: Command, T : Decoder, E <: Event](
   command: T => C,
   override val h: HardSkill[C, E],

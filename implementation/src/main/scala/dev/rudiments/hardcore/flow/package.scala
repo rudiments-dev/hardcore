@@ -1,5 +1,7 @@
 package dev.rudiments.hardcore
 
+import dev.rudiments.hardcore.types.ID
+
 package object flow {
 
   sealed trait ControlCommand extends Command {}
@@ -7,7 +9,7 @@ package object flow {
   case object Pause                   extends ControlCommand
   case object Continue                extends ControlCommand
   case class ContinueWith(evt: Event) extends ControlCommand
-  case object Retry                   extends ControlCommand
+  case class Retry(cmd: Command)      extends ControlCommand
   case object Rollback                extends ControlCommand
 
 
@@ -21,8 +23,18 @@ package object flow {
 
   sealed trait ControlError extends ControlEvent with Error {}
 
-  case object FailedToPause     extends ControlError
-  case object FailedToContinue  extends ControlError
-  case object FailedToRetry     extends ControlError
-  case object FailedToRollback  extends ControlError
+  case object FailedToPause               extends ControlError
+  case object FailedToContinue            extends ControlError
+  case class FailedToRetry(cmd: Command)  extends ControlError
+  case object FailedToRollback            extends ControlError
+
+  trait AlwaysDo
+  trait SideEffect
+  trait CacheSingle { val key: ID }
+  trait ReadSingle extends CacheSingle
+  trait BulkRead
+  trait Mutates extends CacheSingle
+  trait Mutated extends CacheSingle
+  trait BulkMutate
+  trait BulkMutated
 }

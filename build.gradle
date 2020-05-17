@@ -35,10 +35,10 @@ subprojects {
 
     build.dependsOn.remove(signArchives)
 
-    task scaladocJar(type: Jar, dependsOn: scaladoc) {
-        classifier = 'javadoc'
-        from "${project.buildDir}/docs/scaladoc"
-    }
+//    task scaladocJar(type: Jar, dependsOn: scaladoc) {
+//        classifier = 'javadoc'
+//        from "${project.buildDir}/docs/scaladoc"
+//    }
 
     task sourceJar(type: Jar, dependsOn: classes) {
         classifier = 'sources'
@@ -47,7 +47,7 @@ subprojects {
 
     artifacts {
         archives jar
-        archives scaladocJar
+//        archives scaladocJar
         archives sourceJar
     }
 
