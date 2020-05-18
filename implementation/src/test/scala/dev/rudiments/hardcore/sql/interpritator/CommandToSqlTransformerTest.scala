@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore.sql.interpritator
 
 import dev.rudiments.hardcore.data.soft.SoftCRUD._
-import dev.rudiments.hardcore.http.query.Query
+import dev.rudiments.hardcore.http.query.HttpQuery
 import dev.rudiments.hardcore.http.query.predicates.{IntEquals, StringEquals}
 import dev.rudiments.hardcore.sql._
 import dev.rudiments.hardcore.sql.parts.{ColumnWhereExpression, Equals, From, Select, Selector, Where}
@@ -47,7 +47,7 @@ class CommandToSqlTransformerTest extends FlatSpec with Matchers {
   )
 
   it should "test select query generation" in {
-    val query = Query(Set(
+    val query = HttpQuery(Set(
       StringEquals("b", "bay"),
       IntEquals("a", 5)
     ), fooType)

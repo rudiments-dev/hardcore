@@ -6,3 +6,8 @@ trait Transaction {
   def rollback()
 //  def actions()
 }
+
+trait TransactionProvider[T <: Transaction] {
+
+  def transaction(): T
+}

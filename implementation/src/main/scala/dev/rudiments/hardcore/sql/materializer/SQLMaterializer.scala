@@ -1,8 +1,8 @@
 package dev.rudiments.hardcore.sql.materializer
 
 
+import dev.rudiments.hardcore.sql.SQL
 import dev.rudiments.hardcore.sql.parts.{Between, ColumnWhereExpression, Equals, From, Greater, GreaterOrEquals, In, IsNull, Lesser, LesserOrEquals, NotEquals, NotNull, Select, Selector, Where}
-import dev.rudiments.hardcore.sql.{SQL, SQLDataClass}
 
 trait SQLMaterializer[T <: SQL[_]] {
 
@@ -84,8 +84,6 @@ trait SQLMaterializer[T <: SQL[_]] {
     )
   }
 
-
-  def materialize: PartialFunction[SQLDataClass, T]
 
 }
 

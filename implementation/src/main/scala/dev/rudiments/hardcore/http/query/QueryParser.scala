@@ -8,7 +8,7 @@ object QueryParser {
 
   import dev.rudiments.hardcore.http.query.predicates.TypeTransformers._
 
-  def parse(httpQuery: HttpParams, softType: dev.rudiments.hardcore.types.Type): Either[RuntimeException, Query] = {
+  def parse(httpQuery: HttpParams, softType: dev.rudiments.hardcore.types.Type): Either[RuntimeException, HttpQuery] = {
     val types: Map[String, Field] = softType.fields
 
     val predicates: Seq[Either[RuntimeException, Predicate[_]]] = httpQuery.parts.map { part =>
@@ -16,7 +16,7 @@ object QueryParser {
       recurs(tt, part)
     }
 
-    sequence(predicates).map(_.toSet).map(Query(_, softType))
+    sequence(predicates).map(_.toSet).map(HttpQuery(_, softType))
   }
 
 //  def optionPredicate(field: Field, part: Param):Option[FieldPredicate[_]] = {

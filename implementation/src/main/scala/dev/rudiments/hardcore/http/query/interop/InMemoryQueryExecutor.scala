@@ -1,14 +1,14 @@
 package dev.rudiments.hardcore.http.query.interop
 
 
-import dev.rudiments.hardcore.http.query.Query
+import dev.rudiments.hardcore.http.query.HttpQuery
 import dev.rudiments.hardcore.http.query.predicates.{FieldPredicate, IntEquals, IntLess, IntMore, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StartsWith, StringEquals}
 import dev.rudiments.hardcore.types.{DTO, SoftInstance}
 
 
 object InMemoryQueryExecutor {
 
-  def apply(query: Query)(input: Seq[SoftInstance]): Seq[SoftInstance]  = {
+  def apply(query: HttpQuery)(input: Seq[SoftInstance]): Seq[SoftInstance]  = {
     val predicates = query.parts.map {
       case predicate: FieldPredicate[_] => dto: SoftInstance => {
         val value = dto.fields(predicate.fieldName)

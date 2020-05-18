@@ -1,17 +1,18 @@
 package dev.rudiments.hardcore.sql.interpritator
 
+import dev.rudiments.hardcore.data.soft.ReadOnly.Find
 import dev.rudiments.hardcore.data.soft.SoftCRUD.{Create, Delete, Update}
-import dev.rudiments.hardcore.http.query.Query
+import dev.rudiments.hardcore.http.query.HttpQuery
 import dev.rudiments.hardcore.http.query.predicates._
 import dev.rudiments.hardcore.sql.parts._
 import dev.rudiments.hardcore.sql.schema.{Column, Schema, Table}
-import dev.rudiments.hardcore.sql.{DeleteSql, InsertSql, SelectSql, SqlEntity, SqlValue, UpdateSql}
+import dev.rudiments.hardcore.sql.{DeleteDataClass, FindByIdDataClass, InsertDataClass, QueryDataClass, SqlEntity, SqlValue, UpdateDataClass}
 import dev.rudiments.hardcore.types.SoftID.{SoftID0, SoftID1, SoftID2}
 import dev.rudiments.hardcore.types.{ID, SoftID, Type}
 
 class CommandToSqlTransformer(schema: Schema) {
 
-  def queryToSelectSql(query: Query): SelectSql = {
+  def queryToSelectSql(query: HttpQuery): QueryDataClass = {
     val table = schema.tables(query.softType)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
@@ -24,14 +25,35 @@ class CommandToSqlTransformer(schema: Schema) {
 
     val converterFunction = partToWhereExpression(table)
 
-    SelectSql(
+    QueryDataClass(
       Select(selectors),
       From(table, None),
-      Where(query.parts.map(converterFunction))
+      Where(query.parts.map(converterFunction)),
+      query.softType
     )
   }
 
-  def createToInsertSql(create: Create): InsertSql = {
+  def findToFindByIdSql(find: Find): FindByIdDataClass = {
+    val t = find.key.asInstanceOf[SoftID].t
+    val table = schema.tables(t)
+    val fieldToColumn = table.columns.map(c => c.name -> c).toMap
+
+    val selectors = t.fields.keys.map { field =>
+      Selector(
+        fieldToColumn(field), None
+      )
+    }.toSeq
+
+    FindByIdDataClass(
+      Select(selectors),
+      From(table, None),
+      idToWhere(table, t)(find.key),
+      t,
+      find.key
+    )
+  }
+
+  def createToInsertSql(create: Create): InsertDataClass = {
     val t = create.key.asInstanceOf[SoftID].t
     val table = schema.tables(t)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
@@ -40,23 +62,51 @@ class CommandToSqlTransformer(schema: Schema) {
       SqlValue(fieldToColumn(field), t.extract(create.value, field))
     }.toSeq)
 
-    InsertSql(
+    val findByIdDataClass = FindByIdDataClass(
+      Select(t.fields.keys.map { field =>
+        Selector(
+          fieldToColumn(field), None
+        )
+      }.toSeq),
+      From(table, None),
+      idToWhere(table, t)(create.key),
+      t,
+      create.key
+    )
+
+    InsertDataClass(
       table,
-      entity
+      entity,
+      findByIdDataClass,
+      t,
+      create.value
     )
   }
 
-  def deleteToDropSql(command: Delete): DeleteSql = {
+  def deleteToDropSql(command: Delete): DeleteDataClass = {
     val t = command.key.asInstanceOf[SoftID].t
     val table = schema.tables(t)
+    val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
-    DeleteSql(
+    val findByIdDataClass = FindByIdDataClass(
+      Select(t.fields.keys.map { field =>
+        Selector(fieldToColumn(field), None)
+      }.toSeq),
+      From(table, None),
+      idToWhere(table, t)(command.key),
+      t,
+      command.key
+    )
+
+    DeleteDataClass(
       table,
-      idToWhere(table, t)(command.key)
+      idToWhere(table, t)(command.key),
+      t,
+      findByIdDataClass
     )
   }
 
-  def updateToUpdateSql(command: Update): UpdateSql = {
+  def updateToUpdateSql(command: Update): UpdateDataClass = {
     val t = command.key.asInstanceOf[SoftID].t
     val table = schema.tables(t)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
@@ -65,10 +115,23 @@ class CommandToSqlTransformer(schema: Schema) {
       SqlValue(fieldToColumn(field), t.extract(command.value, field))
     }.toSeq)
 
-    UpdateSql(
+    val findByIdDataClass = FindByIdDataClass(
+      Select(t.fields.keys.map { field =>
+        Selector(fieldToColumn(field), None)
+      }.toSeq),
+      From(table, None),
+      idToWhere(table, t)(command.key),
+      t,
+      command.key
+    )
+
+    UpdateDataClass(
       table,
       entity,
-      idToWhere(table, t)(command.key)
+      idToWhere(table, t)(command.key),
+      t,
+      findByIdDataClass,
+      command.value
     )
   }
 

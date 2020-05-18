@@ -1,6 +1,9 @@
 package dev.rudiments.hardcore.sql
 
-trait SQL[T] {
+import dev.rudiments.hardcore.data.soft.{DataErrorEvent, DataEvent, DataSkill}
+import dev.rudiments.hardcore.types.{SoftInstance, Type}
 
-  def exec(): T
+trait SQL[Trans <: Transaction] {
+  val softType: Type
+  def exec(transaction: Trans): DataEvent
 }

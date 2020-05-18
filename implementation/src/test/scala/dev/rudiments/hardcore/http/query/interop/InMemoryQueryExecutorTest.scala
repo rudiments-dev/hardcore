@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore.http.query.interop
 
 import dev.rudiments.hardcore.http.query.predicates.{IntEquals, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StringEquals}
-import dev.rudiments.hardcore.http.query.{HttpParams, Query, QueryParser}
+import dev.rudiments.hardcore.http.query.{HttpParams, HttpQuery, QueryParser}
 import dev.rudiments.hardcore.types.{DTO, Field, FieldFlag, Infinity, NegativeInfinity, NumberFormat, PositiveInfinity, SoftInstance, Type, Types}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -25,7 +25,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
 
 
   "simple query" in {
-    val query = Query(Set(
+    val query = HttpQuery(Set(
       StringEquals("b", "hi")
     ), fooType)
 
@@ -44,7 +44,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
 
 
   "simple query by two field" in {
-    val query = Query(Set(
+    val query = HttpQuery(Set(
       StringEquals("b", "bay"),
       IntEquals("a", 5)
     ), fooType)
@@ -64,7 +64,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
   }
 
   "simple query by option field" in {
-    val query = Query(Set(
+    val query = HttpQuery(Set(
       OptionValuePredicate("d", IntEquals("d", 1))
     ), fooType)
 
@@ -83,7 +83,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
   }
 
   "simple query by option field, is empty" in {
-    val query = Query(Set(
+    val query = HttpQuery(Set(
       IsEmpty("d")
     ), fooType)
 
@@ -104,7 +104,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
   }
 
   "simple query by option field, is defined" in {
-    val query = Query(Set(
+    val query = HttpQuery(Set(
       IsDefined("d")
     ), fooType)
 
@@ -123,7 +123,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
   }
 
   "compile query with object field predicate" in {
-    val query = Query(Set(
+    val query = HttpQuery(Set(
       OptionValuePredicate(
         "baz",
         ProductFieldPredicate(

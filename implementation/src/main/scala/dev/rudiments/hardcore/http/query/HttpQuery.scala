@@ -5,4 +5,4 @@ import dev.rudiments.hardcore.http.query.predicates.Predicate
 import dev.rudiments.hardcore.types.Type
 
 
-case class Query(parts: Set[Predicate[_]], softType: Type) extends DataCommand
+case class HttpQuery(parts: Set[Predicate[_]], softType: Type) extends DataCommand
