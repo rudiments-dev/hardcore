@@ -6,7 +6,8 @@ import scalikejdbc.{DB, Tx}
 class ScalaLikeTransactionProvider(db: DB) extends TransactionProvider[ScalaLikeTransaction] {
 
   override def transaction(): ScalaLikeTransaction = {
-    val tx = db.tx
+//    db.tx.rollbackIfActive()
+    val tx = db.newTx
     tx.begin()
 
     new ScalaLikeTransaction(db) {

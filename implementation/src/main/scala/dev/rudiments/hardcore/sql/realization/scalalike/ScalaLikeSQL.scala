@@ -32,7 +32,7 @@ case class FindByIDSQL(
   override def exec(transaction: ScalaLikeTransaction): DataEvent = {
     implicit val session: DBSession = transaction.dbCon.withinTxSession(transaction.underlying)
     sql().map { rs =>
-      softType.constructSoft(rs.toMap().values) //todo refactor to Map
+      softType.constructSoft(rs.toMap().values.toSeq :_*) //todo refactor to Map
     }.single().apply() match {
       case Some(value) => Found(id, value)
       case None => NotFound(id)
@@ -54,10 +54,10 @@ case class CreateSQL(
         case NotFound(id) =>
           implicit val session: DBSession = transaction.dbCon.withinTxSession(transaction.underlying)
           Try {
-            sql().execute().apply()
+            sql().update().apply()
           } match {
             case _ => checkSql.exec(transaction) match {
-              case Found(id, instance) => Created(id, instance)
+              case Found(id, created) => Created(id, created)
               case NotFound(id) => FailedToCreate(id, instance)
             }
           }
@@ -78,12 +78,14 @@ case class DropSQL(
       case Found(id, value) =>
         implicit val session: DBSession = transaction.dbCon.withinTxSession(transaction.underlying)
         Try {
-          sql().execute().apply()
+          sql().update().apply()
         } match {
-          case _ => checkSql.exec(transaction) match {
+          case Success(_) => checkSql.exec(transaction) match {
             case Found(id, instance) => FailedToDelete(id, instance)
             case NotFound(id) => Deleted(id, value)
           }
+          case Failure(exception) =>
+            FailedToDelete(id, value)
         }
     }
   }
@@ -101,7 +103,7 @@ case class UpdateSQL(
       case Found(id, old) =>
         implicit val session: DBSession = transaction.dbCon.withinTxSession(transaction.underlying)
         Try {
-          sql().execute().apply()
+          sql().update().apply()
         } match {
           case Success(_) => checkSql.exec(transaction) match {
             case Found(id, updated) => Updated(id, old, updated)

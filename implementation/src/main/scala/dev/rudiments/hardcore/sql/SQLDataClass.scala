@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore.sql
 
 import dev.rudiments.hardcore.sql.parts.{From, Select, Where}
-import dev.rudiments.hardcore.sql.schema.{Column, Table}
+import dev.rudiments.hardcore.sql.schema.{Column, Schema, Table}
 import dev.rudiments.hardcore.types.{ID, Instance, Type}
 
 sealed trait SQLDataClass {
@@ -27,6 +27,7 @@ case class QueryDataClass
 
 case class DeleteDataClass
 (
+  schema: Schema,
   table: Table,
   where: Where,
   override val softType: Type,
@@ -35,6 +36,7 @@ case class DeleteDataClass
 
 case class InsertDataClass
 (
+  schema: Schema,
   table: Table,
   entity: SqlEntity,
   findByIdDataClass: FindByIdDataClass,
@@ -45,6 +47,7 @@ case class InsertDataClass
 
 case class UpdateDataClass
 (
+  schema: Schema,
   table: Table,
   entity: SqlEntity,
   where: Where,

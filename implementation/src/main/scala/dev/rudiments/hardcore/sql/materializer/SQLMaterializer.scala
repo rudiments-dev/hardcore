@@ -12,60 +12,60 @@ trait SQLMaterializer[T <: SQL[_]] {
   }.mkString(", ")
 
   final def fromPart(from: From): String = from match {
-    case From(table, Some(as)) => s"${table.name} as $as"
-    case From(table, None) => table.name
+    case From(schema, table, Some(as)) => s"${schema.name}.${table.name} as $as"
+    case From(schema, table, None) => s"${schema.name}.${table.name}"
   }
 
   final def wherePart(where: Where): (String, Set[Binding]) = {
     val expressions = where.expressions.map {
       case exp@ColumnWhereExpression(column, predicate) =>
         val code = exp.hashCode().toString
-        val bindingKey = s"${code}_$column"
+        val bindingKey = s"${code}_${column.name}"
         predicate match {
           case IsNull =>
             (
-              s"$column IS NULL",
+              s"${column.name} IS NULL",
               Seq.empty
             )
           case NotNull =>
             (
-              s"$column IS NOT NULL",
+              s"${column.name} IS NOT NULL",
               Seq.empty
             )
           case Equals(value) =>
             (
-              s"$column = {$bindingKey}",
+              s"${column.name} = {$bindingKey}",
               Seq(Binding(bindingKey, value))
             )
           case NotEquals(value) =>
             (
-              s"$column != {$bindingKey}",
+              s"${column.name} != {$bindingKey}",
               Seq(Binding(bindingKey, value))
             )
           case In(in) =>
             val bindings = in.zipWithIndex.map { case (value, i) => Binding(s"${bindingKey}_$i", value)}
             (
-              s"$column IN {${bindings.map(_.key).mkString(", ")}}",
+              s"${column.name} IN {${bindings.map(_.key).mkString(", ")}}",
               bindings
             )
           case Greater(value) =>
             (
-              s"$column > {$bindingKey}",
+              s"${column.name} > {$bindingKey}",
               Seq(Binding(bindingKey, value))
             )
           case GreaterOrEquals(value) =>
             (
-              s"$column >= {$bindingKey}",
+              s"${column.name} >= {$bindingKey}",
               Seq(Binding(bindingKey, value))
             )
           case Lesser(value) =>
             (
-              s"$column < {$bindingKey}",
+              s"${column.name} < {$bindingKey}",
               Seq(Binding(bindingKey, value))
             )
           case LesserOrEquals(value) =>
             (
-              s"$column <= {$bindingKey}",
+              s"${column.name} <= {$bindingKey}",
               Seq(Binding(bindingKey, value))
             )
           case Between(from, to) =>
@@ -73,7 +73,7 @@ trait SQLMaterializer[T <: SQL[_]] {
             val right = s"${bindingKey}_right"
 
             (
-              s"$column BETWEEN {$left} AND {$right}",
+              s"${column.name} BETWEEN {$left} AND {$right}",
               Seq(Binding(left, from), Binding(right, to))
             )
         }

@@ -27,7 +27,7 @@ class CommandToSqlTransformer(schema: Schema) {
 
     QueryDataClass(
       Select(selectors),
-      From(table, None),
+      From(schema, table, None),
       Where(query.parts.map(converterFunction)),
       query.softType
     )
@@ -46,7 +46,7 @@ class CommandToSqlTransformer(schema: Schema) {
 
     FindByIdDataClass(
       Select(selectors),
-      From(table, None),
+      From(schema, table, None),
       idToWhere(table, t)(find.key),
       t,
       find.key
@@ -68,13 +68,14 @@ class CommandToSqlTransformer(schema: Schema) {
           fieldToColumn(field), None
         )
       }.toSeq),
-      From(table, None),
+      From(schema, table, None),
       idToWhere(table, t)(create.key),
       t,
       create.key
     )
 
     InsertDataClass(
+      schema,
       table,
       entity,
       findByIdDataClass,
@@ -92,13 +93,14 @@ class CommandToSqlTransformer(schema: Schema) {
       Select(t.fields.keys.map { field =>
         Selector(fieldToColumn(field), None)
       }.toSeq),
-      From(table, None),
+      From(schema, table, None),
       idToWhere(table, t)(command.key),
       t,
       command.key
     )
 
     DeleteDataClass(
+      schema,
       table,
       idToWhere(table, t)(command.key),
       t,
@@ -119,13 +121,14 @@ class CommandToSqlTransformer(schema: Schema) {
       Select(t.fields.keys.map { field =>
         Selector(fieldToColumn(field), None)
       }.toSeq),
-      From(table, None),
+      From(schema, table, None),
       idToWhere(table, t)(command.key),
       t,
       command.key
     )
 
     UpdateDataClass(
+      schema,
       table,
       entity,
       idToWhere(table, t)(command.key),

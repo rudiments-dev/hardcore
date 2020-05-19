@@ -12,7 +12,7 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
     val bindings = insert.entity.values.map { case SqlValue(column, value) => Binding(column.name, value) }
     CreateSQL(
       s"""
-         |INSERT INTO ${insert.table.name} (${fields.mkString(", ")}) }
+         |INSERT INTO ${insert.schema.name}.${insert.table.name} (${fields.mkString(", ")})
          |VALUES (${fields.map(field => s"{$field}").mkString(", ")})
          |""".stripMargin,
       bindings.toSet,
@@ -41,7 +41,7 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
     val (whereSQL, bindings) = wherePart(delete.where)
     DropSQL(
       s"""
-         |DELETE FROM ${delete.table.name}}
+         |DELETE FROM ${delete.schema.name}.${delete.table.name}
          |WHERE $whereSQL
          |""".stripMargin,
       bindings,
@@ -54,10 +54,10 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
     val (whereSQL, whereBindings) = wherePart(update.where)
 
     val bindings = update.entity.values.map { case SqlValue(column, value) => Binding(column.name, value) }.toSet
-    val setPart = update.entity.values.map(value => s"${value.column} = {${value.column}}").mkString(", ")
+    val setPart = update.entity.values.map(value => s"${value.column.name} = {${value.column.name}}").mkString(", ")
     UpdateSQL(
       s"""
-      |UPDATE ${update.table.name}
+      |UPDATE ${update.schema.name}.${update.table.name}
       |SET $setPart
       |WHERE $whereSQL
       |""".stripMargin,
@@ -66,50 +66,5 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
       findByIdSQL(update.findByIdDataClass)
     )
   }
-
-  //  override def materialize: PartialFunction[SQLDataClass, ScalaLikeSQL] = {
-//    case SelectSql(select, from, where) =>
-//      val (whereSQL, bindings) = wherePart(where)
-//      ScalaLikeSQL(
-//        s"""
-//           |SELECT ${selectPart(select)}
-//           |FROM ${fromPart(from)}
-//           |WHERE $whereSQL
-//           |""".stripMargin,
-//        bindings
-//      )
-//    case UpdateSql(table, entity, where) =>
-//      val (whereSQL, whereBindings) = wherePart(where)
-//
-//      val bindings = entity.values.map { case SqlValue(column, value) => Binding(column.name, value) }.toSet
-//      val setPart = entity.values.map(value => s"${value.column} = {${value.column}}").mkString(", ")
-//      ScalaLikeSQL(
-//        s"""
-//           |UPDATE ${table.name}
-//           |SET $setPart
-//           |WHERE $whereSQL
-//           |""".stripMargin,
-//        (whereBindings ++ bindings)
-//      )
-//    case DeleteSql(table, where) =>
-//      val (whereSQL, bindings) = wherePart(where)
-//      ScalaLikeSQL(
-//        s"""
-//           |DELETE FROM ${table.name}}
-//           |WHERE $whereSQL
-//           |""".stripMargin,
-//        bindings
-//      )
-//    case InsertSql(table, entity) =>
-//      val fields: Seq[String] = entity.values.map(_.column.name)
-//
-//      val bindings = entity.values.map { case SqlValue(column, value) => Binding(column.name, value) }
-//      ScalaLikeSQL(
-//        s"""
-//           |INSERT INTO ${table.name} (${fields.mkString(", ")}) }
-//           |VALUES (${fields.map(field => s"{$field}").mkString(", ")})
-//           |""".stripMargin,
-//        bindings.toSet
-//      )
 
 }
