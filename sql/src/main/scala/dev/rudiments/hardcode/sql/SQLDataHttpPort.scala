@@ -1,5 +1,8 @@
-package dev.rudiments.data
+package dev.rudiments.hardcode.sql
 
+import dev.rudiments.data.{DataCommand, DataEvent, DataSkill}
+import dev.rudiments.hardcore.http.{Router, SoftDecoder, SoftEncoder}
+import dev.rudiments.hardcore.types.{AutoID, ID, Instance, SoftInstance, Type}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
@@ -10,10 +13,10 @@ import dev.rudiments.data.CRUD._
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.http.query.Directives
-import dev.rudiments.hardcore.types.{AutoID, ID, Instance, SoftInstance, Type}
 import io.circe.{Decoder, Encoder}
 
-class DataHttpPort(
+
+class SQLDataHttpPort(
   prefix: String,
   idField: String,
   identify: Instance => ID,
@@ -25,7 +28,7 @@ class DataHttpPort(
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
-      GetDirectivePort(Directives.query(t), FindAll.apply, f ,responseWith),
+      GetDirectivePort(Directives.query(t), query => FindAll(query), f, responseWith),
       PostPort((value: Instance) => identify(value) match {
         case _: AutoID => CreateAuto(value)
         case id => Create(id, value)
@@ -41,6 +44,7 @@ class DataHttpPort(
       { id: ID => DeletePort(Delete(id), f, responseWith) }
     )
   ).routes
+  
 
   def responseWith(event: DataEvent): StandardRoute = event match {
     case Created(_, value) =>       complete(StatusCodes.Created, value)
@@ -51,7 +55,7 @@ class DataHttpPort(
 
     case AllCreated(_) =>           complete(StatusCodes.Created)
     case AllReplaced(_) =>          complete(StatusCodes.Created)
-    case AllDeleted =>            complete(StatusCodes.NoContent)
+    case AllDeleted =>              complete(StatusCodes.NoContent)
 
     case NotFound(_) =>             complete(StatusCodes.NotFound)
     case AlreadyExists(_, _) =>     complete(StatusCodes.Conflict)

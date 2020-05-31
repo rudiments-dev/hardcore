@@ -9,6 +9,10 @@ case class IntEquals(override val fieldName: String, value: Int) extends Equals[
 case class StringEquals(override val fieldName: String, value: String) extends Equals[String]
 case class DoubleEquals(override val fieldName: String, value: Double) extends Equals[Double]
 
+class BooleanEquals(override val fieldName: String, value: Boolean) extends Equals[Boolean]
+case class IsTrue(override val fieldName: String) extends BooleanEquals(fieldName, true)
+case class IsFalse(override val fieldName: String) extends BooleanEquals(fieldName, false)
+
 object IntEquals {
   private val regexp: Regex = "(\\w+)=eq:(.*)".r
 
@@ -30,5 +34,17 @@ object StringEquals {
 
   def create(from: String)(implicit tr: TypeTransformers.Transformer[String, String]): Option[StringEquals] = {
     FieldPredicate.create[String, StringEquals](from, regexp)(StringEquals.apply)
+  }
+}
+
+object BooleanEquals {
+  private val regexp: Regex = "(\\w+)=(true|false)".r
+
+  def create(from: String): Option[BooleanEquals] = {
+    FieldPredicate.create[String, BooleanEquals](from, regexp)(func = {
+      case (field, "true") => IsTrue(field)
+      case (field, "false") => IsFalse(field)
+      case _ => ???
+    })
   }
 }

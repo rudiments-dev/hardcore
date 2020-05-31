@@ -1,47 +1,50 @@
 package dev.rudiments.hardcore.http.query.interop
 
-import java.lang.reflect.Field
 
-import dev.rudiments.hardcore.http.query.Query
-import dev.rudiments.hardcore.http.query.predicates.{FieldPredicate, IntEquals, IntLess, IntMore, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StartsWith, StringEquals}
-import dev.rudiments.hardcore.types.DTO
+import dev.rudiments.hardcore.http.query.{PassAllQuery, PredicatesQuery, Query}
+import dev.rudiments.hardcore.http.query.predicates.{DoubleEquals, DoubleLess, DoubleLessOrEquals, DoubleMore, DoubleMoreOrEquals, FieldPredicate, IntEquals, IntLess, IntLessOrEquals, IntMore, IntMoreOrEquals, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StringContains, StringEndsWith, StringEquals, StringStartsWith}
+import dev.rudiments.hardcore.types.{DTO, Instance, SoftInstance}
 
-import scala.reflect.ClassTag
 
 object InMemoryQueryExecutor {
 
-  def apply[T : ClassTag](query: Query[T])(input: Seq[T]): Seq[T]  = {
-    val predicates = query.parts.map {
-      case predicate: FieldPredicate[_] => dto: T => {
-        val valueFunc = getFieldValue[T](predicate.fieldName)
-        val value = valueFunc(dto)
-        if (fieldFunctions(value)(predicate)) {
-          Some(dto)
-        } else None
-      }
-      case _: Predicate[_] => throw new NotImplementedError("")
+  def apply(query: Query)(input: Seq[Instance]): Seq[Instance]  = {
+    query match {
+      case PassAllQuery(_) => input
+      case PredicatesQuery(parts, softType) =>
+        val predicates = parts.map {
+          case predicate: FieldPredicate[_] => dto: Instance => {
+            val value = softType.extract(dto, predicate.fieldName)
+            if (fieldFunctions(value)(predicate)) {
+              Some(dto)
+            } else None
+          }
+          case other: Predicate[_] => throw new NotImplementedError(s"$other predicate is not implemented in InMemoryQueryExecutor")
+        }
+        val pure: Instance => Option[Instance] = { dto: Instance => Some(dto) }
+        val function = predicates.foldLeft(pure) { case (acc, f) =>
+          dto: Instance => acc(dto).flatMap(f.apply)
+        }
+
+        input.flatMap(dto => function(dto))
     }
-    val pure: T => Option[T] = { dto: T => Some(dto) }
-    val function = predicates.foldLeft(pure) { case (acc, f) =>
-      dto: T => acc(dto).flatMap(f.apply)
-    }
-
-    input.flatMap(dto => function(dto))
-  }
-
-  private def getFieldValue[T: ClassTag](fieldName: String): T => Any = {
-    val reflect: Field = implicitly[ClassTag[T]].runtimeClass.getDeclaredField(fieldName)
-    reflect.setAccessible(true)
-
-    dto: T => reflect.get(dto)
   }
 
   def fieldFunctions(param: Any): PartialFunction[Predicate[_], Boolean] = {
     case IntEquals(_, value) => param.asInstanceOf[Int] == value
     case IntLess(_, value) => param.asInstanceOf[Int] < value
     case IntMore(_, value) => param.asInstanceOf[Int] > value
+    case IntMoreOrEquals(_, value) => param.asInstanceOf[Int] >= value
+    case IntLessOrEquals(_, value) => param.asInstanceOf[Int] <= value
+    case DoubleEquals(_, value) => param.asInstanceOf[Double] == value
+    case DoubleLess(_, value) => param.asInstanceOf[Double] < value
+    case DoubleMore(_, value) => param.asInstanceOf[Double] > value
+    case DoubleMoreOrEquals(_, value) => param.asInstanceOf[Double] >= value
+    case DoubleLessOrEquals(_, value) => param.asInstanceOf[Double] <= value
     case StringEquals(_, value) => param.asInstanceOf[String] == value
-    case StartsWith(_, value) => param.asInstanceOf[String].startsWith(value)
+    case StringStartsWith(_, value) => param.asInstanceOf[String].startsWith(value)
+    case StringEndsWith(_, value) => param.asInstanceOf[String].endsWith(value)
+    case StringContains(_, value) => param.asInstanceOf[String].contains(value)
     case IsEmpty(_) => param.asInstanceOf[Option[_]].isEmpty
     case IsDefined(_) => param.asInstanceOf[Option[_]].isDefined
     case OptionValuePredicate(_, underlying) => param.asInstanceOf[Option[_]].exists(value => fieldFunctions(value)(underlying))

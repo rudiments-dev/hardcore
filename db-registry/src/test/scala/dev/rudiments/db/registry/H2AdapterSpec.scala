@@ -1,13 +1,14 @@
 package dev.rudiments.db.registry
 
 import com.typesafe.config.{Config, ConfigFactory}
+import dev.rudiments.hardcode.sql.schema.SizeMultipliers.N
+import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes}
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.junit.JUnitRunner
 import scalikejdbc._
 
 import collection.JavaConverters._
-import SizeMultipliers.N
 
 @RunWith(classOf[JUnitRunner])
 class H2AdapterSpec extends WordSpec with Matchers {

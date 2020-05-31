@@ -1,5 +1,7 @@
 package dev.rudiments.data
 
+import dev.rudiments.hardcore.http.query.{PredicatesQuery, Query}
+import dev.rudiments.hardcore.http.query.interop.InMemoryQueryExecutor
 import dev.rudiments.hardcore.types.{ID, Instance}
 
 import scala.collection.parallel
@@ -18,11 +20,11 @@ object ReadOnly {
   }
 
 
-  case object FindAll extends DataCommand
-  case class  FoundAll(values: Seq[Instance]) extends DataEvent
+  case class FindAll(query: Query) extends DataCommand
+  case class FoundAll(values: Seq[Instance]) extends DataEvent
 
   def findAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
-    case FindAll => FoundAll(content.values.toList)
+    case FindAll(query) => FoundAll(InMemoryQueryExecutor(query)(content.values.toList))
   }
 
   case object Count   extends DataCommand

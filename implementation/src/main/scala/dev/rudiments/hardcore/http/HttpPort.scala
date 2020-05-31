@@ -1,10 +1,9 @@
 package dev.rudiments.hardcore.http
 
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Route, StandardRoute}
+import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
 import dev.rudiments.hardcore.{Command, Event, Port, Skill}
 import io.circe.Decoder
-
 import dev.rudiments.hardcore.http.CirceSupport._
 
 case class ActionPort[C <: Command, E <: Event](
@@ -27,6 +26,19 @@ case class EntityActionPort[C <: Command, T : Decoder, E <: Event](
   override val routes: Route = pathEndOrSingleSlash {
     entity(as[T]) { value =>
       result(f(command(value)))
+    }
+  }
+}
+
+case class GetDirectivePort[T, C <: Command, E <: Event](
+  directive: Directive1[T],
+  command: T => C,
+  override val f: Skill[C, E],
+  result: E => StandardRoute) extends Port[C, E] with Router {
+
+  override val routes: Route = get {
+    directive { t =>
+      ActionPort(command(t), f, result).routes
     }
   }
 }
