@@ -1,4 +1,5 @@
 rootProject.name = 'hardcore'
 include 'implementation'
+include 'sql'
 include 'db-registry'
 include 'type-registry'

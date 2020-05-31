@@ -1,18 +1,21 @@
-package dev.rudiments.data
+package dev.rudiments.hardcode.sql
 
+import dev.rudiments.hardcore.data.soft.{DataCommand, DataEvent, DataSkill}
+import dev.rudiments.hardcore.http.{Router, SoftDecoder, SoftEncoder}
+import dev.rudiments.hardcore.types.{AutoID, ID, Instance, SoftInstance, Type}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.hardcore.Port
-import dev.rudiments.data.Batch._
-import dev.rudiments.data.SoftCRUD._
-import dev.rudiments.data.ReadOnly._
+import dev.rudiments.hardcore.data.soft.Batch._
+import dev.rudiments.hardcore.data.soft.SoftCRUD._
+import dev.rudiments.hardcore.data.soft.ReadOnly._
 import dev.rudiments.hardcore.http._
-import dev.rudiments.hardcore.types.{AutoID, ID, Instance, SoftInstance, Type}
 import io.circe.{Decoder, Encoder}
 
-class DataHttpPort(
+
+class SQLDataHttpPort(
   prefix: String,
   idField: String,
   identify: Instance => ID,
@@ -40,6 +43,7 @@ class DataHttpPort(
       { id: ID => DeletePort(Delete(id), f, responseWith) }
     )
   ).routes
+  
 
   def responseWith(event: DataEvent): StandardRoute = event match {
     case Created(_, value) =>       complete(StatusCodes.Created, value)
@@ -50,7 +54,7 @@ class DataHttpPort(
 
     case AllCreated(_) =>           complete(StatusCodes.Created)
     case AllReplaced(_) =>          complete(StatusCodes.Created)
-    case AllDeleted =>            complete(StatusCodes.NoContent)
+    case AllDeleted =>              complete(StatusCodes.NoContent)
 
     case NotFound(_) =>             complete(StatusCodes.NotFound)
     case AlreadyExists(_, _) =>     complete(StatusCodes.Conflict)

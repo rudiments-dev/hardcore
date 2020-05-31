@@ -3,7 +3,8 @@ package dev.rudiments.types.registry
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.data.CRUD.Create
-import dev.rudiments.data.{SoftApp, SoftModule}
+import dev.rudiments.data.{MemoryAdapter, ReadOnlyHttpPort}
+import dev.rudiments.hardcore.http.RootRouter
 import dev.rudiments.hardcore.types._
 
 object Application extends App with LazyLogging {

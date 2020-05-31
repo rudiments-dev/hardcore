@@ -11,7 +11,8 @@ object     TypeSystem {
   def apply(name: String, types: Type*): TypeSystem = new TypeSystem(name, types.map(t => t.name -> t).toMap)
 }
 
-case class Type(name: String, fields: Map[String, Field]) extends DTO {
+//todo fix primary keys
+case class Type(name: String, fields: Map[String, Field], primaryKeys: Seq[String] = Seq.empty) extends DTO {
   def constructSoft(arguments: Any*): SoftInstance =
     SoftInstance(
       fields
@@ -36,6 +37,7 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
     case i: Double => i
     case i: BigInt => i
     case i: BigDecimal => i
+    case i: Option[_] => i
     //TODO enums
     case m: Map[String, Any] => m.mapValues(wrapComposite)
     case i: Iterable[_] => i.map(wrapComposite)
