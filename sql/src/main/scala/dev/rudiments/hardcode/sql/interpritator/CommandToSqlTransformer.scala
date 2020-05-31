@@ -170,7 +170,7 @@ class CommandToSqlTransformer(schema: Schema) {
     val function: PartialFunction[ID, Set[WhereExpression]] = {
       case _: SoftID0 => throw new UnsupportedOperationException("SoftID0 not supported for where expression")
       case id: SoftID1 =>
-        val keys = t.primaryKeys
+        val keys = table.pk.map(_.name)
         Set(
           ColumnWhereExpression(
             fieldToColumn(keys.head),
@@ -178,7 +178,7 @@ class CommandToSqlTransformer(schema: Schema) {
           )
         )
       case id: SoftID2 =>
-        val keys = t.primaryKeys
+        val keys = table.pk.map(_.name)
         Set(
           ColumnWhereExpression(
             fieldToColumn(keys.head),

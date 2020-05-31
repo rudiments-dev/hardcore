@@ -11,8 +11,8 @@ import scala.reflect.runtime.universe.{Type => SysType}
 
 class HardType[T : TypeTag](
                                   override val name: String,
-                                  override val fields: Map[String, Field],
-                                  override val primaryKeys: Seq[String] = Seq.empty) extends Type(name, fields, primaryKeys) {
+                                  override val fields: Map[String, Field]
+                           ) extends Type(name, fields) {
   def construct(arguments: Any*): T = {
     val c = Class.forName(typeOf[T].typeSymbol.asClass.fullName)
     c.getConstructors()(0).newInstance(arguments.map(_.asInstanceOf[Object]): _*).asInstanceOf[T]

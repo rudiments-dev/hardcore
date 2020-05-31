@@ -27,7 +27,7 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
                             ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val t: Type = HardType[Example].copy(primaryKeys = Seq("id")) //todo fix primary keys
+  private implicit val t: Type = HardType[Example] //todo fix primary keys
 
 
   private implicit val en: Encoder[SoftInstance] = SoftEncoder(t)

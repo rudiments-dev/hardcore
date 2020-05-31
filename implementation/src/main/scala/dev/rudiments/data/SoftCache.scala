@@ -20,10 +20,10 @@ class SoftCache(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
       ReadOnly.find,
       ReadOnly.findAll,
 
-      SoftCRUD.create,
-      SoftCRUD.createAuto(generator),
-      SoftCRUD.update,
-      SoftCRUD.delete,
+      CRUD.create,
+      CRUD.createAuto(generator),
+      CRUD.update,
+      CRUD.delete,
 
       Batch.createAll,
       Batch.createAllAuto(generator),

@@ -12,7 +12,7 @@ object     TypeSystem {
 }
 
 //todo fix primary keys
-case class Type(name: String, fields: Map[String, Field], primaryKeys: Seq[String] = Seq.empty) extends DTO {
+case class Type(name: String, fields: Map[String, Field]) extends DTO {
   def constructSoft(arguments: Any*): SoftInstance =
     SoftInstance(
       fields

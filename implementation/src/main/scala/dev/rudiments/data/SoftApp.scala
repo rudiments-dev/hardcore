@@ -1,6 +1,6 @@
 package dev.rudiments.data
 
-import akka.actor.ActorSystem
+import  akka.actor.ActorSystem
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config

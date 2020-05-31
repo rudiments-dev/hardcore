@@ -1,6 +1,6 @@
 package dev.rudiments.hardcore.http.query
 import dev.rudiments.hardcore.http.query.predicates._
-import dev.rudiments.hardcore.types.Types.Reference
+import dev.rudiments.hardcore.types.Types.{Reference, UUID}
 import dev.rudiments.hardcore.types.{DTO, Field, FieldFlag, FieldType, Type, Types}
 
 
@@ -18,28 +18,6 @@ object QueryParser {
 
     sequence(predicates).map(_.toSet).map(HttpQuery(_, softType))
   }
-
-//  def optionPredicate(field: Field, part: Param):Option[FieldPredicate[_]] = {
-//      IsEmpty.create(part.text)
-//        .orElse(IsDefined.create(part.text))
-//        .orElse {
-//          fieldPredicate(field, part).flatMap(OptionValuePredicate.create(part, _))
-//        }
-//    }
-//
-//  def fieldPredicate(field: Field, part: Param):Option[FieldPredicate[_]] = {
-//    val fabrics = fieldPossiblePredicates(field)
-//    fabrics.foldLeft(Option.empty[FieldPredicate[_]]) { (accum, fabric) => accum.orElse(fabric(part.text)) }
-//  }
-//
-//  def referencePredicate(ref: Reference, part: Param):Option[FieldPredicate[_]] = {
-//    val p = Param(
-//      part.text.replaceFirst(part.fieldName + ".", "")
-//    )
-//    val relativeTypes: Map[String, Field] = ref.of.fields
-//
-//    recurs(relativeTypes(p.fieldName), p).toOption.flatMap(ProductFieldPredicate.create(part.text, _))
-//  }
 
   private def recurs(field: Field, part: Param):Either[RuntimeException, FieldPredicate[_]] = {
 
@@ -87,6 +65,7 @@ object QueryParser {
       case Types.Index(of, over) => Seq.empty
       case Types.Reference(of) => Seq.empty
       case Types.Unknown => Seq.empty
+      case UUID => Seq.empty
     }
 
 

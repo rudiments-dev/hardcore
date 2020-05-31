@@ -23,7 +23,7 @@ class CommandToSqlTransformerTest extends FlatSpec with Matchers {
     "a" -> Field(Types.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), FieldFlag.Required),
     "b" -> Field(Types.Text(Infinity), FieldFlag.Required),
     "d" -> Field(Types.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), FieldFlag.Optional),
-  ), Seq("a"))
+  ))
 
 
   val aColumn: Column = Column("a", ColumnTypes.INT, nullable = false, default = false, pk = true)
