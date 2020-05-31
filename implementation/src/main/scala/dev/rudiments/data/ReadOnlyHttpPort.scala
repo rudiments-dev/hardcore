@@ -5,6 +5,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.Port
+import dev.rudiments.hardcore.http.query.Directives
 import dev.rudiments.hardcore.http.{IDPath, Router, SoftEncoder}
 import dev.rudiments.hardcore.types.{ID, Instance, SoftInstance, Type}
 import io.circe.Encoder
@@ -20,9 +21,11 @@ class ReadOnlyHttpPort(
 
   override val routes: Route = pathPrefix(prefix) {
     get {
-      pathEndOrSingleSlash {
-        responseWith(f(FindAll))
-      } ~ idPath { id =>
+      Directives.query(t) { query =>
+        pathEndOrSingleSlash {
+          responseWith(f(FindAll(query)))
+        }
+      }~ idPath { id =>
         pathEndOrSingleSlash {
           responseWith(f(Find(id)))
         }

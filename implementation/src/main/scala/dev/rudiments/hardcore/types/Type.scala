@@ -39,7 +39,7 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
     case i: BigDecimal => i
     case i: Option[_] => i
     //TODO enums
-    case m: Map[String, Any] => m.mapValues(wrapComposite)
+    case m: Map[_, _] => m.mapValues(wrapComposite)
     case i: Iterable[_] => i.map(wrapComposite)
     case p: Product => constructSoft(p.productIterator.toSeq.map(wrapComposite))
   }

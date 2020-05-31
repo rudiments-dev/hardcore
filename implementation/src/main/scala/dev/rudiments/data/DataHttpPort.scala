@@ -9,6 +9,7 @@ import dev.rudiments.data.Batch._
 import dev.rudiments.data.CRUD._
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http._
+import dev.rudiments.hardcore.http.query.Directives
 import dev.rudiments.hardcore.types.{AutoID, ID, Instance, SoftInstance, Type}
 import io.circe.{Decoder, Encoder}
 
@@ -24,7 +25,7 @@ class DataHttpPort(
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
-      GetPort(FindAll, f, responseWith),
+      GetDirectivePort(Directives.query(t), FindAll.apply,f ,responseWith),
       PostPort((value: Instance) => identify(value) match {
         case _: AutoID => CreateAuto(value)
         case id => Create(id, value)

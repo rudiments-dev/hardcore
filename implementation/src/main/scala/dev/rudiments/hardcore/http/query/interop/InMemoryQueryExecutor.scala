@@ -2,25 +2,25 @@ package dev.rudiments.hardcore.http.query.interop
 
 
 import dev.rudiments.hardcore.http.query.HttpQuery
-import dev.rudiments.hardcore.http.query.predicates.{FieldPredicate, IntEquals, IntLess, IntMore, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StartsWith, StringEquals}
-import dev.rudiments.hardcore.types.{DTO, SoftInstance}
+import dev.rudiments.hardcore.http.query.predicates.{Contains, DoubleEquals, DoubleLess, DoubleLessOrEquals, DoubleMore, DoubleMoreOrEquals, EndsWith, FieldPredicate, IntEquals, IntLess, IntLessOrEquals, IntMore, IntMoreOrEquals, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StartsWith, StringEquals}
+import dev.rudiments.hardcore.types.{DTO, Instance, SoftInstance}
 
 
 object InMemoryQueryExecutor {
 
-  def apply(query: HttpQuery)(input: Seq[SoftInstance]): Seq[SoftInstance]  = {
+  def apply(query: HttpQuery)(input: Seq[Instance]): Seq[Instance]  = {
     val predicates = query.parts.map {
-      case predicate: FieldPredicate[_] => dto: SoftInstance => {
-        val value = dto.fields(predicate.fieldName)
+      case predicate: FieldPredicate[_] => dto: Instance => {
+        val value = query.softType.extract(dto, predicate.fieldName)
         if (fieldFunctions(value)(predicate)) {
           Some(dto)
         } else None
       }
-      case _: Predicate[_] => throw new NotImplementedError("")
+      case other: Predicate[_] => throw new NotImplementedError(s"$other predicate is not implemented in InMemoryQueryExecutor")
     }
-    val pure: SoftInstance => Option[SoftInstance] = { dto: SoftInstance => Some(dto) }
+    val pure: Instance => Option[Instance] = { dto: Instance => Some(dto) }
     val function = predicates.foldLeft(pure) { case (acc, f) =>
-      dto: SoftInstance => acc(dto).flatMap(f.apply)
+      dto: Instance => acc(dto).flatMap(f.apply)
     }
 
     input.flatMap(dto => function(dto))
@@ -30,8 +30,17 @@ object InMemoryQueryExecutor {
     case IntEquals(_, value) => param.asInstanceOf[Int] == value
     case IntLess(_, value) => param.asInstanceOf[Int] < value
     case IntMore(_, value) => param.asInstanceOf[Int] > value
+    case IntMoreOrEquals(_, value) => param.asInstanceOf[Int] >= value
+    case IntLessOrEquals(_, value) => param.asInstanceOf[Int] <= value
+    case DoubleEquals(_, value) => param.asInstanceOf[Double] == value
+    case DoubleLess(_, value) => param.asInstanceOf[Double] < value
+    case DoubleMore(_, value) => param.asInstanceOf[Double] > value
+    case DoubleMoreOrEquals(_, value) => param.asInstanceOf[Double] >= value
+    case DoubleLessOrEquals(_, value) => param.asInstanceOf[Double] <= value
     case StringEquals(_, value) => param.asInstanceOf[String] == value
     case StartsWith(_, value) => param.asInstanceOf[String].startsWith(value)
+    case EndsWith(_, value) => param.asInstanceOf[String].endsWith(value)
+    case Contains(_, value) => param.asInstanceOf[String].contains(value)
     case IsEmpty(_) => param.asInstanceOf[Option[_]].isEmpty
     case IsDefined(_) => param.asInstanceOf[Option[_]].isDefined
     case OptionValuePredicate(_, underlying) => param.asInstanceOf[Option[_]].exists(value => fieldFunctions(value)(underlying))

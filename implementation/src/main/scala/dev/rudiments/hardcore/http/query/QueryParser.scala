@@ -1,22 +1,26 @@
 package dev.rudiments.hardcore.http.query
 import dev.rudiments.hardcore.http.query.predicates._
 import dev.rudiments.hardcore.types.Types.{Reference, UUID}
-import dev.rudiments.hardcore.types.{DTO, Field, FieldFlag, FieldType, Type, Types}
+import dev.rudiments.hardcore.types.{DTO, Field, FieldFlag, FieldType, NumberFormat, Type, Types}
 
 
 object QueryParser {
 
   import dev.rudiments.hardcore.http.query.predicates.TypeTransformers._
 
-  def parse(httpQuery: HttpParams, softType: dev.rudiments.hardcore.types.Type): Either[RuntimeException, HttpQuery] = {
-    val types: Map[String, Field] = softType.fields
+  def parse(httpParams: HttpParams, softType: dev.rudiments.hardcore.types.Type): Either[RuntimeException, HttpQuery] = {
+    if (httpParams.query.isEmpty) {
+      Right(HttpQuery.passAllQuery(softType))
+    } else {
+      val types: Map[String, Field] = softType.fields
 
-    val predicates: Seq[Either[RuntimeException, Predicate[_]]] = httpQuery.parts.map { part =>
-      val tt = types(part.fieldName)
-      recurs(tt, part)
+      val predicates: Seq[Either[RuntimeException, Predicate[_]]] = httpParams.parts.map { part =>
+        val tt = types(part.fieldName)
+        recurs(tt, part)
+      }
+
+      sequence(predicates).map(_.toSet).map(HttpQuery(_, softType))
     }
-
-    sequence(predicates).map(_.toSet).map(HttpQuery(_, softType))
   }
 
   private def recurs(field: Field, part: Param):Either[RuntimeException, FieldPredicate[_]] = {
@@ -47,15 +51,26 @@ object QueryParser {
 
   private def fieldPossiblePredicates(field: Field): Seq[String => Option[FieldPredicate[_]]] =
     field.kind match {
-      case Types.Bool => Seq.empty
+      case Types.Bool => Seq(BooleanEquals.create)
       case Types.Text(maxSize) => Seq(
         StartsWith.create,
-        StringEquals.create
+        StringEquals.create,
+        EndsWith.create,
+        Contains.create
       )
-      case Types.Number(min, max, format) => Seq(
+      case Types.Number(min, max, NumberFormat.Integer) => Seq(
         IntEquals.create,
         IntLess.create,
-        IntMore.create
+        IntMore.create,
+        IntLessOrEquals.create,
+        IntMoreOrEquals.create
+      )
+      case Types.Number(min, max, NumberFormat.Float) => Seq(
+        DoubleEquals.create,
+        DoubleLess.create,
+        DoubleMore.create,
+        DoubleLessOrEquals.create,
+        DoubleMoreOrEquals.create
       )
       case Types.Date => Seq.empty
       case Types.Time => Seq.empty

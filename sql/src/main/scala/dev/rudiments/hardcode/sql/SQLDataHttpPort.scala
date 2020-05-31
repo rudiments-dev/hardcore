@@ -12,6 +12,7 @@ import dev.rudiments.hardcore.data.soft.Batch._
 import dev.rudiments.hardcore.data.soft.SoftCRUD._
 import dev.rudiments.hardcore.data.soft.ReadOnly._
 import dev.rudiments.hardcore.http._
+import dev.rudiments.hardcore.http.query.Directives
 import io.circe.{Decoder, Encoder}
 
 
@@ -27,7 +28,7 @@ class SQLDataHttpPort(
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
-      GetPort(FindAll, f, responseWith),
+      GetDirectivePort(Directives.query(t), query => FindAll(query), f, responseWith),
       PostPort((value: Instance) => identify(value) match {
         case _: AutoID => CreateAuto(value)
         case id => Create(id, value)
