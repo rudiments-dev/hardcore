@@ -1,9 +1,10 @@
 package dev.rudiments.hardcode.sql.scalalike
 
+import dev.rudiments.data.Batch.AllDeleted
 import dev.rudiments.hardcode.sql.SQL
 import dev.rudiments.hardcode.sql.materializer.Binding
 import dev.rudiments.data.DataEvent
-import dev.rudiments.data.ReadOnly.{Found, NotFound}
+import dev.rudiments.data.ReadOnly.{Found, FoundAll, NotFound}
 import dev.rudiments.data.CRUD.{AlreadyExists, Created, Deleted, FailedToCreate, FailedToDelete, FailedToUpdate, Updated}
 import dev.rudiments.hardcore.types.{ID, Instance, Type}
 import scalikejdbc.{DBSession, NoExtractor}
@@ -84,11 +85,28 @@ case class DropSQL(
             case Found(id, instance) => FailedToDelete(id, instance)
             case NotFound(id) => Deleted(id, value)
           }
-          case Failure(exception) =>
-            FailedToDelete(id, value)
+          case Failure(exception) => FailedToDelete(id, value)
         }
     }
   }
+}
+
+case class DropAllSQL(
+                    override val rawSQL: String,
+                    override val softType: Type) extends ScalaLikeSQL {
+
+  override val bindings: Set[Binding] = Set.empty
+
+  override def exec(transaction: ScalaLikeTransaction): DataEvent = {
+    implicit val session: DBSession = transaction.dbCon.withinTxSession(transaction.underlying)
+    Try {
+      sql().update().apply()
+    } match {
+      case Success(_) => AllDeleted
+      case Failure(exception) => ???
+    }
+  }
+
 }
 
 case class UpdateSQL(
@@ -111,6 +129,25 @@ case class UpdateSQL(
           }
           case Failure(exception) => FailedToUpdate(id, old)
         }
+    }
+  }
+}
+
+case class QuerySQL(
+                     override val rawSQL: String,
+                     override val bindings: Set[Binding],
+                     override val softType: Type
+                   ) extends ScalaLikeSQL {
+
+  override def exec(transaction: ScalaLikeTransaction): DataEvent = {
+    implicit val session: DBSession = transaction.dbCon.withinTxSession(transaction.underlying)
+    Try {
+      sql().map { rs =>
+        softType.constructSoft(rs.toMap().values.toSeq :_*) //todo refactor to Map
+      }.list().apply()
+    } match {
+      case Failure(exception) => throw exception //todo error data command
+      case Success(value) => FoundAll(value)
     }
   }
 }

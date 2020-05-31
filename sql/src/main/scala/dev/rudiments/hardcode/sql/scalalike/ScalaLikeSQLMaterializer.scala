@@ -50,6 +50,14 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
     )
   }
 
+  def dropAllSQL(delete: DeleteAllDataClass): DropAllSQL = {
+    DropAllSQL(
+      s"""
+         |DELETE FROM ${delete.schema.name}.${delete.table.name}
+      """.stripMargin, delete.softType
+    )
+  }
+
   override def updateSQL(update: UpdateDataClass): UpdateSQL = {
     val (whereSQL, whereBindings) = wherePart(update.where)
 
@@ -67,4 +75,17 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
     )
   }
 
+  def querySQL(query: QueryDataClass): QuerySQL = {
+    val (whereSQL, whereBindings) = wherePart(query.where)
+
+    QuerySQL(
+      s"""
+         |SELECT ${selectPart(query.select)}
+         |FROM ${fromPart(query.from)}
+         |WHERE $whereSQL
+         |""".stripMargin,
+      whereBindings,
+      query.softType
+    )
+  }
 }

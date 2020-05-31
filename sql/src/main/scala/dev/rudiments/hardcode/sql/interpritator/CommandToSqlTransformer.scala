@@ -1,6 +1,6 @@
 package dev.rudiments.hardcode.sql.interpritator
 
-import dev.rudiments.data.ReadOnly.Find
+import dev.rudiments.data.ReadOnly.{Find, FindAll}
 import dev.rudiments.data.CRUD.{Create, Delete, Update}
 import dev.rudiments.hardcore.http.query.HttpQuery
 import dev.rudiments.hardcore.http.query.predicates._
@@ -14,7 +14,8 @@ import dev.rudiments.hardcode.sql.SQLPredicate
 
 class CommandToSqlTransformer(schema: Schema) {
 
-  def queryToSelectSql(query: HttpQuery): QueryDataClass = {
+  def queryToSelectSql(command: FindAll): QueryDataClass = {
+    import command.query
     val table = schema.tables(query.softType)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
@@ -107,6 +108,16 @@ class CommandToSqlTransformer(schema: Schema) {
       idToWhere(table, t)(command.key),
       t,
       findByIdDataClass
+    )
+  }
+
+  def deleteAllDropSql(tt: Type): DeleteAllDataClass = {
+    val table = schema.tables(tt)
+
+    DeleteAllDataClass(
+      schema,
+      table,
+      tt
     )
   }
 

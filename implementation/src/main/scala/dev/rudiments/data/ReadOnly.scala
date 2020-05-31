@@ -21,7 +21,7 @@ object ReadOnly {
 
 
   case class FindAll(query: HttpQuery) extends DataCommand
-  case class  FoundAll(values: Seq[Instance]) extends DataEvent
+  case class FoundAll(values: Seq[Instance]) extends DataEvent
 
   def findAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case FindAll(query) => FoundAll(InMemoryQueryExecutor(query)(content.values.toList))

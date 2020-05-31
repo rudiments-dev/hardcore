@@ -1,6 +1,7 @@
 package dev.rudiments.hardcore.sql
 
 import dev.rudiments.data.CRUD._
+import dev.rudiments.data.ReadOnly.FindAll
 import dev.rudiments.hardcore.http.query.HttpQuery
 import dev.rudiments.hardcore.http.query.predicates.{IntEquals, StringEquals}
 import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Schema, Table}
@@ -52,8 +53,9 @@ class CommandToSqlTransformerTest extends FlatSpec with Matchers {
       StringEquals("b", "bay"),
       IntEquals("a", 5)
     ), fooType)
+    val command = FindAll(query)
 
-    val result = new CommandToSqlTransformer(schema).queryToSelectSql(query)
+    val result = new CommandToSqlTransformer(schema).queryToSelectSql(command)
     result should be(
       QueryDataClass(
         Select(Seq(

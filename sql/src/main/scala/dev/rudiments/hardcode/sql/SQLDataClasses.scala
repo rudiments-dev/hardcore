@@ -36,6 +36,13 @@ object SQLDataClasses {
     findByIdDataClass: FindByIdDataClass,
   ) extends SQLDataClass
 
+  case class DeleteAllDataClass
+  (
+    schema: Schema,
+    table: Table,
+    override val softType: Type,
+  ) extends SQLDataClass
+
   case class InsertDataClass
   (
     schema: Schema,
