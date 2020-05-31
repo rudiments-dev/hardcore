@@ -1,6 +1,6 @@
 package dev.rudiments.hardcode.sql
 
-import dev.rudiments.hardcore.data.soft.{DataCommand, DataEvent, DataSkill}
+import dev.rudiments.data.{DataCommand, DataEvent, DataSkill}
 import dev.rudiments.hardcore.http.{Router, SoftDecoder, SoftEncoder}
 import dev.rudiments.hardcore.types.{AutoID, ID, Instance, SoftInstance, Type}
 import akka.http.scaladsl.model.StatusCodes
@@ -8,9 +8,9 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.hardcore.Port
-import dev.rudiments.hardcore.data.soft.Batch._
-import dev.rudiments.hardcore.data.soft.SoftCRUD._
-import dev.rudiments.hardcore.data.soft.ReadOnly._
+import dev.rudiments.data.Batch._
+import dev.rudiments.data.CRUD._
+import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.http.query.Directives
 import io.circe.{Decoder, Encoder}

@@ -2,7 +2,7 @@ package dev.rudiments.hardcore.http.query.interop
 
 
 import dev.rudiments.hardcore.http.query.HttpQuery
-import dev.rudiments.hardcore.http.query.predicates.{Contains, DoubleEquals, DoubleLess, DoubleLessOrEquals, DoubleMore, DoubleMoreOrEquals, EndsWith, FieldPredicate, IntEquals, IntLess, IntLessOrEquals, IntMore, IntMoreOrEquals, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StartsWith, StringEquals}
+import dev.rudiments.hardcore.http.query.predicates.{StringContains, DoubleEquals, DoubleLess, DoubleLessOrEquals, DoubleMore, DoubleMoreOrEquals, StringEndsWith, FieldPredicate, IntEquals, IntLess, IntLessOrEquals, IntMore, IntMoreOrEquals, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StringStartsWith, StringEquals}
 import dev.rudiments.hardcore.types.{DTO, Instance, SoftInstance}
 
 
@@ -38,9 +38,9 @@ object InMemoryQueryExecutor {
     case DoubleMoreOrEquals(_, value) => param.asInstanceOf[Double] >= value
     case DoubleLessOrEquals(_, value) => param.asInstanceOf[Double] <= value
     case StringEquals(_, value) => param.asInstanceOf[String] == value
-    case StartsWith(_, value) => param.asInstanceOf[String].startsWith(value)
-    case EndsWith(_, value) => param.asInstanceOf[String].endsWith(value)
-    case Contains(_, value) => param.asInstanceOf[String].contains(value)
+    case StringStartsWith(_, value) => param.asInstanceOf[String].startsWith(value)
+    case StringEndsWith(_, value) => param.asInstanceOf[String].endsWith(value)
+    case StringContains(_, value) => param.asInstanceOf[String].contains(value)
     case IsEmpty(_) => param.asInstanceOf[Option[_]].isEmpty
     case IsDefined(_) => param.asInstanceOf[Option[_]].isDefined
     case OptionValuePredicate(_, underlying) => param.asInstanceOf[Option[_]].exists(value => fieldFunctions(value)(underlying))

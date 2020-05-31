@@ -53,10 +53,10 @@ object QueryParser {
     field.kind match {
       case Types.Bool => Seq(BooleanEquals.create)
       case Types.Text(maxSize) => Seq(
-        StartsWith.create,
+        StringStartsWith.create,
         StringEquals.create,
-        EndsWith.create,
-        Contains.create
+        StringEndsWith.create,
+        StringContains.create
       )
       case Types.Number(min, max, NumberFormat.Integer) => Seq(
         IntEquals.create,

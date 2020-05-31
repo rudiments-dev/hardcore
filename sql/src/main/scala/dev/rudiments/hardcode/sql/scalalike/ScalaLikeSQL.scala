@@ -2,9 +2,9 @@ package dev.rudiments.hardcode.sql.scalalike
 
 import dev.rudiments.hardcode.sql.SQL
 import dev.rudiments.hardcode.sql.materializer.Binding
-import dev.rudiments.hardcore.data.soft.DataEvent
-import dev.rudiments.hardcore.data.soft.ReadOnly.{Found, NotFound}
-import dev.rudiments.hardcore.data.soft.SoftCRUD.{AlreadyExists, Created, Deleted, FailedToCreate, FailedToDelete, FailedToUpdate, Updated}
+import dev.rudiments.data.DataEvent
+import dev.rudiments.data.ReadOnly.{Found, NotFound}
+import dev.rudiments.data.CRUD.{AlreadyExists, Created, Deleted, FailedToCreate, FailedToDelete, FailedToUpdate, Updated}
 import dev.rudiments.hardcore.types.{ID, Instance, Type}
 import scalikejdbc.{DBSession, NoExtractor}
 

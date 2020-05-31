@@ -1,6 +1,6 @@
 package dev.rudiments.hardcore.http.query
 
-import dev.rudiments.hardcore.http.query.predicates.{IntEquals, IntLess, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StartsWith, StringEquals}
+import dev.rudiments.hardcore.http.query.predicates.{IntEquals, IntLess, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StringStartsWith, StringEquals}
 import dev.rudiments.hardcore.types.{DTO, Field, FieldFlag, Infinity, NegativeInfinity, NumberFormat, PositiveInfinity, Type, Types}
 import org.scalatest.{Matchers, WordSpec}
 import org.junit.runner.RunWith
@@ -36,7 +36,7 @@ class QueryParserTest extends WordSpec with Matchers {
     val query = QueryParser.parse(params, fooType)
     val expect = HttpQuery(Set(
       StringEquals("b", "hi"),
-      StartsWith("b", "h")
+      StringStartsWith("b", "h")
     ), fooType)
 
     query should be (Right(expect))

@@ -1,7 +1,7 @@
 package dev.rudiments.hardcode.sql.interpritator
 
-import dev.rudiments.hardcore.data.soft.ReadOnly.Find
-import dev.rudiments.hardcore.data.soft.SoftCRUD.{Create, Delete, Update}
+import dev.rudiments.data.ReadOnly.Find
+import dev.rudiments.data.CRUD.{Create, Delete, Update}
 import dev.rudiments.hardcore.http.query.HttpQuery
 import dev.rudiments.hardcore.http.query.predicates._
 import dev.rudiments.hardcode.sql.schema.{Column, Schema, Table}
@@ -145,9 +145,25 @@ class CommandToSqlTransformer(schema: Schema) {
 
     def predicateFunc: PartialFunction[Predicate[_], SQLPredicate] = {
       case IntEquals(_, value) => Equals(value)
-      case IntLess(_, value) => Lesser(value)
+      case IntLess(_, value) => Less(value)
       case IntMore(_, value) => Greater(value)
+      case IntMoreOrEquals(_, value) => GreaterOrEquals(value)
+      case IntLessOrEquals(_, value) => LessOrEquals(value)
+
+      case DoubleEquals(_, value) => Equals(value)
+      case DoubleLess(_, value) => Less(value)
+      case DoubleMore(_, value) => Greater(value)
+      case DoubleMoreOrEquals(_, value) => GreaterOrEquals(value)
+      case DoubleLessOrEquals(_, value) => LessOrEquals(value)
+        
       case StringEquals(_, value) => Equals(value)
+      case StringStartsWith(_, value) => StartsWith(value)
+      case StringEndsWith(_, value) => EndsWith(value)
+      case StringContains(_, value) => Contains(value)
+
+      case IsTrue(_) => Equals("true")
+      case IsFalse(_) => Equals("false")
+
       case IsEmpty(_) => IsNull
       case IsDefined(_) => NotNull
       case OptionValuePredicate(_, underlying) => predicateFunc(underlying)

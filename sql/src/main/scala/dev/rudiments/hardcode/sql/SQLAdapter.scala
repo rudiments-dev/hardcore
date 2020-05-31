@@ -4,9 +4,9 @@ import dev.rudiments.hardcode.sql.interpritator.CommandToSqlTransformer
 import dev.rudiments.hardcode.sql.scalalike.{ScalaLikeSQLMaterializer, ScalaLikeTransaction, ScalaLikeTransactionProvider}
 import dev.rudiments.hardcode.sql.schema.Schema
 import dev.rudiments.hardcore.Adapter
-import dev.rudiments.hardcore.data.soft.ReadOnly.Find
-import dev.rudiments.hardcore.data.soft.SoftCRUD._
-import dev.rudiments.hardcore.data.soft.{DataCommand, DataEvent, DataSkill}
+import dev.rudiments.data.ReadOnly.Find
+import dev.rudiments.data.CRUD._
+import dev.rudiments.data.{DataCommand, DataEvent, DataSkill}
 import dev.rudiments.hardcore.types.Type
 import scalikejdbc.DB
 

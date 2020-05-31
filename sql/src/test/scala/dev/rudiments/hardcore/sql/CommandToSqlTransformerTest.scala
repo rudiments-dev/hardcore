@@ -1,6 +1,6 @@
 package dev.rudiments.hardcore.sql
 
-import dev.rudiments.hardcore.data.soft.SoftCRUD._
+import dev.rudiments.data.CRUD._
 import dev.rudiments.hardcore.http.query.HttpQuery
 import dev.rudiments.hardcore.http.query.predicates.{IntEquals, StringEquals}
 import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Schema, Table}

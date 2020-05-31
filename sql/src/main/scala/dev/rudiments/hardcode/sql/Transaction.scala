@@ -4,7 +4,7 @@ trait Transaction {
 
   def commit()
   def rollback()
-//  def actions()
+
 }
 
 trait TransactionProvider[T <: Transaction] {

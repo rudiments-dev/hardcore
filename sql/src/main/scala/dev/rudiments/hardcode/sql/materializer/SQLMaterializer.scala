@@ -60,12 +60,12 @@ trait SQLMaterializer[T <: SQL[_]] {
               s"${column.name} >= {$bindingKey}",
               Seq(Binding(bindingKey, value))
             )
-          case Lesser(value) =>
+          case Less(value) =>
             (
               s"${column.name} < {$bindingKey}",
               Seq(Binding(bindingKey, value))
             )
-          case LesserOrEquals(value) =>
+          case LessOrEquals(value) =>
             (
               s"${column.name} <= {$bindingKey}",
               Seq(Binding(bindingKey, value))
@@ -77,6 +77,21 @@ trait SQLMaterializer[T <: SQL[_]] {
             (
               s"${column.name} BETWEEN {$left} AND {$right}",
               Seq(Binding(left, from), Binding(right, to))
+            )
+          case Contains(value) =>
+            (
+              s"${column.name} LIKE '%{$bindingKey}%'",
+              Seq(Binding(bindingKey, value))
+            )
+          case EndsWith(value) =>
+            (
+              s"${column.name} LIKE '{$bindingKey}%'",
+              Seq(Binding(bindingKey, value))
+            )
+          case StartsWith(value) =>
+            (
+              s"${column.name} LIKE '%{$bindingKey}'",
+              Seq(Binding(bindingKey, value))
             )
         }
     }

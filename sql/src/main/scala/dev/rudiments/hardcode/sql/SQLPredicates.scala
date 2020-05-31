@@ -13,8 +13,12 @@ object SQLPredicates {
   case class In(in: Seq[Any]) extends SQLPredicate
   case class Greater(value: Any) extends SQLPredicate
   case class GreaterOrEquals(value: Any) extends SQLPredicate
-  case class Lesser(value: Any) extends SQLPredicate
-  case class LesserOrEquals(value: Any) extends SQLPredicate
+  case class Less(value: Any) extends SQLPredicate
+  case class LessOrEquals(value: Any) extends SQLPredicate
   case class Between(from: Any, to: Any) extends SQLPredicate
+
+  case class StartsWith(value: String) extends SQLPredicate
+  case class EndsWith(value: String) extends SQLPredicate
+  case class Contains(value: String) extends SQLPredicate
 
 }
