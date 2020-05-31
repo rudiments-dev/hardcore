@@ -1,8 +1,10 @@
 package dev.rudiments.hardcode.sql.materializer
 
 import dev.rudiments.hardcode.sql.SQL
+import dev.rudiments.hardcode.sql.SQLDataClasses.{DeleteDataClass, FindByIdDataClass, InsertDataClass, UpdateDataClass}
 import dev.rudiments.hardcode.sql.SQLParts._
 import dev.rudiments.hardcode.sql.SQLPredicates._
+import dev.rudiments.hardcode.sql.scalalike.{CreateSQL, DropSQL, FindByIDSQL, UpdateSQL}
 
 trait SQLMaterializer[T <: SQL[_]] {
 
@@ -84,7 +86,13 @@ trait SQLMaterializer[T <: SQL[_]] {
     )
   }
 
+  def insertSQL(insert: InsertDataClass): CreateSQL
 
+  def findByIdSQL(findById: FindByIdDataClass): FindByIDSQL
+
+  def dropSQL(delete: DeleteDataClass): DropSQL
+
+  def updateSQL(update: UpdateDataClass): UpdateSQL
 }
 
 private[sql] case class Binding(key: String, value: Any)

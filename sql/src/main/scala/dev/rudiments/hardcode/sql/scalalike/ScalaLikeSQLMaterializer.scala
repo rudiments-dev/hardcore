@@ -6,7 +6,7 @@ import dev.rudiments.hardcode.sql.SQLDataClasses._
 
 class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
 
-  def insertSQL(insert: InsertDataClass): CreateSQL = {
+  override def insertSQL(insert: InsertDataClass): CreateSQL = {
     val fields: Seq[String] = insert.entity.values.map(_.column.name)
 
     val bindings = insert.entity.values.map { case SqlValue(column, value) => Binding(column.name, value) }
@@ -22,7 +22,7 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
     )
   }
 
-  def findByIdSQL(findById: FindByIdDataClass): FindByIDSQL = {
+  override def findByIdSQL(findById: FindByIdDataClass): FindByIDSQL = {
     val (whereSQL, bindings) = wherePart(findById.where)
 
     FindByIDSQL(
@@ -37,7 +37,7 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
     )
   }
 
-  def dropSQL(delete: DeleteDataClass): DropSQL = {
+  override def dropSQL(delete: DeleteDataClass): DropSQL = {
     val (whereSQL, bindings) = wherePart(delete.where)
     DropSQL(
       s"""
@@ -50,7 +50,7 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
     )
   }
 
-  def updateSQL(update: UpdateDataClass): UpdateSQL = {
+  override def updateSQL(update: UpdateDataClass): UpdateSQL = {
     val (whereSQL, whereBindings) = wherePart(update.where)
 
     val bindings = update.entity.values.map { case SqlValue(column, value) => Binding(column.name, value) }.toSet
