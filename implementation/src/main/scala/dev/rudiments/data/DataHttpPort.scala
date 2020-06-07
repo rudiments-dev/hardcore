@@ -25,7 +25,7 @@ class DataHttpPort(
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
-      GetDirectivePort(Directives.query(t), FindAll.apply,f ,responseWith),
+      GetDirectivePort(Directives.query(t), FindAll.apply, f ,responseWith),
       PostPort((value: Instance) => identify(value) match {
         case _: AutoID => CreateAuto(value)
         case id => Create(id, value)

@@ -21,11 +21,11 @@ class ReadOnlyHttpPort(
 
   override val routes: Route = pathPrefix(prefix) {
     get {
-      Directives.query(t) { query =>
-        pathEndOrSingleSlash {
+      pathEndOrSingleSlash {
+        Directives.query(t) { query =>
           responseWith(f(FindAll(query)))
         }
-      }~ idPath { id =>
+      } ~ idPath { id =>
         pathEndOrSingleSlash {
           responseWith(f(Find(id)))
         }

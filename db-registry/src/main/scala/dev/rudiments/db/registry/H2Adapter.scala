@@ -1,6 +1,7 @@
 package dev.rudiments.db.registry
 
 import com.typesafe.config.Config
+import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes}
 import dev.rudiments.hardcore.{Adapter, Command, Event, Skill}
 import scalikejdbc._
 

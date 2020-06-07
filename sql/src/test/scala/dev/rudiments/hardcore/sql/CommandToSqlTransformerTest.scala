@@ -2,9 +2,9 @@ package dev.rudiments.hardcore.sql
 
 import dev.rudiments.data.CRUD._
 import dev.rudiments.data.ReadOnly.FindAll
-import dev.rudiments.hardcore.http.query.HttpQuery
+import dev.rudiments.hardcore.http.query.PredicatesQuery
 import dev.rudiments.hardcore.http.query.predicates.{IntEquals, StringEquals}
-import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Schema, Table}
+import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, TypedSchema, Table}
 import dev.rudiments.hardcore.types.SoftID.SoftID1
 import dev.rudiments.hardcore.types.{DTO, Field, FieldFlag, Infinity, NegativeInfinity, NumberFormat, PositiveInfinity, SoftID, Type, Types}
 import org.junit.runner.RunWith
@@ -40,7 +40,7 @@ class CommandToSqlTransformerTest extends FlatSpec with Matchers {
     )
   )
 
-  val schema: Schema = Schema(
+  val schema: TypedSchema = TypedSchema(
     "dev",
     Map(
       fooType -> table
@@ -49,7 +49,7 @@ class CommandToSqlTransformerTest extends FlatSpec with Matchers {
   )
 
   it should "test select query generation" in {
-    val query = HttpQuery(Set(
+    val query = PredicatesQuery(Set(
       StringEquals("b", "bay"),
       IntEquals("a", 5)
     ), fooType)
@@ -64,12 +64,12 @@ class CommandToSqlTransformerTest extends FlatSpec with Matchers {
           Selector(dColumn, None)
         )),
         From(schema, table, None),
-        Where(
+        Some(Where(
           Set(
             ColumnWhereExpression(bColumn, Equals("bay")),
             ColumnWhereExpression(aColumn, Equals(5))
           )
-        ),
+        )),
         fooType
       )
     )

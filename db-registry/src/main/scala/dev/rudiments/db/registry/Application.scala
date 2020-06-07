@@ -4,9 +4,10 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
+import dev.rudiments.hardcode.sql.schema.{ColumnType, FK, TypedSchema}
 import dev.rudiments.hardcore.data.{HardCache, ReadOnlyHttpPort}
 import dev.rudiments.hardcore.http.{IDPath, RootRouter, Router}
-import dev.rudiments.hardcore.types.{ID, HardType}
+import dev.rudiments.hardcore.types.{HardType, ID}
 import io.circe.{Encoder, Json}
 
 import scala.concurrent.ExecutionContext

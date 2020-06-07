@@ -76,16 +76,28 @@ class ScalaLikeSQLMaterializer extends SQLMaterializer[ScalaLikeSQL] {
   }
 
   def querySQL(query: QueryDataClass): QuerySQL = {
-    val (whereSQL, whereBindings) = wherePart(query.where)
+    query.where match {
+      case Some(where) =>
+        val (whereSQL, whereBindings) = wherePart(where)
 
-    QuerySQL(
-      s"""
-         |SELECT ${selectPart(query.select)}
-         |FROM ${fromPart(query.from)}
-         |WHERE $whereSQL
-         |""".stripMargin,
-      whereBindings,
-      query.softType
-    )
+        QuerySQL(
+          s"""
+             |SELECT ${selectPart(query.select)}
+             |FROM ${fromPart(query.from)}
+             |WHERE $whereSQL
+             |""".stripMargin,
+          whereBindings,
+          query.softType
+        )
+      case None =>
+        QuerySQL(
+          s"""
+             |SELECT ${selectPart(query.select)}
+             |FROM ${fromPart(query.from)}
+             |""".stripMargin,
+          Set.empty,
+          query.softType
+        )
+    }
   }
 }

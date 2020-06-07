@@ -7,7 +7,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.config.{Config, ConfigFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.hardcode.sql.{SQLAdapter, SQLDataHttpPort}
-import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Schema, Table}
+import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, TypedSchema, Table}
 import dev.rudiments.hardcore.http.{SoftDecoder, SoftEncoder}
 import dev.rudiments.hardcore.types._
 import io.circe.{Decoder, Encoder}
@@ -56,7 +56,7 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
 
 
 
-  private val repo: SQLAdapter = new SQLAdapter(DB.connect(), schema = Schema("hello", Map(
+  private val repo: SQLAdapter = new SQLAdapter(DB.connect(), schema = TypedSchema("hello", Map(
     t -> Table("example", Seq(
       Column("id", ColumnTypes.INT, nullable = false, default = false, pk = true),
       Column("name", ColumnTypes.VARCHAR(255), nullable = false, default = false, pk = false)

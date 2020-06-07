@@ -24,7 +24,7 @@ class QueryParserTest extends WordSpec with Matchers {
     val params = HttpParams("b=eq:hi")
     val query = QueryParser.parse(params, fooType)
 
-    val expect = HttpQuery(Set(
+    val expect = PredicatesQuery(Set(
       StringEquals("b", "hi")
     ), fooType)
 
@@ -34,7 +34,7 @@ class QueryParserTest extends WordSpec with Matchers {
   "parse 2 params on same field" in {
     val params = HttpParams("b=eq:hi;b=starts:h")
     val query = QueryParser.parse(params, fooType)
-    val expect = HttpQuery(Set(
+    val expect = PredicatesQuery(Set(
       StringEquals("b", "hi"),
       StringStartsWith("b", "h")
     ), fooType)
@@ -46,7 +46,7 @@ class QueryParserTest extends WordSpec with Matchers {
     val params = HttpParams("b=eq:hi;a=less:3")
     val query = QueryParser.parse(params, fooType)
 
-    val expect = HttpQuery(Set(
+    val expect = PredicatesQuery(Set(
       StringEquals("b", "hi"),
       IntLess("a", 3)
     ), fooType)
@@ -58,7 +58,7 @@ class QueryParserTest extends WordSpec with Matchers {
     val params = HttpParams("d=eq:3")
     val query = QueryParser.parse(params, fooType)
 
-    val expect = HttpQuery(Set(
+    val expect = PredicatesQuery(Set(
       OptionValuePredicate(
         "d",
         IntEquals("d", 3)
@@ -72,7 +72,7 @@ class QueryParserTest extends WordSpec with Matchers {
     val params = HttpParams("d=empty")
     val query = QueryParser.parse(params, fooType)
 
-    val expect = HttpQuery(Set(
+    val expect = PredicatesQuery(Set(
       IsEmpty("d")
     ), fooType)
 
@@ -83,7 +83,7 @@ class QueryParserTest extends WordSpec with Matchers {
     val params = HttpParams("d=defined")
     val query = QueryParser.parse(params, fooType)
 
-    val expect = HttpQuery(Set(
+    val expect = PredicatesQuery(Set(
       IsDefined("d")
     ), fooType)
 
@@ -94,7 +94,7 @@ class QueryParserTest extends WordSpec with Matchers {
     val params = HttpParams("baz.f=eq:1")
     val query = QueryParser.parse(params, fooType)
 
-    val expect = HttpQuery(Set(
+    val expect = PredicatesQuery(Set(
       OptionValuePredicate(
         "baz",
         ProductFieldPredicate(

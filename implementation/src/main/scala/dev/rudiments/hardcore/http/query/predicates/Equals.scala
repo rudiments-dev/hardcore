@@ -38,12 +38,12 @@ object StringEquals {
 }
 
 object BooleanEquals {
-  private val regexp: Regex = "(\\w+)=(isTrue|isFalse)".r
+  private val regexp: Regex = "(\\w+)=(true|false)".r
 
   def create(from: String): Option[BooleanEquals] = {
-    FieldPredicate.createRaw[Boolean, BooleanEquals](from, regexp)(func = {
-      case (field, "isTrue") => IsTrue(field)
-      case (field, "isFalse") => IsFalse(field)
+    FieldPredicate.create[String, BooleanEquals](from, regexp)(func = {
+      case (field, "true") => IsTrue(field)
+      case (field, "false") => IsFalse(field)
       case _ => ???
     })
   }

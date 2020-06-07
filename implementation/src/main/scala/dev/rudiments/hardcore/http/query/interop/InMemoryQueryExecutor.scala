@@ -1,29 +1,33 @@
 package dev.rudiments.hardcore.http.query.interop
 
 
-import dev.rudiments.hardcore.http.query.HttpQuery
-import dev.rudiments.hardcore.http.query.predicates.{StringContains, DoubleEquals, DoubleLess, DoubleLessOrEquals, DoubleMore, DoubleMoreOrEquals, StringEndsWith, FieldPredicate, IntEquals, IntLess, IntLessOrEquals, IntMore, IntMoreOrEquals, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StringStartsWith, StringEquals}
+import dev.rudiments.hardcore.http.query.{PassAllQuery, PredicatesQuery, Query}
+import dev.rudiments.hardcore.http.query.predicates.{DoubleEquals, DoubleLess, DoubleLessOrEquals, DoubleMore, DoubleMoreOrEquals, FieldPredicate, IntEquals, IntLess, IntLessOrEquals, IntMore, IntMoreOrEquals, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StringContains, StringEndsWith, StringEquals, StringStartsWith}
 import dev.rudiments.hardcore.types.{DTO, Instance, SoftInstance}
 
 
 object InMemoryQueryExecutor {
 
-  def apply(query: HttpQuery)(input: Seq[Instance]): Seq[Instance]  = {
-    val predicates = query.parts.map {
-      case predicate: FieldPredicate[_] => dto: Instance => {
-        val value = query.softType.extract(dto, predicate.fieldName)
-        if (fieldFunctions(value)(predicate)) {
-          Some(dto)
-        } else None
-      }
-      case other: Predicate[_] => throw new NotImplementedError(s"$other predicate is not implemented in InMemoryQueryExecutor")
-    }
-    val pure: Instance => Option[Instance] = { dto: Instance => Some(dto) }
-    val function = predicates.foldLeft(pure) { case (acc, f) =>
-      dto: Instance => acc(dto).flatMap(f.apply)
-    }
+  def apply(query: Query)(input: Seq[Instance]): Seq[Instance]  = {
+    query match {
+      case PassAllQuery(_) => input
+      case PredicatesQuery(parts, softType) =>
+        val predicates = parts.map {
+          case predicate: FieldPredicate[_] => dto: Instance => {
+            val value = softType.extract(dto, predicate.fieldName)
+            if (fieldFunctions(value)(predicate)) {
+              Some(dto)
+            } else None
+          }
+          case other: Predicate[_] => throw new NotImplementedError(s"$other predicate is not implemented in InMemoryQueryExecutor")
+        }
+        val pure: Instance => Option[Instance] = { dto: Instance => Some(dto) }
+        val function = predicates.foldLeft(pure) { case (acc, f) =>
+          dto: Instance => acc(dto).flatMap(f.apply)
+        }
 
-    input.flatMap(dto => function(dto))
+        input.flatMap(dto => function(dto))
+    }
   }
 
   def fieldFunctions(param: Any): PartialFunction[Predicate[_], Boolean] = {

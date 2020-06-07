@@ -1,10 +1,10 @@
 package dev.rudiments.hardcode.sql
 
-import dev.rudiments.hardcode.sql.schema.{Column, Schema, Table}
+import dev.rudiments.hardcode.sql.schema.{Column, TypedSchema, Table}
 
 object SQLParts {
 
-  case class From(schema: Schema, table: Table, as: Option[String])
+  case class From(schema: TypedSchema, table: Table, as: Option[String])
 
   case class Selector(column: Column, as: Option[String])
   case class Select(selectors: Seq[Selector])

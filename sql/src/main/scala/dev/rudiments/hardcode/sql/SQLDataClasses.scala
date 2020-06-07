@@ -1,7 +1,7 @@
 package dev.rudiments.hardcode.sql
 
 import SQLParts._
-import dev.rudiments.hardcode.sql.schema.{Column, Schema, Table}
+import dev.rudiments.hardcode.sql.schema.{Column, TypedSchema, Table}
 import dev.rudiments.hardcore.types.{ID, Instance, Type}
 
 object SQLDataClasses {
@@ -23,13 +23,13 @@ object SQLDataClasses {
   (
     select: Select,
     from: From,
-    where: Where,
+    where: Option[Where],
     override val softType: Type
   ) extends SQLDataClass
 
   case class DeleteDataClass
   (
-    schema: Schema,
+    schema: TypedSchema,
     table: Table,
     where: Where,
     override val softType: Type,
@@ -38,14 +38,14 @@ object SQLDataClasses {
 
   case class DeleteAllDataClass
   (
-    schema: Schema,
+    schema: TypedSchema,
     table: Table,
     override val softType: Type,
   ) extends SQLDataClass
 
   case class InsertDataClass
   (
-    schema: Schema,
+    schema: TypedSchema,
     table: Table,
     entity: SqlEntity,
     findByIdDataClass: FindByIdDataClass,
@@ -56,7 +56,7 @@ object SQLDataClasses {
 
   case class UpdateDataClass
   (
-    schema: Schema,
+    schema: TypedSchema,
     table: Table,
     entity: SqlEntity,
     where: Where,

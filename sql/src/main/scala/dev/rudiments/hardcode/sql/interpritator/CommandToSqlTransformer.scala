@@ -2,9 +2,9 @@ package dev.rudiments.hardcode.sql.interpritator
 
 import dev.rudiments.data.ReadOnly.{Find, FindAll}
 import dev.rudiments.data.CRUD.{Create, Delete, Update}
-import dev.rudiments.hardcore.http.query.HttpQuery
+import dev.rudiments.hardcore.http.query.{PassAllQuery, PredicatesQuery}
 import dev.rudiments.hardcore.http.query.predicates._
-import dev.rudiments.hardcode.sql.schema.{Column, Schema, Table}
+import dev.rudiments.hardcode.sql.schema.{Column, Table, TypedSchema}
 import dev.rudiments.hardcore.types.SoftID.{SoftID0, SoftID1, SoftID2}
 import dev.rudiments.hardcore.types.{ID, SoftID, Type}
 import dev.rudiments.hardcode.sql.SQLDataClasses._
@@ -12,7 +12,7 @@ import dev.rudiments.hardcode.sql.SQLPredicates._
 import dev.rudiments.hardcode.sql.SQLParts._
 import dev.rudiments.hardcode.sql.SQLPredicate
 
-class CommandToSqlTransformer(schema: Schema) {
+class CommandToSqlTransformer(schema: TypedSchema) {
 
   def queryToSelectSql(command: FindAll): QueryDataClass = {
     import command.query
@@ -28,12 +28,23 @@ class CommandToSqlTransformer(schema: Schema) {
 
     val converterFunction = partToWhereExpression(table)
 
-    QueryDataClass(
-      Select(selectors),
-      From(schema, table, None),
-      Where(query.parts.map(converterFunction)),
-      query.softType
-    )
+    command.query match {
+      case PassAllQuery(softType) =>
+        QueryDataClass(
+          Select(selectors),
+          From(schema, table, None),
+          None,
+          softType
+        )
+
+      case PredicatesQuery(parts, softType) =>
+        QueryDataClass(
+          Select(selectors),
+          From(schema, table, None),
+          Some(Where(parts.map(converterFunction))),
+          softType
+        )
+    }
   }
 
   def findToFindByIdSql(find: Find): FindByIdDataClass = {

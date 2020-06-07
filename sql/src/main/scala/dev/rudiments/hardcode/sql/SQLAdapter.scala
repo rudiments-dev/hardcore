@@ -2,7 +2,7 @@ package dev.rudiments.hardcode.sql
 
 import dev.rudiments.hardcode.sql.interpritator.CommandToSqlTransformer
 import dev.rudiments.hardcode.sql.scalalike.{ScalaLikeSQLMaterializer, ScalaLikeTransaction, ScalaLikeTransactionProvider}
-import dev.rudiments.hardcode.sql.schema.Schema
+import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcore.Adapter
 import dev.rudiments.data.ReadOnly.{Find, FindAll}
 import dev.rudiments.data.CRUD._
@@ -11,7 +11,7 @@ import dev.rudiments.data.Batch._
 import dev.rudiments.hardcore.types.Type
 import scalikejdbc.DB
 
-class SQLAdapter(db: DB, schema: Schema)(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
+class SQLAdapter(db: DB, schema: TypedSchema)(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
 
   private val sqlTransformer = new CommandToSqlTransformer(schema)
   private val sqlMaterializer = new ScalaLikeSQLMaterializer()

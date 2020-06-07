@@ -8,9 +8,9 @@ object QueryParser {
 
   import dev.rudiments.hardcore.http.query.predicates.TypeTransformers._
 
-  def parse(httpParams: HttpParams, softType: dev.rudiments.hardcore.types.Type): Either[RuntimeException, HttpQuery] = {
+  def parse(httpParams: HttpParams, softType: dev.rudiments.hardcore.types.Type): Either[RuntimeException, Query] = {
     if (httpParams.query.isEmpty) {
-      Right(HttpQuery.passAllQuery(softType))
+      Right(PassAllQuery(softType))
     } else {
       val types: Map[String, Field] = softType.fields
 
@@ -19,7 +19,7 @@ object QueryParser {
         recurs(tt, part)
       }
 
-      sequence(predicates).map(_.toSet).map(HttpQuery(_, softType))
+      sequence(predicates).map(_.toSet).map(PredicatesQuery(_, softType))
     }
   }
 
@@ -72,6 +72,7 @@ object QueryParser {
         DoubleLessOrEquals.create,
         DoubleMoreOrEquals.create
       )
+      case Types.Number(min, max, NumberFormat.Decimal) => Seq.empty
       case Types.Date => Seq.empty
       case Types.Time => Seq.empty
       case Types.Timestamp => Seq.empty

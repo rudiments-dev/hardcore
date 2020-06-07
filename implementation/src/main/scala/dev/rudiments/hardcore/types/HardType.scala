@@ -9,10 +9,11 @@ import scala.collection.immutable.ListMap
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.universe.{Type => SysType}
 
-class HardType[T : TypeTag](
-                                  override val name: String,
-                                  override val fields: Map[String, Field]
-                           ) extends Type(name, fields) {
+class HardType[T : TypeTag]
+(
+  override val name: String,
+  override val fields: Map[String, Field]
+) extends Type(name, fields) {
   def construct(arguments: Any*): T = {
     val c = Class.forName(typeOf[T].typeSymbol.asClass.fullName)
     c.getConstructors()(0).newInstance(arguments.map(_.asInstanceOf[Object]): _*).asInstanceOf[T]
@@ -23,6 +24,7 @@ class HardType[T : TypeTag](
     case other      => ???
   }
 }
+
 object HardType {
   def apply[T : TypeTag]: HardType[T] = apply(typeOf[T].typeSymbol)
 

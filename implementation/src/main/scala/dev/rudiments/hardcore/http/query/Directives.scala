@@ -8,9 +8,5 @@ import scala.reflect.runtime.universe.TypeTag
 
 object Directives {
 
-  def query(softType: Type): Directive1[HttpQuery] =
-    parameter("query".?).map(query => HttpParams.apply(query.getOrElse(""))).map(QueryParser.parse(_, softType)).map {
-      case Left(ex) => throw ex
-      case Right(value) => value
-    }
+  def query(softType: Type): Directive1[Query] = parameter("query".?).map(Query.apply(_, softType))
 }

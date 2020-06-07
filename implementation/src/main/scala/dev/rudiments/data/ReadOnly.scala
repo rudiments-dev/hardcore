@@ -1,6 +1,6 @@
 package dev.rudiments.data
 
-import dev.rudiments.hardcore.http.query.HttpQuery
+import dev.rudiments.hardcore.http.query.{PredicatesQuery, Query}
 import dev.rudiments.hardcore.http.query.interop.InMemoryQueryExecutor
 import dev.rudiments.hardcore.types.{ID, Instance}
 
@@ -20,7 +20,7 @@ object ReadOnly {
   }
 
 
-  case class FindAll(query: HttpQuery) extends DataCommand
+  case class FindAll(query: Query) extends DataCommand
   case class FoundAll(values: Seq[Instance]) extends DataEvent
 
   def findAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
