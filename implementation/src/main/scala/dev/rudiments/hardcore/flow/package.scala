@@ -14,7 +14,7 @@ package object flow {
 
 
   sealed trait ControlEvent extends Event {
-    override def toEither: Either[Message, Event] = Left(this)
+    override def toEither[E <: Event]: Result[E] = Left(this)
   }
   case object Waiting     extends ControlEvent
   case object InProgress  extends ControlEvent

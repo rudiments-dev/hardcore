@@ -13,9 +13,9 @@ object Batch {
     case CreateAll(batch) =>
       try {
         content ++= batch //TODO fix replacing if matched ID
-        AllCreated(batch)
+        AllCreated(batch).toEither
       } catch {
-        case _: Exception => BatchFailed()
+        case _: Exception => BatchFailed().toEither
       }
   }
 
@@ -28,9 +28,9 @@ object Batch {
       try {
         val withAuto = batch.map(i => (generator(), i)).toMap
         content ++= withAuto
-        AllAutoCreated(withAuto)
+        AllAutoCreated(withAuto).toEither
       } catch {
-        case _: Exception => BatchFailed()
+        case _: Exception => BatchFailed().toEither
       }
   }
 
@@ -43,9 +43,9 @@ object Batch {
       try {
         content --= content.keysIterator
         content ++= batch
-        AllReplaced(batch)
+        AllReplaced(batch).toEither
       } catch {
-        case e: Exception => BatchFailed()
+        case e: Exception => BatchFailed().toEither
       }
   }
 
@@ -57,9 +57,9 @@ object Batch {
     case DeleteAll =>
       try {
         content --= content.keysIterator
-        AllDeleted
+        AllDeleted.toEither
       } catch {
-        case _: Exception => BatchFailed()
+        case _: Exception => BatchFailed().toEither
       }
   }
 

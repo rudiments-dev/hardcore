@@ -72,7 +72,7 @@ class HardModuleSpec extends WordSpec with Matchers with ScalatestRouteTest {
         response.status should be (StatusCodes.Created)
       }
     }
-    repo(Count()) should be (Counted(10000))
+    repo(Count()).merge should be (Counted(10000))
     Get("/api/example/24") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Example] should be (Example(24, "24'th element", One))
@@ -82,7 +82,7 @@ class HardModuleSpec extends WordSpec with Matchers with ScalatestRouteTest {
   "endure 190.000 batch" in {
     Post("/api/example", (10001 to 200000).map(i => Example(i, s"$i'th element", Two))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      repo(Count()) should be (Counted(200000))
+      repo(Count()).merge should be (Counted(200000))
     }
     Get("/api/example/10024") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
@@ -93,7 +93,7 @@ class HardModuleSpec extends WordSpec with Matchers with ScalatestRouteTest {
   "clear repository" in {
     Delete("/api/example") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
-      repo(Count()) should be (Counted(0))
+      repo(Count()).merge should be (Counted(0))
     }
   }
 

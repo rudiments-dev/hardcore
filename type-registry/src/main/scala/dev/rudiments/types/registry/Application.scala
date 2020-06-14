@@ -27,15 +27,15 @@ object Application extends App with LazyLogging {
         value => Extract(value.what),
         {
           case Extract(id) => ctx.adapter(Find(SoftID(id))) match {
-            case Found(_, v) => Extracted(id, v)
-            case NotFound(_) => FailedToExtract(id)
+            case Right(Found(_, v)) => Extracted(id, v).toEither
+            case Left(NotFound(_)) => FailedToExtract(id).toEither
           }
         },
         {
-          case Extracted(_, v)      =>
+          case Right(Extracted(_, v))      =>
             implicit val en: Encoder[Instance] = ctx.encoder
             complete(StatusCodes.OK, v)
-          case FailedToExtract(id)  => complete(StatusCodes.NotFound, id)
+          case Left(FailedToExtract(id))  => complete(StatusCodes.NotFound, id)
         }
       ))
     )

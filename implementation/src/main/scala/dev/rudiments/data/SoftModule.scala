@@ -1,13 +1,13 @@
 package dev.rudiments.data
 
 import dev.rudiments.hardcore.flow.{ControlFlow, Controlled}
-import dev.rudiments.hardcore.{Skill, asSkill}
+import dev.rudiments.hardcore.{Event, Skill}
 import dev.rudiments.hardcore.http.{Router, SoftDecoder, SoftEncoder}
 import dev.rudiments.hardcore.types.{ID, Instance, SoftID, SoftInstance, Type}
 import io.circe.{Decoder, Encoder}
 
 class SoftModule (
-  val context: ModuleContext,
+  val context: ModuleContext[DataEvent],
   custom: Seq[(String, Router)] = Seq.empty,
   customId: Seq[(String, ID => Router)] = Seq.empty
 ) {
@@ -22,20 +22,20 @@ class SoftModule (
 }
 
 object SoftModule {
-  def apply(
+  def apply[E <: Event](
     prefix: String,
     idField: String,
-    custom: Seq[(String, ModuleContext => Router)] = Seq.empty,
-    customId: Seq[(String, ModuleContext => ID => Router)] = Seq.empty
+    custom: Seq[(String, ModuleContext[DataEvent] => Router)] = Seq.empty,
+    customId: Seq[(String, ModuleContext[DataEvent] => ID => Router)] = Seq.empty
   )(implicit t: Type): SoftModule = {
 
     implicit val flow: ControlFlow = new ControlFlow()
 
-    val context = ModuleContext(
+    val context = ModuleContext[DataEvent](
       t,
       idField,
       flow,
-      new Controlled(asSkill(new SoftCache()(t))),
+      new Controlled(new SoftCache()(t)),
       prefix,
       SoftEncoder(t).contramap { case i: SoftInstance => i },
       SoftDecoder(t).map(_.asInstanceOf[Instance])
@@ -48,11 +48,11 @@ object SoftModule {
   }
 }
 
-case class ModuleContext(
+case class ModuleContext[E <: Event](
   t: Type,
   idField: String,
   flow: ControlFlow,
-  adapter: Skill,
+  adapter: Skill[E],
   prefix: String,
   encoder: Encoder[Instance],
   decoder: Decoder[Instance]

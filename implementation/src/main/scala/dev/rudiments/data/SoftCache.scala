@@ -1,7 +1,7 @@
 package dev.rudiments.data
 
 import dev.rudiments.data.CRUD.Created
-import dev.rudiments.hardcore.Adapter
+import dev.rudiments.hardcore.{Adapter, Command, Result}
 import dev.rudiments.hardcore.flow.BulkMutated
 import dev.rudiments.hardcore.types.SoftID.SoftID1
 import dev.rudiments.hardcore.types._
@@ -11,15 +11,15 @@ import scala.collection.parallel
 class SoftCache(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
   private implicit val content: parallel.mutable.ParMap[ID, Instance] = parallel.mutable.ParMap.empty[ID, Instance]
 
-  override def isDefinedAt(x: DataCommand): Boolean = f.isDefinedAt(x)
-  override def apply(cmd: DataCommand): DataEvent = {
+  override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
+  override def apply(cmd: Command): Result[DataEvent] = {
     f(cmd) match {
-      case evt: Created =>
+      case r@Right(evt: Created) =>
         counter += 1
-        evt
-      case evt: BulkMutated =>
+        r
+      case r@Right(evt: BulkMutated) =>
         counter = content.size + 1
-        evt
+        r
       case evt => evt
     }
   }

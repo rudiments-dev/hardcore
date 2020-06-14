@@ -18,10 +18,10 @@ object CRUD {
         case None =>
           content.put(key, value)
           content.get(key) match {
-            case Some(created) => Created(key, created)
-            case None => FailedToCreate(key, value)
+            case Some(created) => Created(key, created).toEither
+            case None => FailedToCreate(key, value).toEither
           }
-        case Some(v) => AlreadyExists(key, v)
+        case Some(v) => AlreadyExists(key, v).toEither
       }
   }
 
@@ -34,8 +34,8 @@ object CRUD {
       val key = generator()
       content.put(key, value)
       content.get(key) match {
-        case Some(created) => Created(key, created)
-        case None => FailedToCreateAuto(key, value)
+        case Some(created) => Created(key, created).toEither
+        case None => FailedToCreateAuto(key, value).toEither
       }
   }
 
@@ -50,11 +50,11 @@ object CRUD {
         case Some(found) =>
           content.put(key, value)
           content.get(key) match {
-            case Some(v) if v == value => Updated(key, found, value)
-            case Some(v) if v != value => FailedToUpdate(key, v)
-            case None => NotFound(key) //TODO think about this error
+            case Some(v) if v == value => Updated(key, found, value).toEither
+            case Some(v) if v != value => FailedToUpdate(key, v).toEither
+            case None => NotFound(key).toEither //TODO think about this error
           }
-        case None => NotFound(key)
+        case None => NotFound(key).toEither
       }
   }
 
@@ -69,10 +69,10 @@ object CRUD {
         case Some(found) =>
           content -= key
           content.get(key) match {
-            case None => Deleted(key, found)
-            case Some(_) => FailedToDelete(key, found)
+            case None => Deleted(key, found).toEither
+            case Some(_) => FailedToDelete(key, found).toEither
           }
-        case None => NotFound(key)
+        case None => NotFound(key).toEither
       }
   }
 }

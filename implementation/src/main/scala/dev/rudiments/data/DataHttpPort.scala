@@ -4,21 +4,20 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import dev.rudiments.hardcore.{Event, Port, Skill}
 import dev.rudiments.data.Batch._
 import dev.rudiments.data.CRUD._
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http._
-import dev.rudiments.hardcore.types.{AutoID, ID, Instance, Type}
 import dev.rudiments.hardcore.http.query.Directives
-import dev.rudiments.hardcore.types.{AutoID, ID, Instance, SoftInstance, Type}
+import dev.rudiments.hardcore.types.{ID, Instance, Type}
+import dev.rudiments.hardcore.{Port, Result, Skill}
 import io.circe.{Decoder, Encoder}
 
 class DataHttpPort(
   prefix: String,
   idField: String,
   identify: Instance => ID,
-  override val s: Skill,
+  override val s: Skill[DataEvent],
   customRoutes: Seq[(String, Router)] = Seq.empty,
   customIdRoutes: Seq[(String, ID => Router)] = Seq.empty
 )(implicit t: Type, en: Encoder[Instance], de: Decoder[Instance]) extends Port(s) with Router with FailFastCirceSupport {
@@ -41,21 +40,21 @@ class DataHttpPort(
     )
   ).routes
 
-  def responseWith(event: Event): StandardRoute = event match {
-    case Created(_, value) =>       complete(StatusCodes.Created, value)
-    case Found(_, value) =>         complete(StatusCodes.OK, value)
-    case FoundAll(values) =>        complete(StatusCodes.OK, values)
-    case Updated(_, _, newValue) => complete(StatusCodes.OK, newValue)
-    case Deleted(_, _) =>           complete(StatusCodes.NoContent)
+  def responseWith(event: Result[DataEvent]): StandardRoute = event match {
+    case Right(Created(_, value)) =>        complete(StatusCodes.Created, value)
+    case Right(Found(_, value)) =>          complete(StatusCodes.OK, value)
+    case Right(FoundAll(values)) =>         complete(StatusCodes.OK, values)
+    case Right(Updated(_, _, newValue)) =>  complete(StatusCodes.OK, newValue)
+    case Right(Deleted(_, _)) =>            complete(StatusCodes.NoContent)
 
-    case AllCreated(_) =>           complete(StatusCodes.Created)
-    case AllReplaced(_) =>          complete(StatusCodes.Created)
-    case AllDeleted =>              complete(StatusCodes.NoContent)
+    case Right(AllCreated(_)) =>            complete(StatusCodes.Created)
+    case Right(AllReplaced(_)) =>           complete(StatusCodes.Created)
+    case Right(AllDeleted) =>               complete(StatusCodes.NoContent)
 
-    case NotFound(_) =>             complete(StatusCodes.NotFound)
-    case AlreadyExists(_, _) =>     complete(StatusCodes.Conflict)
+    case Left(NotFound(_)) =>               complete(StatusCodes.NotFound)
+    case Left(AlreadyExists(_, _)) =>       complete(StatusCodes.Conflict)
 
-    case _: Error =>                complete(StatusCodes.InternalServerError)
+    case Left(_: Error) =>                  complete(StatusCodes.InternalServerError)
   }
 }
 
