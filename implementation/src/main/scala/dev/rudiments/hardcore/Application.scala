@@ -1,12 +1,12 @@
 package dev.rudiments.hardcore
 
-trait Port[C <: Command, E <: Event] {
-  val f: Skill[C, E]
-}
+abstract class Port(val s: Skill) {}
 
-trait Service[C <: Command, E <: Event] extends Skill[C, E] {}
+abstract class HardPort[C <: Command, E <: Event](val h: HardSkill[C, E]) extends Port(asSkill(h)) {}
 
-trait Adapter[C <: Command, E <: Event] extends Skill[C, E] {}
+trait Service[C <: Command, E <: Event] extends HardSkill[C, E] {}
+
+trait Adapter[C <: Command, E <: Event] extends HardSkill[C, E] {}
 
 trait Pipe[C <: Command] {}
 trait Pipeline[C <: Command] extends Pipe[C] {}

@@ -1,17 +1,18 @@
 package dev.rudiments.data
 
+import dev.rudiments.hardcore.flow.{BulkMutate, BulkMutated}
 import dev.rudiments.hardcore.types.{ID, Instance}
 
 import scala.collection.parallel
 
 object Batch {
-  case class CreateAll  (batch: Map[ID, Instance]) extends DataCommand
-  case class AllCreated (batch: Map[ID, Instance]) extends DataEvent
+  case class CreateAll  (batch: Map[ID, Instance]) extends DataCommand with BulkMutate
+  case class AllCreated (batch: Map[ID, Instance]) extends DataEvent with BulkMutated
 
   def createAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case CreateAll(batch) =>
       try {
-        content ++= batch
+        content ++= batch //TODO fix replacing if matched ID
         AllCreated(batch)
       } catch {
         case _: Exception => BatchFailed()
@@ -19,8 +20,8 @@ object Batch {
   }
 
 
-  case class CreateAllAuto  (batch: Seq[Instance]) extends DataCommand
-  case class AllAutoCreated (batch: Map[ID, Instance]) extends DataEvent
+  case class CreateAllAuto  (batch: Seq[Instance]) extends DataCommand with BulkMutate
+  case class AllAutoCreated (batch: Map[ID, Instance]) extends DataEvent with BulkMutated
 
   def createAllAuto(generator: () => ID)(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case CreateAllAuto(batch) =>
@@ -34,8 +35,8 @@ object Batch {
   }
 
 
-  case class ReplaceAll (batch: Map[ID, Instance]) extends DataCommand
-  case class AllReplaced(batch: Map[ID, Instance]) extends DataEvent
+  case class ReplaceAll (batch: Map[ID, Instance]) extends DataCommand with BulkMutate
+  case class AllReplaced(batch: Map[ID, Instance]) extends DataEvent with BulkMutated
 
   def replaceAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case ReplaceAll(batch) =>
@@ -49,8 +50,8 @@ object Batch {
   }
 
 
-  case object DeleteAll extends DataCommand
-  case object AllDeleted extends DataEvent
+  case object DeleteAll extends DataCommand with BulkMutate
+  case object AllDeleted extends DataEvent with BulkMutated
 
   def deleteAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case DeleteAll =>

@@ -29,13 +29,16 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     "id",
     i => SoftID(t.extract(i, "id")),
     cache
+  )(
+    t,
+    SoftEncoder(t).contramap { case i: SoftInstance => i },
+    SoftDecoder(t).map(_.asInstanceOf[Instance])
   )
   private implicit val en: Encoder[SoftInstance] = SoftEncoder(t)
   private implicit val de: Decoder[SoftInstance] = SoftDecoder(t)
 
   private val routes = Route.seal(router.routes)
-  private val sample = t.softFromHard(Example(42, "sample"))
-  private val id = SoftID(t.extract(sample, "id"))
+  private val sample = SoftInstance(42L, "sample")
 
   "SoftEncoder can encode" in {
     en.apply(sample) should be (Json.obj(
@@ -52,7 +55,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   }
 
   "no element by ID" in {
-    Get("/example/42") ~> routes ~> check {
+    Get("/example/1") ~> routes ~> check {
       response.status should be (StatusCodes.NotFound)
     }
   }
@@ -62,30 +65,44 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       response.status should be (StatusCodes.Created)
       responseAs[SoftInstance] should be (sample)
     }
+    Get("/example/1") ~> routes ~> check {
+      response.status should be (StatusCodes.OK)
+      responseAs[SoftInstance] should be (sample)
+    }
   }
 
   "update item in repository" in {
-    Put("/example/42", SoftInstance(42L, "test")) ~> routes ~> check {
+    Put("/example/1", SoftInstance(42L, "test")) ~> routes ~> check {
+      response.status should be (StatusCodes.OK)
+      responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
+    }
+    Get("/example/1") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[SoftInstance] should be (SoftInstance(42, "test"))
     }
   }
 
-  "second create makes conflict" in {
+  "second POST creates another item" in {
     Post("/example", sample) ~> routes ~> check {
-      response.status should be (StatusCodes.Conflict)
+      response.status should be (StatusCodes.Created)
     }
-    Get("/example/42") ~> routes ~> check {
+    Get("/example/2") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42, "test"))
+      responseAs[SoftInstance] should be (sample)
     }
   }
 
-  "delete item from repository" in {
-    Delete("/example/42") ~> routes ~> check {
+  "delete items from repository" in {
+    Delete("/example/1") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
     }
-    Get("/example/42") ~> routes ~> check {
+    Get("/example/1") ~> routes ~> check {
+      response.status should be (StatusCodes.NotFound)
+    }
+    Delete("/example/2") ~> routes ~> check {
+      response.status should be (StatusCodes.NoContent)
+    }
+    Get("/example/2") ~> routes ~> check {
       response.status should be (StatusCodes.NotFound)
     }
   }
@@ -97,20 +114,20 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       }
     }
     cache(Count) should be (Counted(10000))
-    Get("/example/24") ~> routes ~> check {
+    Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(24L, "24'th element"))
+      responseAs[SoftInstance] should be (SoftInstance(40L, "40'th element"))
     }
   }
 
   "endure 190.000 batch" in {
-    Post("/example", (10001 to 200000).map(i => SoftInstance(i.toLong, s"$i'th element"))) ~> routes ~> check {
+    Post("/example", (10003 to 200002).map(i => SoftInstance(i.toLong, s"$i'th element"))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       cache(Count) should be (Counted(200000))
     }
-    Get("/example/10024") ~> routes ~> check {
+    Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(10024L, "10024'th element"))
+      responseAs[SoftInstance] should be (SoftInstance(10042L, "10042'th element"))
     }
   }
 

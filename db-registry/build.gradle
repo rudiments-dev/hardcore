@@ -1,5 +1,6 @@
 dependencies {
     compile project(':implementation')
+    compile project(':sql')
 //    compile 'mysql:mysql-connector-java:8.0.13'
     compile 'com.h2database:h2:1.4.199'
     compile 'ch.qos.logback:logback-classic:1.2.3'

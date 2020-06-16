@@ -1,5 +1,6 @@
 package dev.rudiments.db.registry
 
+import dev.rudiments.hardcode.sql.schema.{FK, TypedSchema, Table}
 import dev.rudiments.hardcore.data.HardCache
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.data.CRUD.Create
@@ -11,7 +12,7 @@ class H2Service(adapter: H2Adapter, persistent: HardCache[Schema]) extends Servi
   override def apply(cmd: SchemaCommand): SchemaEvent = f(cmd)
 
   implicit val t: HardType[Schema] = HardType[Schema]
-  val f: Skill[SchemaCommand, SchemaEvent] = {
+  val f: HardSkill[SchemaCommand, SchemaEvent] = {
     case ReadSchema(schemaName) =>
       persistent(
         Create(
@@ -43,9 +44,7 @@ class H2Service(adapter: H2Adapter, persistent: HardCache[Schema]) extends Servi
       case TableDiscovered(tableName, columns) =>
         Table(
           tableName,
-          columns,
           columns
-            .filter(c => c.pk)
         )
       case ConnectionFailure(e) => throw e
     }

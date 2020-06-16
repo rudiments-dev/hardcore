@@ -5,6 +5,10 @@ object TypeTransformers {
     def transform(source: A) : B
   }
 
+  implicit case object toDouble extends Transformer[String, Double] {
+    override def transform(source: String): Double = source.toDouble
+  }
+
   implicit case object toInt extends Transformer[String, Int] {
     override def transform(source: String): Int = source.toInt
   }
