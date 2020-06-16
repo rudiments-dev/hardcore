@@ -78,7 +78,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     }
     Get("/example/1") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42, "test"))
+      responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
     }
   }
 

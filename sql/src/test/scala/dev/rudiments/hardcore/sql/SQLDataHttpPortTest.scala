@@ -101,7 +101,7 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
   "update item in repository" in {
     Put("/example/42", SoftInstance(42L, "test")) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42, "test"))
+      responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
     }
   }
 
@@ -111,7 +111,7 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42, "test"))
+      responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
     }
   }
 
