@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore.flow
 
 import dev.rudiments.hardcore.Error.NoHandler
-import dev.rudiments.hardcore.{Command, Event, Result, Skill}
+import dev.rudiments.hardcore.{Command, Event, Message, Result, Skill, SkillResult}
 
 class Controlled[E <: Event](skill: Skill[E])(implicit flow: ControlFlow) extends Skill[E] {
 
@@ -14,7 +14,7 @@ class Controlled[E <: Event](skill: Skill[E])(implicit flow: ControlFlow) extend
       case c: Command if skill.isDefinedAt(c) =>
         flow.put(cmd, InProgress)
         val result = skill(c)
-        flow.put(cmd, result.merge)
+        flow.put(cmd, result.asInstanceOf[SkillResult[Message, Message]].merge)
         result
       case other =>
         flow.put(other, NoHandler)
