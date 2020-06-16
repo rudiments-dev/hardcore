@@ -75,6 +75,7 @@ object IDPath {
     case ScalaTypes.ScalaLong =>  pathPrefix(LongNumber).map(l => SoftID1(l))
     case ScalaTypes.ScalaInt =>   pathPrefix(IntNumber).map(l => SoftID1(l))
     case Types.Text(_) =>         pathPrefix(Segment).map(s => SoftID1(s))
+    case Types.UUID =>            pathPrefix(JavaUUID).map(u => SoftID1(u))
     case Types.Date =>            pathPrefix(Segment).map(s => SoftID1(Date.valueOf(s)))
     case other => ???
   }

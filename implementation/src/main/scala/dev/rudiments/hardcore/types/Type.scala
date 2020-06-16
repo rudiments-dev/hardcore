@@ -20,6 +20,7 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
         .map { case ((name, _), argument) => name -> argument }
     )(this)
 
+  //TODO fix SoftInstance generation on incoming Option
   def softFromHard(hard: Any): SoftInstance = hard match {
     case p: Product => constructSoft(p.productIterator.toSeq.map(wrapComposite): _*)
     case other      => ???
