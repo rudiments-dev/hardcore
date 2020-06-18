@@ -1,7 +1,9 @@
 package dev.rudiments.hardcore.flow
 
+import dev.rudiments.data.Batch.{AllCreated, AllDeleted, AllReplaced}
+import dev.rudiments.data.CRUD.{Created, Deleted, Updated}
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.types.ID
+import dev.rudiments.hardcore.types.{DeletedInstance, ID, Instance}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -11,14 +13,14 @@ class ControlFlow {
   private case class PromiseListener(pf: MessageProcessor, p: Promise[Message])
 
   val memory: mutable.Queue[(Command, Message)] = mutable.Queue.empty[(Command, Message)]
-  val cachedContext: mutable.Map[ID, (Command, Message)] = mutable.Map.empty
+  val state: mutable.Map[ID, Stateful] = mutable.Map.empty
   private val listeners: ArrayBuffer[PromiseListener] = mutable.ArrayBuffer.empty
 
   def put(cmd: Command, msg: Message): Unit = {
     memory += cmd -> msg
     (cmd, msg) match {
-      case (_, single: CacheSingle) => cachedContext += single.key -> (cmd, msg)
-      case (single: CacheSingle, _) => cachedContext += single.key -> (cmd, msg)
+      case (_, single: CacheSingle) => state += single.key -> Stateful(single.key, cmd, msg)
+      case (single: CacheSingle, _) => state += single.key -> Stateful(single.key, cmd, msg)
       case _ =>
     }
 
@@ -47,4 +49,37 @@ class ControlFlow {
     }
     p.future
   }
+}
+
+case class Stateful(
+  id: ID,
+  memory: mutable.Queue[(Command, Message)],
+  var last: (Command, Message),
+  var value: Instance
+) {
+  def mutate(cmd: Command, msg: Message): Stateful = {
+    memory += cmd -> msg
+    last = cmd -> msg
+    (cmd, msg) match {
+      case (_, Created(_, v)) => value = v
+      case (_, Updated(_, _, v)) => value = v
+      case (_, Deleted(_, v)) => value = DeletedInstance
+      case (_, AllCreated(batch)) => batch.get(id).foreach { value = _ }
+      case (_, AllReplaced(batch)) => batch.get(id) match {
+        case Some(v) => value = v
+        case None => value = DeletedInstance
+      }
+      case (_, AllDeleted) => value = DeletedInstance
+      case (_, _) => //pass
+    }
+    this
+  }
+}
+object Stateful {
+  def apply(id: ID, cmd: Command, msg: Message): Stateful = new Stateful(
+    id,
+    mutable.Queue.empty[(Command, Message)],
+    null,
+    null
+  ).mutate(cmd, msg)
 }

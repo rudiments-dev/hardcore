@@ -21,4 +21,8 @@ package object types {
   trait AutoID extends ID
 
   case class FieldNotFound(field: String) extends Error
+
+  trait EmptyInstance extends Instance
+  case object NotCreatedInstance extends EmptyInstance
+  case object DeletedInstance extends EmptyInstance
 }

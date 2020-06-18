@@ -16,7 +16,8 @@ class Controlled[E <: Event](skill: Skill[E])(implicit flow: ControlFlow) extend
     case c: BulkRead => execute(c)
     case c: SideEffect => execute(c) //TODO think!
     case c: CacheSingle =>
-      flow.cachedContext.get(c.key) match {
+      val stateful = flow.state.get(c.key).map(s => s.last)
+      stateful match {
         case Some((command, nested: Command)) if command == cmd => this(nested)
         case Some((command, event: Event)) if command == cmd => event.toEither
         case Some((command, other)) if command != cmd => execute(cmd)
