@@ -12,7 +12,7 @@ class H2Service(adapter: H2Adapter, persistent: HardCache[Schema]) extends Servi
   override def apply(cmd: SchemaCommand): SchemaEvent = f(cmd)
 
   implicit val t: HardType[Schema] = HardType[Schema]
-  val f: Skill[SchemaCommand, SchemaEvent] = {
+  val f: HardSkill[SchemaCommand, SchemaEvent] = {
     case ReadSchema(schemaName) =>
       persistent(
         Create(

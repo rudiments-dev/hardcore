@@ -1,16 +1,17 @@
 package dev.rudiments.data
 
 import dev.rudiments.data.ReadOnly.NotFound
+import dev.rudiments.hardcore.flow.{AlwaysDo, Mutated, Mutates, SideEffect}
 import dev.rudiments.hardcore.types.{ID, Instance}
 
 import scala.collection.parallel
 
 object CRUD {
-  case class Create(key: ID, value: Instance) extends DataCommand
-  case class Created(key: ID, value: Instance) extends DataEvent
+  case class Create(key: ID, value: Instance) extends DataCommand with Mutates
+  case class Created(key: ID, value: Instance) extends DataEvent with Mutated
   case class AlreadyExists(key: ID, value: Instance) extends DataErrorEvent
   case class FailedToCreate(key: ID, value: Instance) extends DataErrorEvent
-  
+
   def create(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case Create(key, value) =>
       content.get(key) match {
@@ -25,7 +26,7 @@ object CRUD {
   }
 
 
-  case class CreateAuto(value: Instance) extends DataCommand
+  case class CreateAuto(value: Instance) extends DataCommand with SideEffect
   case class FailedToCreateAuto(key: ID, value: Instance) extends DataErrorEvent
 
   def createAuto(generator: () => ID)(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
@@ -39,8 +40,8 @@ object CRUD {
   }
 
 
-  case class Update(key: ID, value: Instance) extends DataCommand
-  case class Updated(key: ID, oldvalue: Instance, newvalue: Instance) extends DataEvent
+  case class Update(key: ID, value: Instance) extends DataCommand with Mutates
+  case class Updated(key: ID, oldvalue: Instance, newvalue: Instance) extends DataEvent with Mutated
   case class FailedToUpdate(key: ID, value: Instance) extends DataErrorEvent
 
   def update(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
@@ -58,8 +59,8 @@ object CRUD {
   }
 
 
-  case class Delete(key: ID) extends DataCommand
-  case class Deleted(key: ID, value: Instance) extends DataEvent
+  case class Delete(key: ID) extends DataCommand with Mutates
+  case class Deleted(key: ID, value: Instance) extends DataEvent with Mutated
   case class FailedToDelete(key: ID, value: Instance) extends DataErrorEvent
 
   def delete(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {

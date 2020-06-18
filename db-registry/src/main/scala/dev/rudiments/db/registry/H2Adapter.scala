@@ -2,7 +2,7 @@ package dev.rudiments.db.registry
 
 import com.typesafe.config.Config
 import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes}
-import dev.rudiments.hardcore.{Adapter, Command, Event, Skill}
+import dev.rudiments.hardcore.{Adapter, Command, Event, HardSkill}
 import scalikejdbc._
 
 class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
@@ -11,7 +11,7 @@ class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
 
   override def isDefinedAt(cmd: H2Command): Boolean = f.isDefinedAt(cmd)
   override def apply(cmd: H2Command): H2Event = f(cmd)
-  val f: Skill[H2Command, H2Event] = {
+  val f: HardSkill[H2Command, H2Event] = {
     case CheckConnection =>
       try {
         sql"SELECT 1+1".execute().apply()(AutoSession)

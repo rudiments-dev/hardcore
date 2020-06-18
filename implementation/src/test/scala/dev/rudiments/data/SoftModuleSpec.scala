@@ -14,7 +14,7 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
-class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest with FailFastCirceSupport {
+class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with FailFastCirceSupport {
   private case class Example(
     id: Long = Defaults.long,
     name: String
@@ -22,33 +22,22 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val t: Type = HardType[Example]
-  private val cache: SoftCache = new SoftCache
+  private val module = SoftModule("example", "id")
+  private implicit val en: Encoder[Instance] = module.context.encoder
+  private implicit val de: Decoder[Instance] = module.context.decoder
 
-  private val router: DataHttpPort = new DataHttpPort(
-    "example",
-    "id",
-    i => SoftID(t.extract(i, "id")),
-    cache
-  )(
-    t,
-    SoftEncoder(t).contramap { case i: SoftInstance => i },
-    SoftDecoder(t).map(_.asInstanceOf[Instance])
-  )
-  private implicit val en: Encoder[SoftInstance] = SoftEncoder(t)
-  private implicit val de: Decoder[SoftInstance] = SoftDecoder(t)
+  private val routes = Route.seal(module.port.routes)
+  private val sample: Instance = SoftInstance(42L, "sample")
 
-  private val routes = Route.seal(router.routes)
-  private val sample = SoftInstance(42L, "sample")
-
-  "SoftEncoder can encode" in {
-    en.apply(sample) should be (Json.obj(
+  "Module encoder can encode" in {
+    module.context.encoder.apply(sample) should be (Json.obj(
       "id" -> Json.fromLong(42),
       "name" -> Json.fromString("sample")
     ))
   }
 
-  "SoftDecoder can decode" in {
-    de.decodeJson(Json.obj(
+  "Module decoder can decode" in {
+    module.context.decoder.decodeJson(Json.obj(
       "id" -> Json.fromLong(42),
       "name" -> Json.fromString("sample")
     )).right.get should be (sample)
@@ -60,25 +49,25 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     }
   }
 
-  "put item into repository" in {
+  "CreateAuto item into repository" in {
     Post("/example", sample) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      responseAs[SoftInstance] should be (sample)
+      responseAs[Instance] should be (sample)
     }
     Get("/example/1") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (sample)
+      responseAs[Instance] should be (sample)
     }
   }
 
   "update item in repository" in {
-    Put("/example/1", SoftInstance(42L, "test")) ~> routes ~> check {
+    Put("/example/1", SoftInstance(42L, "test").asInstanceOf[Instance]) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
+      responseAs[Instance] should be (SoftInstance(42L, "test"))
     }
     Get("/example/1") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42, "test"))
+      responseAs[Instance] should be (SoftInstance(42L, "test"))
     }
   }
 
@@ -88,17 +77,18 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     }
     Get("/example/2") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (sample)
+      responseAs[Instance] should be (sample)
     }
   }
 
-  "delete items from repository" in {
+  "delete item from repository" in {
     Delete("/example/1") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
     }
     Get("/example/1") ~> routes ~> check {
       response.status should be (StatusCodes.NotFound)
     }
+
     Delete("/example/2") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
     }
@@ -109,32 +99,32 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
   "endure 10.000 records" in {
     (1 to 10000).foreach { i =>
-      Post("/example", SoftInstance(i.toLong, s"$i'th element")) ~> routes ~> check {
+      Post("/example", SoftInstance(i.toLong, s"$i'th element").asInstanceOf[Instance]) ~> routes ~> check {
         response.status should be (StatusCodes.Created)
       }
     }
-    cache(Count) should be (Counted(10000))
+    module.context.adapter(Count) should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(40L, "40'th element"))
+      responseAs[Instance] should be (SoftInstance(40L, "40'th element"))
     }
   }
 
   "endure 190.000 batch" in {
-    Post("/example", (10003 to 200002).map(i => SoftInstance(i.toLong, s"$i'th element"))) ~> routes ~> check {
+    Post("/example", (10003 to 200002).map(i => SoftInstance(i.toLong, s"$i'th element").asInstanceOf[Instance])) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      cache(Count) should be (Counted(200000))
+      module.context.adapter(Count) should be (Counted(200000))
     }
     Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(10042L, "10042'th element"))
+      responseAs[Instance] should be (SoftInstance(10042L, "10042'th element"))
     }
   }
 
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
-      cache(Count) should be (Counted(0))
+      module.context.adapter(Count) should be (Counted(0))
     }
   }
 

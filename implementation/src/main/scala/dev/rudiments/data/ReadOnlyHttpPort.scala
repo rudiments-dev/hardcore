@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import dev.rudiments.data.ReadOnly._
+import dev.rudiments.hardcore.{Event, HardPort, Port, Skill}
 import dev.rudiments.hardcore.Port
 import dev.rudiments.hardcore.http.query.Directives
 import dev.rudiments.hardcore.http.{IDPath, Router, SoftEncoder}
@@ -13,8 +14,8 @@ import io.circe.Encoder
 class ReadOnlyHttpPort(
   prefix: String,
   idField: String,
-  override val f: DataSkill
-)(implicit t: Type) extends Port[DataCommand, DataEvent] with Router {
+  override val s: Skill
+)(implicit t: Type) extends Port(s) with Router {
 
   private implicit val encoder: Encoder[Instance] = SoftEncoder(t).contramap( i => i.asInstanceOf[SoftInstance] )
   private val idPath = IDPath(t.fields(idField).kind)(t)
@@ -23,18 +24,18 @@ class ReadOnlyHttpPort(
     get {
       pathEndOrSingleSlash {
         Directives.query(t) { query =>
-          responseWith(f(FindAll(query)))
+          responseWith(s(FindAll(query)))
         }
       } ~ idPath { id =>
         pathEndOrSingleSlash {
-          responseWith(f(Find(id)))
+          responseWith(s(Find(id)))
         }
       }
     }
   }
 
   import dev.rudiments.hardcore.http.CirceSupport._
-  def responseWith(event: DataEvent): StandardRoute = event match {
+  def responseWith(event: Event): StandardRoute = event match {
     case Found(_, value) =>   complete(StatusCodes.OK, value)
     case FoundAll(values) =>  complete(StatusCodes.OK, values)
     case NotFound(_) =>       complete(StatusCodes.NotFound)
