@@ -3,7 +3,7 @@ package dev.rudiments.hardcode.sql
 import dev.rudiments.hardcode.sql.interpritator.CommandToSqlTransformer
 import dev.rudiments.hardcode.sql.scalalike.{ScalaLikeSQLMaterializer, ScalaLikeTransaction, ScalaLikeTransactionProvider}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
-import dev.rudiments.hardcore.Adapter
+import dev.rudiments.hardcore.{Adapter, Command, Result}
 import dev.rudiments.data.ReadOnly.{Find, FindAll}
 import dev.rudiments.data.CRUD._
 import dev.rudiments.data.{DataCommand, DataEvent, DataSkill}
@@ -16,15 +16,15 @@ class SQLAdapter(db: DB, schema: TypedSchema)(implicit t: Type) extends Adapter[
   private val sqlTransformer = new CommandToSqlTransformer(schema)
   private val sqlMaterializer = new ScalaLikeSQLMaterializer()
   private val transactionProvider = new ScalaLikeTransactionProvider(db)
-  override def isDefinedAt(x: DataCommand): Boolean = f.isDefinedAt(x)
-  override def apply(cmd: DataCommand): DataEvent = f(cmd)
+  override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
+  override def apply(cmd: Command): Result[DataEvent] = f(cmd)
 
   val f: DataSkill = {
-    case command: Create => withTransaction(sqlMaterializer.insertSQL(sqlTransformer.createToInsertSql(command)).exec)
-    case command: Find => withTransaction(sqlMaterializer.findByIdSQL(sqlTransformer.findToFindByIdSql(command)).exec)
-    case command: Delete => withTransaction(sqlMaterializer.dropSQL(sqlTransformer.deleteToDropSql(command)).exec)
-    case command: Update => withTransaction(sqlMaterializer.updateSQL(sqlTransformer.updateToUpdateSql(command)).exec)
-    case command: FindAll => withTransaction(sqlMaterializer.querySQL(sqlTransformer.queryToSelectSql(command)).exec)
+    case command: Create => withTransaction(sqlMaterializer.insertSQL(sqlTransformer.createToInsertSql(command)).exec).toEither
+    case command: Find => withTransaction(sqlMaterializer.findByIdSQL(sqlTransformer.findToFindByIdSql(command)).exec).toEither
+    case command: Delete => withTransaction(sqlMaterializer.dropSQL(sqlTransformer.deleteToDropSql(command)).exec).toEither
+    case command: Update => withTransaction(sqlMaterializer.updateSQL(sqlTransformer.updateToUpdateSql(command)).exec).toEither
+    case command: FindAll => withTransaction(sqlMaterializer.querySQL(sqlTransformer.queryToSelectSql(command)).exec).toEither
     case command: CreateAll =>
       val commands = command.batch.map { case (id, instance) => Create(id, instance) }
         .map(sqlTransformer.createToInsertSql)
@@ -36,8 +36,8 @@ class SQLAdapter(db: DB, schema: TypedSchema)(implicit t: Type) extends Adapter[
             case _ => ???
           }.toMap)
       })
-      withTransaction(sql.exec)
-    case _: DeleteAll.type => withTransaction(sqlMaterializer.dropAllSQL(sqlTransformer.deleteAllDropSql(t)).exec)
+      withTransaction(sql.exec).toEither
+    case _: DeleteAll.type => withTransaction(sqlMaterializer.dropAllSQL(sqlTransformer.deleteAllDropSql(t)).exec).toEither
     case command : ReplaceAll =>
       withTransaction(transaction => {
         sqlMaterializer.dropAllSQL(sqlTransformer.deleteAllDropSql(t)).exec(transaction)
@@ -51,7 +51,7 @@ class SQLAdapter(db: DB, schema: TypedSchema)(implicit t: Type) extends Adapter[
               case _ => ???
             }.toMap)
         })
-        sql.exec(transaction)
+        sql.exec(transaction).toEither
       })
   }
 

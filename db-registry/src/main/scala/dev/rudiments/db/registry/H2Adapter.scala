@@ -2,22 +2,22 @@ package dev.rudiments.db.registry
 
 import com.typesafe.config.Config
 import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes}
-import dev.rudiments.hardcore.{Adapter, Command, Event, HardSkill}
+import dev.rudiments.hardcore.{Adapter, Command, Event, Result, Skill}
 import scalikejdbc._
 
 class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
 
   val schemaName: String = initConnectionPool(config)
 
-  override def isDefinedAt(cmd: H2Command): Boolean = f.isDefinedAt(cmd)
-  override def apply(cmd: H2Command): H2Event = f(cmd)
-  val f: HardSkill[H2Command, H2Event] = {
+  override def isDefinedAt(cmd: Command): Boolean = f.isDefinedAt(cmd)
+  override def apply(cmd: Command): Result[H2Event] = f(cmd)
+  val f: Skill[H2Event] = {
     case CheckConnection =>
       try {
         sql"SELECT 1+1".execute().apply()(AutoSession)
-        ConnectionOk
+        ConnectionOk.toEither
       } catch {
-        case e: Exception => ConnectionFailure(e)
+        case e: Exception => ConnectionFailure(e).toEither
       }
 
     case DiscoverSchema(schemaName: String) =>
@@ -26,9 +26,9 @@ class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
         val tables = SQL("SHOW TABLES FROM " + schemaName).map { rs =>
           rs.string("table_name")
         }.toIterable().apply().toSet
-        SchemaDiscovered(schemaName, tables)
+        SchemaDiscovered(schemaName, tables).toEither
       } catch {
-        case e: Exception => ConnectionFailure(e)
+        case e: Exception => ConnectionFailure(e).toEither
       }
 
     case DiscoverTable(tableName: String, schemaName: String) =>
@@ -43,9 +43,9 @@ class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
             rs.string("key").equalsIgnoreCase("PRI")
           )
         }.toIterable().apply().toSeq
-        TableDiscovered(tableName, columns)
+        TableDiscovered(tableName, columns).toEither
       } catch {
-        case e: Exception => ConnectionFailure(e)
+        case e: Exception => ConnectionFailure(e).toEither
       }
 
     case DiscoverReferences(schemaName) =>
@@ -74,9 +74,9 @@ class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
             rs.string("ref_columns").split(",")
           )
         }.toIterable().apply().toSet
-        ReferencesDiscovered(schemaName, references)
+        ReferencesDiscovered(schemaName, references).toEither
       } catch {
-        case e: Exception => ConnectionFailure(e)
+        case e: Exception => ConnectionFailure(e).toEither
       }
 
   }

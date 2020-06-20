@@ -17,8 +17,8 @@ object ReadOnly {
   def find(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case Find(key) =>
       content.get(key) match {
-        case Some(value) => Found(key, value)
-        case None => NotFound(key)
+        case Some(value) => Found(key, value).toEither
+        case None => NotFound(key).toEither
       }
   }
 
@@ -27,14 +27,14 @@ object ReadOnly {
   case class FoundAll(values: Seq[Instance]) extends DataEvent
 
   def findAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
-    case FindAll(query) => FoundAll(InMemoryQueryExecutor(query)(content.values.toList))
+    case FindAll(query) => FoundAll(InMemoryQueryExecutor(query)(content.values.toList)).toEither
   }
 
   case object Count   extends DataCommand with AlwaysDo
   case class  Counted(total: Long) extends DataEvent
 
   def count(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
-    case Count => Counted(content.size)
+    case Count => Counted(content.size).toEither
   }
 
   //TODO case class Query[T](?) extends DataCommand[T]

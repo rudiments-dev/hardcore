@@ -7,5 +7,5 @@ package object data {
   trait DataEvent extends Event
   trait DataErrorEvent extends DataEvent with Error
 
-  type DataSkill = HardSkill[DataCommand, DataEvent]
+  type DataSkill = Skill[DataEvent]
 }

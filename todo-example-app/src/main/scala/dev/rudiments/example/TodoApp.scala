@@ -24,25 +24,20 @@ object TodoApp extends App with LazyLogging {
       Done(id),
       {
         case Done(id) =>
-          val result = for {
-            found <- ctx.adapter(Find(id)).expecting[Found]
+          for {
+            found <- ctx.adapter(Find(id)).merge.expecting[Found]
             forUpdate <- found.value.copy[Boolean]("done", {
               case d if !d => Right(!d)
               case d if d => Left(AlreadyDone(found.value))
             })
-            updated <- ctx.adapter(Update(id, forUpdate)).expecting[Updated]
+            updated <- ctx.adapter(Update(id, forUpdate)).merge.expecting[Updated]
           } yield updated
-          result match {
-            case Right(u) => u
-            case Left(l: Event) => l
-            case other => ???
-          }
       },
       {
-        case Updated(_, _, value) =>
+        case Right(Updated(_, _, value)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case AlreadyDone(item) =>
+        case Left(AlreadyDone(item)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }
@@ -51,25 +46,20 @@ object TodoApp extends App with LazyLogging {
       Undone(id),
       {
         case Undone(id) =>
-          val result = for {
-            found <- ctx.adapter(Find(id)).expecting[Found]
+          for {
+            found <- ctx.adapter(Find(id)).merge.expecting[Found]
             forUpdate <- found.value.copy[Boolean]("done", {
               case d if d => Right(!d)
               case d if !d => Left(AlreadyNotDone(found.value))
             })
-            updated <- ctx.adapter(Update(id, forUpdate)).expecting[Updated]
+            updated <- ctx.adapter(Update(id, forUpdate)).merge.expecting[Updated]
           } yield updated
-          result match {
-            case Right(u) => u
-            case Left(l: Event) => l
-            case other => ???
-          }
       },
       {
-        case Updated(_, _, value) =>
+        case Right(Updated(_, _, value)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case AlreadyNotDone(item) =>
+        case Left(AlreadyNotDone(item)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }
