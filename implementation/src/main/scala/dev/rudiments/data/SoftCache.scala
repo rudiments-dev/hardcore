@@ -1,7 +1,7 @@
 package dev.rudiments.data
 
 import dev.rudiments.data.CRUD.Created
-import dev.rudiments.hardcore.{Adapter, Command, Result}
+import dev.rudiments.hardcore.{Adapter, Command, Failure, Result, Success}
 import dev.rudiments.hardcore.flow.BulkMutated
 import dev.rudiments.hardcore.types.SoftID.SoftID1
 import dev.rudiments.hardcore.types._
@@ -14,10 +14,10 @@ class SoftCache(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
   override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
   override def apply(cmd: Command): Result[DataEvent] = {
     f(cmd) match {
-      case r@Right(evt: Created) =>
+      case r@Success(evt: Created) =>
         counter += 1
         r
-      case r@Right(evt: BulkMutated) =>
+      case r@Success(evt: BulkMutated) =>
         counter = content.size + 1
         r
       case evt => evt

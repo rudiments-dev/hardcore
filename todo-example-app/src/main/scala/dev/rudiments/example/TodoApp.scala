@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.data.CRUD.{Create, Update, Updated}
 import dev.rudiments.data.ReadOnly.{Find, Found}
 import dev.rudiments.data.{SoftApp, SoftModule}
-import dev.rudiments.hardcore.{Command, Error, Event}
+import dev.rudiments.hardcore.{Command, Error, Event, Failure, Success}
 import dev.rudiments.hardcore.types._
 import dev.rudiments.hardcore.http.{EmptyPostPort, PostPort}
 import io.circe.Encoder
@@ -25,19 +25,21 @@ object TodoApp extends App with LazyLogging {
       {
         case Done(id) =>
           for {
-            found <- ctx.adapter(Find(id)).merge.expecting[Found]
-            forUpdate <- found.value.copy[Boolean]("done", {
+            found <- ctx.adapter(Find(id)).expecting[Found]
+            updated <- found.value.copy[Boolean]("done", {
               case d if !d => Right(!d)
               case d if d => Left(AlreadyDone(found.value))
-            })
-            updated <- ctx.adapter(Update(id, forUpdate)).merge.expecting[Updated]
+            }).map { instance => ctx.adapter(Update(id, instance)).expecting[Updated] } match {
+              case Left(value) => Failure(value)
+              case Right(value) => value
+            }
           } yield updated
       },
       {
-        case Right(Updated(_, _, value)) =>
+        case Success(Updated(_, _, value)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case Left(AlreadyDone(item)) =>
+        case Failure(AlreadyDone(item)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }
@@ -47,19 +49,21 @@ object TodoApp extends App with LazyLogging {
       {
         case Undone(id) =>
           for {
-            found <- ctx.adapter(Find(id)).merge.expecting[Found]
-            forUpdate <- found.value.copy[Boolean]("done", {
+            found <- ctx.adapter(Find(id)).expecting[Found]
+            updated <- found.value.copy[Boolean]("done", {
               case d if d => Right(!d)
               case d if !d => Left(AlreadyNotDone(found.value))
-            })
-            updated <- ctx.adapter(Update(id, forUpdate)).merge.expecting[Updated]
+            }).map { instance => ctx.adapter(Update(id, instance)).expecting[Updated] } match {
+              case Left(value) => Failure(value)
+              case Right(value) => value
+            }
           } yield updated
       },
       {
-        case Right(Updated(_, _, value)) =>
+        case Success(Updated(_, _, value)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case Left(AlreadyNotDone(item)) =>
+        case Failure(AlreadyNotDone(item)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }
