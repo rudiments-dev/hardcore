@@ -69,6 +69,11 @@ subprojects {
         repositoryUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
         snapshotRepositoryUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
     }
+
+    signing {
+        def seckeyring = project.hasProperty("secretKeyRingFile") ? findProperty("secretKeyRingFile") : ""
+        secretKeyRingFile = rootProject.files(seckeyring)
+    }
 }
 
 apply plugin: 'io.codearte.nexus-staging'

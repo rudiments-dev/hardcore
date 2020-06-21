@@ -26,13 +26,18 @@ jobs:
     - stage: release
       name: "Release to maven central"
       if: branch = master
-      before_script: openssl aes-256-cbc -K $encrypted_128b0dd6d06b_key -iv $encrypted_128b0dd6d06b_iv -in $ENCRYPTED_GPG_KEY_LOCATION -out $GPG_KEY_LOCATION -d
-      script: ./gradlew uploadArchives
+      before_script: openssl aes-256-cbc -K $encrypted_c2f58914b0fd_key -iv $encrypted_c2f58914b0fd_iv -in $ENCRYPTED_GPG_KEY_LOCATION -out $GPG_KEY_LOCATION -d
+      script: 
+      - ./gradlew uploadArchives -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD -Psigning.keyId=$GPG_KEY_ID -Psigning.password=$GPG_PASSPHRASE -Psigning.secretKeyRingFile=$GPG_KEY_LOCATION
+      - ./gradlew releaseRepository -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
+      - ./gradlew closeRepository -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
     - stage: snapshot
       name: "Publish snapshots to maven central"
       if: branch = develop
-      before_script: openssl aes-256-cbc -K $encrypted_128b0dd6d06b_key -iv $encrypted_128b0dd6d06b_iv -in $ENCRYPTED_GPG_KEY_LOCATION -out $GPG_KEY_LOCATION -d
-      script: ./gradlew uploadSnapshots
+      script: 
+      - ./gradlew uploadArchives -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
+      - ./gradlew releaseRepository -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
+      - ./gradlew closeRepository -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
