@@ -10,3 +10,4 @@ gradle.properties
 .project
 .settings
 **/bin
+*.gpg
