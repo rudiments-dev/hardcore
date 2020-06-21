@@ -10,7 +10,7 @@ buildscript {
 
 allprojects {
     group 'dev.rudiments'
-    version '0.2-SNAPSHOT'
+    version '0.3-SNAPSHOT'
 
     repositories {
         mavenLocal()
@@ -22,8 +22,6 @@ subprojects {
     apply plugin: 'maven'
     apply plugin: 'scala'
     apply plugin: 'com.bmuschko.nexus'
-
-
 
     modifyPom {
         project {
