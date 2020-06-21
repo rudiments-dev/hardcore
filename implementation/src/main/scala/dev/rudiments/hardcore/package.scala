@@ -3,13 +3,14 @@ package dev.rudiments
 import dev.rudiments.hardcore.types.DTO
 
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 package object hardcore {
 
   trait Message extends DTO {
     def toEither[E <: Event]: Result[E] = Left(this)
-    def expecting[E <: Event]: Result[E] = this match {
-      case it: E if it.isInstanceOf[E] => Right(it)
+    def expecting[E <: Event : ClassTag]: Result[E] = this match {
+      case it: E => Right(it)
       case other => Left(other)
     }
   }

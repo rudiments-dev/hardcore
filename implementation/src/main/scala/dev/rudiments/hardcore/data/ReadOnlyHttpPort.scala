@@ -34,6 +34,7 @@ class ReadOnlyHttpPort[T : Encoder](
     case Right(_: DataEvent[T]) =>  complete(StatusCodes.OK)
     case Left(NotFound(_)) =>       complete(StatusCodes.NotFound)
     case Left(_: Error) =>          complete(StatusCodes.InternalServerError)
+    case _ =>                       complete(StatusCodes.InternalServerError)
   }
 }
 

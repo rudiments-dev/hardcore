@@ -1,4 +1,4 @@
-package dev.rudiments.types.registry
+package dev.rudiments.hardcore.types.registry
 
 import java.sql.{Date, Time, Timestamp}
 

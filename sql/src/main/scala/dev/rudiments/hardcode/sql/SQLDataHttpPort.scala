@@ -61,6 +61,7 @@ class SQLDataHttpPort(
     case Left(AlreadyExists(_, _)) =>       complete(StatusCodes.Conflict)
 
     case Left(_: Error) =>                  complete(StatusCodes.InternalServerError)
+    case _ =>                               complete(StatusCodes.InternalServerError)
   }
 }
 

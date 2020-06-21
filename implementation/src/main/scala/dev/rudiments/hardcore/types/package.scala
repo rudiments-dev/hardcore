@@ -1,14 +1,16 @@
 package dev.rudiments.hardcore
 
+import scala.reflect.ClassTag
+
 package object types {
   trait DTO extends Product
 
   trait Ref
   trait Instance extends Ref {
-    def copy[A](fieldName: String, f: A => Either[Error, A]): Either[Error, Instance] = this match {
+    def copy[A : ClassTag](fieldName: String, f: A => Either[Error, A]): Either[Error, Instance] = this match {
       case s: SoftInstance =>
         s.fields.get(fieldName) match {
-          case Some(field: A) if field.isInstanceOf[A] =>
+          case Some(field: A) =>
             f(field).map { ok =>
               SoftInstance(s.fields + (fieldName -> ok))(s.t)
             }

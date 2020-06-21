@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore.flow
 
 import dev.rudiments.hardcore.Error.NoHandler
-import dev.rudiments.hardcore.{Command, Event, Result, Skill}
+import dev.rudiments.hardcore.{Command, Event, Message, Result, Skill}
 
 class Controlled[E <: Event](skill: Skill[E])(implicit flow: ControlFlow) extends Skill[E] {
 
@@ -26,7 +26,7 @@ class Controlled[E <: Event](skill: Skill[E])(implicit flow: ControlFlow) extend
     case c: Command =>
       flow.lastMessage(c) match { //TODO wrong?
         case Some(command: Command) => this(command)
-        case Some(evt: Event) => evt.toEither
+        case Some(msg: Message) => msg.toEither
         case None => execute(cmd)
       }
   }
