@@ -1,0 +1,56 @@
+parameters:
+  - name: release
+    default: false
+    type: boolean
+
+variables:
+  - group: rudiments-sonatype
+  - name: isMaster
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
+  - name: isDevelop
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/develop')]
+
+pr:
+  - master
+  - develop
+
+trigger:
+  - master
+  - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+  - job: unit_testing
+    steps:
+      - script: |
+          ./gradlew build
+
+  - job: push_snapshots
+    condition: eq(variables.isDevelop, true)
+    steps:
+      - script: |
+          ./gradlew uploadArchives -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
+        displayName: 'Push latest Rudiments snapshots to Maven Snapshots repo'
+        env:
+          SONATYPE_USERNAME: $(SONATYPE_USERNAME)
+          SONATYPE_PASSWORD: $(SONATYPE_PASSWORD)
+
+  - job: release
+    condition: and(eq('${{ parameters.release }}', true), eq(variables.isMaster, true))
+    steps:
+      - task: DownloadSecureFile@1
+        name: secretkeyring
+        inputs:
+          secureFile: secret-keys.gpg
+      - script: |
+          ./gradlew uploadArchives -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD -Psigning.keyId=$GPG_KEY_ID -Psigning.password=$GPG_PASSPHRASE -Psigning.secretKeyRingFile=$(secretkeyring.secureFilePath)
+          ./gradlew releaseRepository -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
+          ./gradlew closeRepository -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
+        displayName: 'Release Rudiments to Maven Central'
+        env:
+          SONATYPE_USERNAME: $(SONATYPE_USERNAME)
+          SONATYPE_PASSWORD: $(SONATYPE_PASSWORD)
+          GPG_KEY_ID: $(GPG_KEY_ID)
+          GPG_PASSPHRASE: $(GPG_PASSPHRASE)
