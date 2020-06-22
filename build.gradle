@@ -64,10 +64,13 @@ subprojects {
     }
 
     nexus {
-        ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-        sign = { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
         repositoryUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
         snapshotRepositoryUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+
+    signing {
+        ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+        required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
     }
 }
 
