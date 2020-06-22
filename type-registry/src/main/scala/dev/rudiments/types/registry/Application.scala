@@ -8,7 +8,7 @@ import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.data.CRUD.Create
 import dev.rudiments.data.ReadOnly.{Find, Found, NotFound}
 import dev.rudiments.data.{SoftApp, SoftModule}
-import dev.rudiments.hardcore.{Command, Error, Event}
+import dev.rudiments.hardcore.{Command, Error, Event, Failure, Success}
 import dev.rudiments.hardcore.http.PostPort
 import dev.rudiments.hardcore.types._
 import io.circe.Encoder
@@ -27,15 +27,15 @@ object Application extends App with LazyLogging {
         value => Extract(value.what),
         {
           case Extract(id) => ctx.adapter(Find(SoftID(id))) match {
-            case Right(Found(_, v)) => Extracted(id, v).toEither
-            case Left(NotFound(_)) => FailedToExtract(id).toEither
+            case Success(Found(_, v)) => Extracted(id, v).toEither
+            case Failure(NotFound(_)) => FailedToExtract(id).toEither
           }
         },
         {
-          case Right(Extracted(_, v))      =>
+          case Success(Extracted(_, v))      =>
             implicit val en: Encoder[Instance] = ctx.encoder
             complete(StatusCodes.OK, v)
-          case Left(FailedToExtract(id))  => complete(StatusCodes.NotFound, id)
+          case Failure(FailedToExtract(id))  => complete(StatusCodes.NotFound, id)
         }
       ))
     )

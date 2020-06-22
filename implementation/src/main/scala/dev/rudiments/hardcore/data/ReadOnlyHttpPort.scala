@@ -3,7 +3,7 @@ package dev.rudiments.hardcore.data
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
-import dev.rudiments.hardcore.{Port, Result}
+import dev.rudiments.hardcore.{Failure, Port, Result, Success}
 import dev.rudiments.hardcore.data.ReadOnly._
 import dev.rudiments.hardcore.http.Router
 import dev.rudiments.hardcore.types.HardID
@@ -29,11 +29,11 @@ class ReadOnlyHttpPort[T : Encoder](
 
   import dev.rudiments.hardcore.http.CirceSupport._
   def responseWith(event: Result[DataEvent[T]]): StandardRoute = event match {
-    case Right(Found(_, value)) =>  complete(StatusCodes.OK, value)
-    case Right(FoundAll(values)) => complete(StatusCodes.OK, values)
-    case Right(_: DataEvent[T]) =>  complete(StatusCodes.OK)
-    case Left(NotFound(_)) =>       complete(StatusCodes.NotFound)
-    case Left(_: Error) =>          complete(StatusCodes.InternalServerError)
+    case Success(Found(_, value)) =>  complete(StatusCodes.OK, value)
+    case Success(FoundAll(values)) => complete(StatusCodes.OK, values)
+    case Success(_: DataEvent[T]) =>  complete(StatusCodes.OK)
+    case Failure(NotFound(_)) =>      complete(StatusCodes.NotFound)
+    case Failure(_: Error) =>         complete(StatusCodes.InternalServerError)
   }
 }
 

@@ -28,31 +28,31 @@ class H2Service(adapter: H2Adapter, persistent: HardCache[Schema]) extends Servi
 
   private def discoverSchema(name: String): Schema = {
     adapter(DiscoverSchema(name)) match {
-      case Right(SchemaDiscovered(schemaName, tableNames)) =>
+      case Success(SchemaDiscovered(schemaName, tableNames)) =>
         val tables = tableNames.map(n => n -> discoverTable(n, schemaName)).toMap
         Schema(
           schemaName,
           tables.values.toSet,
           discoverReferences(schemaName, tables)
         )
-      case Left(ConnectionFailure(e)) => throw e
+      case Failure(ConnectionFailure(e)) => throw e
     }
   }
 
   private def discoverTable(tableName: String, schemaName: String): Table = {
     adapter(DiscoverTable(tableName, schemaName)) match {
-      case Right(TableDiscovered(tableName, columns)) =>
+      case Success(TableDiscovered(tableName, columns)) =>
         Table(
           tableName,
           columns
         )
-      case Left(ConnectionFailure(e)) => throw e
+      case Failure(ConnectionFailure(e)) => throw e
     }
   }
 
   private def discoverReferences(schemaName: String, tables: Map[String, Table]): Set[FK] = {
     adapter(DiscoverReferences(schemaName)) match {
-      case Right(ReferencesDiscovered(_, references)) =>
+      case Success(ReferencesDiscovered(_, references)) =>
         references.map { r =>
           val table = tables(r.table)
           val ref = tables(r.refTable)
@@ -64,14 +64,14 @@ class H2Service(adapter: H2Adapter, persistent: HardCache[Schema]) extends Servi
             columns.zip(refColumns).toMap
           )
         }
-      case Left(ConnectionFailure(e)) => throw e
+      case Failure(ConnectionFailure(e)) => throw e
     }
   }
 
   private def findSchema(schemaName: String): SchemaEvent = {
     persistent(Find(HardID(schemaName))) match {
-      case Right(Found(_, value)) => SchemaFound(value)
-      case Left(NotFound(_)) => SchemaNotFound(schemaName)
+      case Success(Found(_, value)) => SchemaFound(value)
+      case Failure(NotFound(_)) => SchemaNotFound(schemaName)
     }
   }
 }

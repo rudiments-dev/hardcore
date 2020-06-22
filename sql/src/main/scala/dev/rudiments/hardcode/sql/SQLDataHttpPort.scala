@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import dev.rudiments.hardcore.{Port, Result, Skill}
+import dev.rudiments.hardcore.{Failure, Port, Result, Skill, Success}
 import dev.rudiments.data.Batch._
 import dev.rudiments.data.CRUD._
 import dev.rudiments.data.DataEvent
@@ -47,20 +47,20 @@ class SQLDataHttpPort(
   
 
   def responseWith(event: Result[DataEvent]): StandardRoute = event match {
-    case Right(Created(_, value)) =>        complete(StatusCodes.Created, value)
-    case Right(Found(_, value)) =>          complete(StatusCodes.OK, value)
-    case Right(FoundAll(values)) =>         complete(StatusCodes.OK, values)
-    case Right(Updated(_, _, newValue)) =>  complete(StatusCodes.OK, newValue)
-    case Right(Deleted(_, _)) =>            complete(StatusCodes.NoContent)
+    case Success(Created(_, value)) =>        complete(StatusCodes.Created, value)
+    case Success(Found(_, value)) =>          complete(StatusCodes.OK, value)
+    case Success(FoundAll(values)) =>         complete(StatusCodes.OK, values)
+    case Success(Updated(_, _, newValue)) =>  complete(StatusCodes.OK, newValue)
+    case Success(Deleted(_, _)) =>            complete(StatusCodes.NoContent)
 
-    case Right(AllCreated(_)) =>            complete(StatusCodes.Created)
-    case Right(AllReplaced(_)) =>           complete(StatusCodes.Created)
-    case Right(AllDeleted) =>               complete(StatusCodes.NoContent)
+    case Success(AllCreated(_)) =>            complete(StatusCodes.Created)
+    case Success(AllReplaced(_)) =>           complete(StatusCodes.Created)
+    case Success(AllDeleted) =>               complete(StatusCodes.NoContent)
 
-    case Left(NotFound(_)) =>               complete(StatusCodes.NotFound)
-    case Left(AlreadyExists(_, _)) =>       complete(StatusCodes.Conflict)
+    case Failure(NotFound(_)) =>               complete(StatusCodes.NotFound)
+    case Failure(AlreadyExists(_, _)) =>       complete(StatusCodes.Conflict)
 
-    case Left(_: Error) =>                  complete(StatusCodes.InternalServerError)
+    case Failure(_: Error) =>                  complete(StatusCodes.InternalServerError)
   }
 }
 

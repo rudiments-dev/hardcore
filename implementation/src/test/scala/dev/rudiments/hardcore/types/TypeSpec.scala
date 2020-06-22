@@ -18,6 +18,13 @@ class TypeSpec extends WordSpec with Matchers {
     s.fields.last should be ("c" -> Set.empty)
   }
 
+  "fail if invalid argument" in {
+    assertThrows[SoftValidationError] {
+      val i = SoftInstance("1", Some("thing"), Set.empty)(t)
+      t.extract(i, "a") // without extraction - does not fail
+    }
+  }
+
   "can extract value from soft instance" in {
     val s = t.constructSoft(1, None, Set.empty)
     t.extract(s, "a") should be (1)

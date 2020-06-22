@@ -11,14 +11,53 @@ object     TypeSystem {
   def apply(name: String, types: Type*): TypeSystem = new TypeSystem(name, types.map(t => t.name -> t).toMap)
 }
 
+class SoftValidationError(e: ValidationError) extends RuntimeException(s"Validation error: $e")
+
 //todo fix primary keys
 case class Type(name: String, fields: Map[String, Field]) extends DTO {
-  def constructSoft(arguments: Any*): SoftInstance =
+  def constructSoft(arguments: Any*): SoftInstance = {
     SoftInstance(
       fields
         .zip(arguments)
-        .map { case ((name, _), argument) => name -> argument }
+        .map { case ((name, t), argument) => name -> validate(t, name, argument) }
+        .mapValues {
+          case Left(e) => throw new SoftValidationError(e)
+          case Right(v) => v
+        }
     )(this)
+  }
+
+  private def validate(f: Field, name: String, arg: Any): Either[ValidationError, Any] = (f.fieldFlag, arg) match {
+    case (FieldFlag.Optional, None) => Right(None)
+    case (FieldFlag.Optional, Some(v)) => f.kind.validate(v).map(Some.apply)
+    case (FieldFlag.Required, v) => f.kind.validate(v)
+    case (FieldFlag.WithDefault, v) => f.kind.validate(v) //TODO use default value if empty
+    case (FieldFlag.NonEmpty, v: Iterable[_]) =>
+      if(v.isEmpty)
+        Left(RequiredNonEmptyCollection(name))
+      else
+        v.map(f.kind.validate).reduce[Either[ValidationError, Any]] {
+          case (Right(a), Right(_)) => Right(a)
+          case (Left(e), _) => Left(e)
+          case (_, Left(e)) => Left(e)
+        } match {
+          case Right(_) => Right(arg)
+          case l: Left[ValidationError, _] => l
+        }
+    case (FieldFlag.CanBeEmpty, v: Iterable[_]) =>
+      if(v.isEmpty)
+        Right(arg)
+      else
+        v.map(f.kind.validate).reduce[Either[ValidationError, Any]] {
+          case (Right(a), Right(_)) => Right(a)
+          case (Left(e), _) => Left(e)
+          case (_, Left(e)) => Left(e)
+        } match {
+          case Right(_) => Right(arg)
+          case l: Left[ValidationError, _] => l
+        }
+    case (_, _) => f.kind.validate(arg)
+  }
 
   //TODO fix SoftInstance generation on incoming Option
   def softFromHard(hard: Any): SoftInstance = hard match {
@@ -62,7 +101,11 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
 
 case class Field(kind: FieldType, fieldFlag: FieldFlag) extends DTO
 
-sealed trait FieldType {}
+trait ValidationError extends dev.rudiments.hardcore.Error
+
+sealed trait FieldType {
+  def validate(arg: Any): Either[ValidationError, Any] = Right(arg)
+}
 
 object Types {
   case object Bool        extends FieldType
@@ -118,6 +161,6 @@ object FieldFlag extends enumeratum.Enum[FieldFlag] {
 
   case object NonEmpty    extends FieldFlag
   case object CanBeEmpty  extends FieldFlag
-
-
 }
+
+case class RequiredNonEmptyCollection(field: String) extends ValidationError
