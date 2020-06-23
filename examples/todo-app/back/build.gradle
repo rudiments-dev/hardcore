@@ -1,0 +1,36 @@
+import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
+apply plugin: 'com.github.johnrengelman.shadow'
+
+dependencies {
+    compile project(':implementation')
+    compile 'com.h2database:h2:1.4.199'
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+}
+
+shadowJar {
+    classifier = null
+    version = null
+    baseName = 'todo-app'
+
+    transform(AppendingTransformer) {
+        resource = 'reference.conf'
+    }
+    with jar
+}
+
+task runTodo(type: JavaExec, dependsOn: classes) {
+    classpath sourceSets.main.runtimeClasspath
+    main = 'dev.rudiments.example.TodoApp'
+    standardInput = System.in
+}
+
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'dev.rudiments.example.TodoApp'
+        )
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
