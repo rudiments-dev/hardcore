@@ -55,7 +55,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   }
 
   "no element by ID" in {
-    Get("/example/1") ~> routes ~> check {
+    Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.NotFound)
     }
   }
@@ -65,44 +65,34 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
       response.status should be (StatusCodes.Created)
       responseAs[SoftInstance] should be (sample)
     }
-    Get("/example/1") ~> routes ~> check {
+    Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[SoftInstance] should be (sample)
     }
   }
 
   "update item in repository" in {
-    Put("/example/1", SoftInstance(42L, "test")) ~> routes ~> check {
+    Put("/example/42", SoftInstance(42L, "test")) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
     }
-    Get("/example/1") ~> routes ~> check {
+    Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
     }
   }
 
-  "second POST creates another item" in {
+  "second POST with same item conflicts with existing" in {
     Post("/example", sample) ~> routes ~> check {
-      response.status should be (StatusCodes.Created)
-    }
-    Get("/example/2") ~> routes ~> check {
-      response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (sample)
+      response.status should be (StatusCodes.Conflict)
     }
   }
 
   "delete items from repository" in {
-    Delete("/example/1") ~> routes ~> check {
+    Delete("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
     }
-    Get("/example/1") ~> routes ~> check {
-      response.status should be (StatusCodes.NotFound)
-    }
-    Delete("/example/2") ~> routes ~> check {
-      response.status should be (StatusCodes.NoContent)
-    }
-    Get("/example/2") ~> routes ~> check {
+    Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.NotFound)
     }
   }
@@ -116,12 +106,12 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     cache(Count).merge should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(40L, "40'th element"))
+      responseAs[SoftInstance] should be (SoftInstance(42L, "42'th element"))
     }
   }
 
   "endure 190.000 batch" in {
-    Post("/example", (10003 to 200002).map(i => SoftInstance(i.toLong, s"$i'th element"))) ~> routes ~> check {
+    Post("/example", (10001 to 200000).map(i => SoftInstance(i.toLong, s"$i'th element"))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       cache(Count).merge should be (Counted(200000))
     }

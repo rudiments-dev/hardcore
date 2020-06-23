@@ -6,7 +6,6 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.data.ReadOnly._
-import dev.rudiments.hardcore.http.{SoftDecoder, SoftEncoder}
 import dev.rudiments.hardcore.types._
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
@@ -44,55 +43,44 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
   }
 
   "no element by ID" in {
-    Get("/example/1") ~> routes ~> check {
+    Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.NotFound)
     }
   }
 
-  "CreateAuto item into repository" in {
+  "Create item into repository" in {
     Post("/example", sample) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       responseAs[Instance] should be (sample)
     }
-    Get("/example/1") ~> routes ~> check {
+    Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (sample)
     }
   }
 
   "update item in repository" in {
-    Put("/example/1", SoftInstance(42L, "test").asInstanceOf[Instance]) ~> routes ~> check {
+    Put("/example/42", SoftInstance(42L, "test").asInstanceOf[Instance]) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (SoftInstance(42L, "test"))
     }
-    Get("/example/1") ~> routes ~> check {
+    Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (SoftInstance(42L, "test"))
     }
   }
 
-  "second POST creates another item" in {
+  "second POST with same item conflicts with existing" in {
     Post("/example", sample) ~> routes ~> check {
-      response.status should be (StatusCodes.Created)
-    }
-    Get("/example/2") ~> routes ~> check {
-      response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (sample)
+      response.status should be(StatusCodes.Conflict)
     }
   }
 
-  "delete item from repository" in {
-    Delete("/example/1") ~> routes ~> check {
+    "delete item from repository" in {
+    Delete("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
     }
-    Get("/example/1") ~> routes ~> check {
-      response.status should be (StatusCodes.NotFound)
-    }
-
-    Delete("/example/2") ~> routes ~> check {
-      response.status should be (StatusCodes.NoContent)
-    }
-    Get("/example/2") ~> routes ~> check {
+    Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.NotFound)
     }
   }
@@ -106,12 +94,12 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
     module.context.adapter(Count).merge should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (SoftInstance(40L, "40'th element"))
+      responseAs[Instance] should be (SoftInstance(42L, "42'th element"))
     }
   }
 
   "endure 190.000 batch" in {
-    Post("/example", (10003 to 200002).map(i => SoftInstance(i.toLong, s"$i'th element").asInstanceOf[Instance])) ~> routes ~> check {
+    Post("/example", (10001 to 200000).map(i => SoftInstance(i.toLong, s"$i'th element").asInstanceOf[Instance])) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       module.context.adapter(Count).merge should be (Counted(200000))
     }
