@@ -94,6 +94,12 @@ task runDemo {
     }
 }
 
+task stopDemo {
+    dependsOn(':examples:todo-app:back:composeDown')
+    doLast {
+        println 'stopped'
+    }
+}
 
 def scalaModules() {
     subprojects.findAll { new File(it.projectDir, 'src/main/scala').directory }
