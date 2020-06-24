@@ -12,7 +12,7 @@ services:
       - './ui:/app'
     command: /bin/sh -c "yarn serve --mode docker"
   todo-app:
-    image: rudimentsdev/todo-app:latest
+    image: rudimentsdev/todo-app:local
     container_name: todo-app
     ports:
-      - 8080:8080
+      - '8080:8080'

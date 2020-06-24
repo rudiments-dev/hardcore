@@ -24,7 +24,7 @@ shadowJar {
 
 docker {
     dependsOn shadowJar
-    name "rudimentsdev/todo-app:latest"
+    name "rudimentsdev/todo-app:local"
     dockerfile file('Dockerfile')
 }
 
