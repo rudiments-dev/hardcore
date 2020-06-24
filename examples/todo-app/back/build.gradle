@@ -29,8 +29,12 @@ docker {
 }
 
 dockerCompose {
-    dependsOn docker
     useComposeFiles = ['../docker-compose.yml']
+    captureContainersOutput = true
+}
+
+composeUp {
+    dependsOn 'docker'
 }
 
 task runTodo(type: JavaExec, dependsOn: classes) {
