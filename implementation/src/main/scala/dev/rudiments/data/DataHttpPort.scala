@@ -25,7 +25,7 @@ class DataHttpPort(
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
       GetDirectivePort(Directives.query(t), FindAll.apply, s, responseWith),
-      PostPort((value: Instance) => CreateAuto(value), s, responseWith),
+      PostPort((value: Instance) => Create(identify(value), value), s, responseWith),
       PostPort((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
       PutPort((batch: Seq[Instance]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
       DeletePort(DeleteAll, s, responseWith),
