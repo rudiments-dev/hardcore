@@ -1,11 +1,16 @@
 buildscript {
     repositories {
         jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
-        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
+        classpath "com.bmuschko:gradle-nexus-plugin:2.3.1"
         classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.21.2"
-        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+        classpath "com.github.jengelman.gradle.plugins:shadow:5.2.0"
+        classpath "com.palantir.gradle.docker:gradle-docker:0.25.0"
+        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.12.1"
     }
 }
 
@@ -81,6 +86,14 @@ nexusStaging {
     stagingProfileId = "cf3280f3d7f7cd"
     packageGroup = "dev.rudiments"
 }
+
+task runDemo {
+    dependsOn(':examples:todo-app:back:composeUp')
+    doLast {
+        println 'running...'
+    }
+}
+
 
 def scalaModules() {
     subprojects.findAll { new File(it.projectDir, 'src/main/scala').directory }

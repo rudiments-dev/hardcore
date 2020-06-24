@@ -1,0 +1,18 @@
+# for local development
+version: '3.7'
+services:
+  todo-ui:
+    build:
+      context: ./ui
+      target: 'develop-stage'
+    container_name: todo-ui
+    ports:
+      - '3000:3000'
+    volumes:
+      - './ui:/app'
+    command: /bin/sh -c "yarn serve --mode docker"
+  todo-app:
+    image: rudimentsdev/todo-app:latest
+    container_name: todo-app
+    ports:
+      - 8080:8080

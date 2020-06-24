@@ -1,5 +1,8 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
+
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.palantir.docker'
+apply plugin: 'docker-compose'
 
 dependencies {
     compile project(':implementation')
@@ -16,6 +19,18 @@ shadowJar {
         resource = 'reference.conf'
     }
     with jar
+    destinationDir = file("build/docker")
+}
+
+docker {
+    dependsOn shadowJar
+    name "rudimentsdev/todo-app:latest"
+    dockerfile file('Dockerfile')
+}
+
+dockerCompose {
+    dependsOn docker
+    useComposeFiles = ['../docker-compose.yml']
 }
 
 task runTodo(type: JavaExec, dependsOn: classes) {
