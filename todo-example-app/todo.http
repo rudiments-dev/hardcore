@@ -20,6 +20,18 @@ Content-Type: application/json
 
 ###
 
+PUT http://localhost:8080/todo/4
+Content-Type: application/json
+
+{
+  "id": 4,
+  "name": "TODO Item #4",
+  "done": false,
+  "comment": "comment"
+}
+
+###
+
 POST http://localhost:8080/todo/4/done
 
 ###
