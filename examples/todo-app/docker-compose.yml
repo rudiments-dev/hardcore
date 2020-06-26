@@ -10,7 +10,7 @@ services:
       - '3000:3000'
     volumes:
       - './ui:/app'
-    command: /bin/sh -c "yarn serve --mode docker"
+    command: /bin/sh -c "npm install -g @vue/cli-service-global && yarn serve --mode docker"
   todo-app:
     image: rudimentsdev/todo-app:local
     container_name: todo-app
