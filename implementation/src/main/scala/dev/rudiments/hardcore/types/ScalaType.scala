@@ -9,12 +9,11 @@ import scala.collection.immutable.ListMap
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.universe.{Type => SysType}
 
-class HardType[T : TypeTag]
-(
+class ScalaType[T : TypeTag] (
   override val name: String,
   override val fields: Map[String, Field]
 ) extends Type(name, fields) {
-  def construct(arguments: Any*): T = {
+  def constructScala(arguments: Any*): T = {
     val c = Class.forName(typeOf[T].typeSymbol.asClass.fullName)
     c.getConstructors()(0).newInstance(arguments.map(_.asInstanceOf[Object]): _*).asInstanceOf[T]
   }
@@ -25,11 +24,11 @@ class HardType[T : TypeTag]
   }
 }
 
-object HardType {
-  def apply[T : TypeTag]: HardType[T] = apply(typeOf[T].typeSymbol)
+object ScalaType {
+  def apply[T : TypeTag]: ScalaType[T] = apply(typeOf[T].typeSymbol)
 
-  def apply[T : TypeTag](t: Symbol): HardType[T] = {
-    new HardType[T](
+  def apply[T : TypeTag](t: Symbol): ScalaType[T] = {
+    new ScalaType[T](
       t.name.toString.trim,
       collect(t)
     )
@@ -37,24 +36,24 @@ object HardType {
 
   def collect(t: Symbol): Map[String, Field] =
     ListMap(t.asClass.primaryConstructor.typeSignature.paramLists.head.collect {
-      case m: TermSymbol => m.name.toString.trim -> HardField(m)
+      case m: TermSymbol => m.name.toString.trim -> ScalaField(m)
     }: _*)
 }
 
-object HardField {
+object ScalaField {
   def apply(symbol: TermSymbol): Field = {
     if(symbol.typeSignature <:< typeOf[Option[_]]) {
-      new Field(HardFieldType(symbol.typeSignature.typeArgs.head), FieldFlag.Optional)
+      new Field(ScalaFieldType(symbol.typeSignature.typeArgs.head), FieldFlag.Optional)
     } else if(symbol.typeSignature <:< typeOf[Iterable[_]]) {
-      new Field(HardFieldType(symbol.typeSignature), if(symbol.isParamWithDefault) FieldFlag.CanBeEmpty else FieldFlag.NonEmpty)
+      new Field(ScalaFieldType(symbol.typeSignature), if(symbol.isParamWithDefault) FieldFlag.CanBeEmpty else FieldFlag.NonEmpty)
       //TODO add support on non-empty and nullable collections
     }else {
-      new Field(HardFieldType(symbol.typeSignature), if(symbol.isParamWithDefault) FieldFlag.WithDefault else FieldFlag.Required)
+      new Field(ScalaFieldType(symbol.typeSignature), if(symbol.isParamWithDefault) FieldFlag.WithDefault else FieldFlag.Required)
     }
   }
 }
 
-object HardFieldType {
+object ScalaFieldType {
   def apply(t: SysType): FieldType = {
     if      (t =:= typeOf[Boolean])     Types.Bool
 
@@ -83,13 +82,13 @@ object HardFieldType {
       Types.Enum(t.toString, companion.values.map(v => v.entryName))
     }
     else if (t <:< typeOf[Map[_, _]]) {
-      Types.Index(HardFieldType(t.typeArgs.head), HardFieldType(t.typeArgs.last))
+      Types.Index(ScalaFieldType(t.typeArgs.head), ScalaFieldType(t.typeArgs.last))
     }
     else if (t <:< typeOf[Iterable[_]]) {
-      Types.List(HardFieldType(t.typeArgs.head))
+      Types.List(ScalaFieldType(t.typeArgs.head))
     }
     else if (t <:< typeOf[DTO]) {
-      Types.Reference(HardType(t.typeSymbol))
+      Types.Reference(ScalaType(t.typeSymbol))
     }
     else Types.Unknown // TODO add error handling
   }

@@ -1,8 +1,8 @@
 package dev.rudiments.hardcore.flow
 
-import dev.rudiments.hardcore.data.CRUD.{Create, Created}
-import dev.rudiments.hardcore.data.{DataCommand, DataEvent, HardCache}
-import dev.rudiments.hardcore.types.{DTO, Defaults, HardID}
+import dev.rudiments.data.CRUD.{Create, Created}
+import dev.rudiments.data.SoftCache
+import dev.rudiments.hardcore.types.{DTO, Defaults, SoftID, ScalaType, SoftInstance, Type}
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.junit.JUnitRunner
@@ -16,16 +16,18 @@ class ControlFlowSpec extends WordSpec with Matchers {
     name: String
   ) extends DTO
 
+  private implicit val t: Type = ScalaType[Example]
+
   private implicit val flow: ControlFlow = new ControlFlow()
-  private val ctrl = new Controlled(new HardCache[Example])
+  private val ctrl = new Controlled(new SoftCache)
 
-  private val c1 = Create(HardID(1), Example(1, "one"))
-  private val c2 = Create(HardID(2), Example(2, "two"))
-  private val c3 = Create(HardID(3), Example(3, "three"))
+  private val c1 = Create(SoftID(1L), SoftInstance(1L, "one"))
+  private val c2 = Create(SoftID(2L), SoftInstance(2L, "two"))
+  private val c3 = Create(SoftID(3L), SoftInstance(3L, "three"))
 
-  private val e1 = Created(HardID(1), Example(1, "one"))
-  private val e2 = Created(HardID(2), Example(2, "two"))
-  private val e3 = Created(HardID(3), Example(3, "three"))
+  private val e1 = Created(SoftID(1L), SoftInstance(1L, "one"))
+  private val e2 = Created(SoftID(2L), SoftInstance(2L, "two"))
+  private val e3 = Created(SoftID(3L), SoftInstance(3L, "three"))
 
   "contains no events if no executions" in {
     flow.memory should be (mutable.Queue.empty)

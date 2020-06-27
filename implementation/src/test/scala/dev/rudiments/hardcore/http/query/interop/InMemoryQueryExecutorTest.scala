@@ -34,12 +34,12 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(3, "hi"),
       Foo(4, "bay"),
       Foo(5, "tra")
-    ).map(fooType.softFromHard)
+    ).map(fooType.fromScala)
 
     val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
-      fooType.softFromHard(Foo(3, "hi"))
+      fooType.fromScala(Foo(3, "hi"))
     ))
   }
 
@@ -55,13 +55,13 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.softFromHard)
+    ).map(fooType.fromScala)
 
     val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(5, "bay")
-    ).map(fooType.softFromHard))
+    ).map(fooType.fromScala))
   }
 
   "simple query by option field" in {
@@ -74,13 +74,13 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.softFromHard)
+    ).map(fooType.fromScala)
 
     val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(3, "hi", Some(1)),
-    ).map(fooType.softFromHard))
+    ).map(fooType.fromScala))
   }
 
   "simple query by option field, is empty" in {
@@ -93,7 +93,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.softFromHard)
+    ).map(fooType.fromScala)
 
     val result = InMemoryQueryExecutor(query)(input)
 
@@ -101,7 +101,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.softFromHard))
+    ).map(fooType.fromScala))
   }
 
   "simple query by option field, is defined" in {
@@ -114,13 +114,13 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.softFromHard)
+    ).map(fooType.fromScala)
 
     val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(3, "hi", Some(1))
-    ).map(fooType.softFromHard))
+    ).map(fooType.fromScala))
   }
 
   "compile query with object field predicate" in {
@@ -142,12 +142,12 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay", Some(1), Some(Baz(1))),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.softFromHard)
+    ).map(fooType.fromScala)
 
     val result = InMemoryQueryExecutor(query)(input)
     result should be (Seq(
       Foo(4, "bay", Some(1), Some(Baz(1))),
-    ).map(fooType.softFromHard))
+    ).map(fooType.fromScala))
   }
 
 }

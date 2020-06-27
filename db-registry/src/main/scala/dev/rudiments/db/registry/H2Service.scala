@@ -1,23 +1,23 @@
 package dev.rudiments.db.registry
 
+import dev.rudiments.data.SoftCache
 import dev.rudiments.hardcode.sql.schema.{FK, Table}
-import dev.rudiments.hardcore.data.HardCache
-import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.data.CRUD.Create
-import dev.rudiments.hardcore.data.ReadOnly._
-import dev.rudiments.hardcore.types.{HardID, HardType, ID}
+import dev.rudiments.hardcore.{Service, Command, Result, Skill, Success, Failure, Error, Event}
+import dev.rudiments.data.CRUD.Create
+import dev.rudiments.data.ReadOnly._
+import dev.rudiments.hardcore.types.{ScalaType, SoftID, Type}
 
-class H2Service(adapter: H2Adapter, persistent: HardCache[Schema]) extends Service[SchemaCommand, SchemaEvent] {
+class H2Service(adapter: H2Adapter, persistent: SoftCache) extends Service[SchemaCommand, SchemaEvent] {
   override def isDefinedAt(cmd: Command): Boolean = f.isDefinedAt(cmd)
   override def apply(cmd: Command): Result[SchemaEvent] = f(cmd)
 
-  implicit val t: HardType[Schema] = HardType[Schema]
+  private implicit val t: Type = ScalaType[Schema]
   val f: Skill[SchemaEvent] = {
     case ReadSchema(schemaName) =>
       persistent(
         Create(
-          HardID(schemaName),
-          discoverSchema(schemaName)
+          SoftID(schemaName),
+          t.fromScala(discoverSchema(schemaName))
         )
       )
       findSchema(schemaName).toEither
@@ -69,8 +69,14 @@ class H2Service(adapter: H2Adapter, persistent: HardCache[Schema]) extends Servi
   }
 
   private def findSchema(schemaName: String): SchemaEvent = {
-    persistent(Find(HardID(schemaName))) match {
-      case Success(Found(_, value)) => SchemaFound(value)
+    persistent(Find(SoftID(schemaName))) match {
+      case Success(Found(_, value)) => SchemaFound(
+        Schema(
+          t.extract(value, "name").asInstanceOf[String],
+          t.extract(value, "tables").asInstanceOf[Set[Table]],
+          t.extract(value, "references").asInstanceOf[Set[FK]]
+        )
+      )
       case Failure(NotFound(_)) => SchemaNotFound(schemaName)
     }
   }

@@ -21,7 +21,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   ) extends DTO
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val t: Type = HardType[Example]
+  private implicit val t: Type = ScalaType[Example]
   private val cache: SoftCache = new SoftCache
 
   private val router: DataHttpPort = new DataHttpPort(

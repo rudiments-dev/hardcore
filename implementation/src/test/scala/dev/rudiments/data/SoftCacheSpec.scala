@@ -18,7 +18,7 @@ class SoftCacheSpec extends WordSpec with Matchers {
     comment: Option[String] = None
   ) extends DTO
 
-  private implicit val t: Type = HardType[Example]
+  private implicit val t: Type = ScalaType[Example]
   private val cache: SoftCache = new SoftCache
   private val sample = SoftInstance(42L, "sample", None)
   private val id: ID = SoftID(t.extract(sample, "id"))

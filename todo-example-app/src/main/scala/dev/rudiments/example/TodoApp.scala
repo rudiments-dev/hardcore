@@ -15,7 +15,7 @@ object TodoApp extends App with LazyLogging {
   logger.info("Starting application")
 
   val config = ConfigFactory.load()
-  implicit val t: Type = HardType[Item]
+  implicit val t: Type = ScalaType[Item]
 
   import akka.http.scaladsl.server.Directives._
   import dev.rudiments.hardcore.http.CirceSupport._
