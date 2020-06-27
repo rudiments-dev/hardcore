@@ -4,8 +4,8 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
+import dev.rudiments.data.{ReadOnlyHttpPort, SoftCache}
 import dev.rudiments.hardcode.sql.schema.{ColumnType, FK, TypedSchema}
-import dev.rudiments.hardcore.data.{HardCache, ReadOnlyHttpPort}
 import dev.rudiments.hardcore.http.{IDPath, RootRouter, Router}
 import dev.rudiments.hardcore.types.{HardType, ID}
 import io.circe.{Encoder, Json}
@@ -23,7 +23,7 @@ object Application extends App with LazyLogging {
 
   try {
     val config = ConfigFactory.load()
-    val cache = new HardCache[Schema]
+    val cache = new SoftCache
     val discover = new H2Adapter(config.getConfig("db"))
     val service = new H2Service(discover, cache)
 
@@ -37,7 +37,7 @@ object Application extends App with LazyLogging {
       override def apply(a: FK): Json = Encoder.encodeString(a.toString)
     }
 
-    val port = new ReadOnlyHttpPort[Schema]("schema", IDPath[Schema, String], cache)
+    val port = new ReadOnlyHttpPort("schema", "name", cache)
     new RootRouter(config, port).bind()
   } catch {
     case e: Throwable =>

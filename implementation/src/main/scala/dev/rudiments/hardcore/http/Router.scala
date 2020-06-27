@@ -1,11 +1,10 @@
 package dev.rudiments.hardcore.http
 
 import java.sql.Date
-import java.util.UUID
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
-import dev.rudiments.hardcore.types.{FieldType, HardID, ID, ScalaTypes, Type, Types}
+import dev.rudiments.hardcore.types.{FieldType, ID, ScalaTypes, Type}
 
 import scala.language.implicitConversions
 
@@ -47,25 +46,6 @@ case class ResourceRouter(
   ).routes
 }
 
-case class HardIDRouter[T](idDirective: Directive1[HardID[T]], idRouters: (HardID[T] => Router)*) extends Router {
-  override val routes: Route = idDirective { id =>
-    CompositeRouter(idRouters.map(t => t(id)): _*).routes
-  }
-}
-
-import scala.reflect.runtime.universe.TypeTag
-case class HardResourceRouter[T, K : TypeTag](
-  prefix: String,
-  pathRouters: Seq[Router] = Seq.empty,
-  idRouters: Seq[(HardID[T] => Router)] = Seq.empty
-) extends Router {
-  override val routes: Route = PrefixRouter(prefix,
-    HardIDRouter(IDPath[T, K], idRouters: _*),
-    CompositeRouter(pathRouters: _*)
-  ).routes
-}
-
-
 import dev.rudiments.hardcore.types.SoftID.SoftID1
 import dev.rudiments.hardcore.types.Types
 object IDPath {
@@ -78,15 +58,5 @@ object IDPath {
     case Types.UUID =>            pathPrefix(JavaUUID).map(u => SoftID1(u))
     case Types.Date =>            pathPrefix(Segment).map(s => SoftID1(Date.valueOf(s)))
     case other => ???
-  }
-
-  import scala.reflect.runtime.universe.{TypeTag, typeOf}
-  def apply[A, K: TypeTag]: Directive1[HardID[A]] = {
-          if(typeOf[K] =:= typeOf[Long])   pathPrefix(LongNumber).map(l => HardID[A, Long](l))
-    else  if(typeOf[K] =:= typeOf[Int])    pathPrefix(IntNumber).map(i => HardID[A, Int](i))
-    else  if(typeOf[K] =:= typeOf[String]) pathPrefix(Segment).map(s => HardID[A, String](s))
-    else  if(typeOf[K] =:= typeOf[UUID])   pathPrefix(JavaUUID).map(s => HardID[A, UUID](s))
-    else  if(typeOf[K] =:= typeOf[Date])   pathPrefix(Segment).map(s => HardID[A, Date](Date.valueOf(s)))
-    else ??? //TODO enums
   }
 }

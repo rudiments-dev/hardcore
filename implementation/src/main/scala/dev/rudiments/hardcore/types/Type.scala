@@ -96,7 +96,6 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
 
   def extract(value: Instance, field: String): Any = value match {
     case s: SoftInstance          => s.fields(field)
-    case HardInstance(v: Product) => productField(v, field)
     case other                    => ???
   }
 
