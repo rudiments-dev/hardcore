@@ -49,8 +49,8 @@ object InMemoryQueryExecutor {
     case IsDefined(_) => param.asInstanceOf[Option[_]].isDefined
     case OptionValuePredicate(_, underlying) => param.asInstanceOf[Option[_]].exists(value => fieldFunctions(value)(underlying))
     case ProductFieldPredicate(_, underlying) =>
-      val field = param.getClass.getDeclaredField(underlying.fieldName)
-      field.setAccessible(true)
-      fieldFunctions(field.get(param))(underlying)
+      fieldFunctions(
+        param.asInstanceOf[SoftInstance].t.extract(param.asInstanceOf[SoftInstance], underlying.fieldName)
+      )(underlying)
   }
 }

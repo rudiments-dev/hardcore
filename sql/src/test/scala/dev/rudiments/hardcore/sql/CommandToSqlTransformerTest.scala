@@ -4,7 +4,7 @@ import dev.rudiments.data.CRUD._
 import dev.rudiments.data.ReadOnly.FindAll
 import dev.rudiments.hardcore.http.query.PredicatesQuery
 import dev.rudiments.hardcore.http.query.predicates.{IntEquals, StringEquals}
-import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, TypedSchema, Table}
+import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Table, TypedSchema}
 import dev.rudiments.hardcore.types.SoftID.SoftID1
 import dev.rudiments.hardcore.types.{DTO, Field, FieldFlag, Infinity, NegativeInfinity, NumberFormat, PositiveInfinity, SoftID, Type, Types}
 import org.junit.runner.RunWith
@@ -14,6 +14,7 @@ import dev.rudiments.hardcode.sql.SQLDataClasses._
 import dev.rudiments.hardcode.sql.interpritator.CommandToSqlTransformer
 import dev.rudiments.hardcode.sql.SQLParts._
 import dev.rudiments.hardcode.sql.SQLPredicates._
+import dev.rudiments.hardcore.types.ScalaTypes.{ScalaInt, ScalaString}
 
 @RunWith(classOf[JUnitRunner])
 class CommandToSqlTransformerTest extends FlatSpec with Matchers {
@@ -21,9 +22,9 @@ class CommandToSqlTransformerTest extends FlatSpec with Matchers {
   case class Foo(a: Int, b: String, d: Option[Int]) extends DTO
 
   val fooType: Type = Type("Foo", Map(
-    "a" -> Field(Types.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), FieldFlag.Required),
-    "b" -> Field(Types.Text(Infinity), FieldFlag.Required),
-    "d" -> Field(Types.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), FieldFlag.Optional),
+    "a" -> Field(ScalaInt, FieldFlag.Required),
+    "b" -> Field(ScalaString, FieldFlag.Required),
+    "d" -> Field(ScalaInt, FieldFlag.Optional),
   ))
 
 

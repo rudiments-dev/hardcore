@@ -35,10 +35,11 @@ class ReadOnlyHttpPort(
 
   import dev.rudiments.hardcore.http.CirceSupport._
   def responseWith(event: Result[Event]): StandardRoute = event match {
-    case Success(Found(_, value)) =>   complete(StatusCodes.OK, value)
-    case Success(FoundAll(values)) =>  complete(StatusCodes.OK, values)
-    case Failure(NotFound(_)) =>       complete(StatusCodes.NotFound)
-    case Failure(_: Error) =>          complete(StatusCodes.InternalServerError)
+    case Success(Found(_, value)) =>  complete(StatusCodes.OK, value)
+    case Success(FoundAll(values)) => complete(StatusCodes.OK, values)
+    case Failure(NotFound(_)) =>      complete(StatusCodes.NotFound)
+    case Failure(_: Error) =>         complete(StatusCodes.InternalServerError)
+    case _ =>                         complete(StatusCodes.InternalServerError)
   }
 }
 
