@@ -55,6 +55,7 @@ class DataHttpPort[T : Encoder : Decoder, K : TypeTag](
     case Failure(AlreadyExists(_, _)) =>      complete(StatusCodes.Conflict)
 
     case Failure(_: Error) =>                 complete(StatusCodes.InternalServerError)
+    case _ =>                                 complete(StatusCodes.InternalServerError)
   }
 }
 
