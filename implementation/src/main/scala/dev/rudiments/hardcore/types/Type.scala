@@ -11,7 +11,7 @@ object     TypeSystem {
   def apply(name: String, types: Type*): TypeSystem = new TypeSystem(name, types.map(t => t.name -> t).toMap)
 }
 
-class SoftValidationError(e: ValidationError) extends RuntimeException(s"Validation error: $e")
+class SoftValidationError(field: String, e: ValidationError) extends RuntimeException(s"Validation error on field '$field': $e")
 
 //todo fix primary keys
 case class Type(name: String, fields: Map[String, Field]) extends DTO {
@@ -19,10 +19,11 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
     SoftInstance(
       fields
         .zip(arguments)
-        .map { case ((name, t), argument) => name -> validate(t, name, argument) }
-        .mapValues {
-          case Left(e) => throw new SoftValidationError(e)
-          case Right(v) => v
+        .map { case ((name, t), argument) =>
+          name -> (validate(t, name, argument) match {
+            case Left(e) => throw new SoftValidationError(name, e)
+            case Right(v) => v
+          })
         }
     )(this)
   }
@@ -59,29 +60,38 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
     case (_, _) => f.kind.validate(arg)
   }
 
-  //TODO fix SoftInstance generation on incoming Option
   def softFromHard(hard: Any): SoftInstance = hard match {
-    case p: Product => constructSoft(p.productIterator.toSeq.map(wrapComposite): _*)
+    case p: Product => constructSoft(
+      p.productIterator.toSeq.zip(fields.values).map { case (vi, fi) => wrapComposite(vi, fi.kind) }: _*
+    )
     case other      => ???
   }
 
-  private def wrapComposite(v: Any): Any = v match {
-    case i: Boolean => i
-    case i: String => i
-    case i: UUID => i
-    case i: Byte => i
-    case i: Short => i
-    case i: Int => i
-    case i: Long => i
-    case i: Float => i
-    case i: Double => i
-    case i: BigInt => i
-    case i: BigDecimal => i
-    case i: Option[_] => i
-    //TODO enums
-    case m: Map[_, _] => m.mapValues(wrapComposite)
-    case i: Iterable[_] => i.map(wrapComposite)
-    case p: Product => constructSoft(p.productIterator.toSeq.map(wrapComposite))
+  private def wrapComposite(v: Any, f: FieldType): Any = (v, f) match {
+    case (i: Boolean, Types.Bool) => i
+    case (i: String, Types.Text(_)) => i
+    case (i: UUID, Types.UUID) => i
+    case (i: Byte, ScalaTypes.ScalaByte) => i
+    case (i: Short, ScalaTypes.ScalaShort) => i
+    case (i: Int, ScalaTypes.ScalaInt) => i
+    case (i: Long, ScalaTypes.ScalaLong) => i
+    case (i: Float, ScalaTypes.ScalaFloat) => i
+    case (i: Double, ScalaTypes.ScalaDouble) => i
+    case (i: BigInt, ScalaTypes.ScalaBigInteger) => i
+    case (i: BigDecimal, ScalaTypes.ScalaBigDecimal) => i
+    case (i: Option[_], _) => i.map(wrapComposite(_, f))
+    case (i: EnumEntry, e@Types.Enum(_, values)) => SoftEnum(e, values.indexOf(i.entryName))
+    case (m: Map[_, _], Types.Index(of, over)) => m.map {
+      case (k, v) => wrapComposite(k, of) -> wrapComposite(v, over)
+    }
+    case (i: Iterable[_], Types.List(of)) => i.map(wrapComposite(_, of))
+    case (p: Product, Types.Reference(t)) =>
+      t.constructSoft(
+        p.productIterator.toSeq
+          .zip(t.fields.values)
+          .map { case(pi, fi) => wrapComposite(pi, fi.kind) }: _*
+      )
+    case (_, _) => throw new RuntimeException(s"Incompatible: value $v and field $f")
   }
 
   def extract(value: Instance, field: String): Any = value match {

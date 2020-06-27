@@ -36,10 +36,10 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
   private val id = SoftID(t.extract(sample, "id"))
   val config: Config = ConfigFactory.parseMap(Map(
     "driver" -> "org.h2.Driver",
-    "url" -> "jdbc:h2:mem:hello",
+    "url" -> "jdbc:h2:mem:hi",
     "user" -> "user",
     "password" -> "pass",
-    "schema" -> "hello"
+    "schema" -> "hi"
   ).asJava)
   def initConnectionPool(config: Config): String = {
     val driver =    config.getString("driver")
@@ -56,7 +56,7 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
 
 
 
-  private val repo: SQLAdapter = new SQLAdapter(DB.connect(), schema = TypedSchema("hello", Map(
+  private val repo: SQLAdapter = new SQLAdapter(DB.connect(), schema = TypedSchema("hi", Map(
     t -> Table("example", Seq(
       Column("id", ColumnTypes.INT, nullable = false, default = false, pk = true),
       Column("name", ColumnTypes.VARCHAR(255), nullable = false, default = false, pk = false)
@@ -74,8 +74,8 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
 
   "should create table schema by name" in {
     implicit val session: DBSession = AutoSession
-    sql"CREATE SCHEMA hello".execute().apply()
-    sql"SET SCHEMA hello".execute().apply()
+    sql"CREATE SCHEMA hi".execute().apply()
+    sql"SET SCHEMA hi".execute().apply()
 
     sql"""CREATE TABLE example (
          |      id IDENTITY PRIMARY KEY,
