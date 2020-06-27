@@ -6,10 +6,10 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class TypeSystemSpec extends WordSpec with Matchers {
-  val t: HardType[Example] = HardType[Example]
-  val s1: HardType[Sample1] = HardType[Sample1]
-  val s2: HardType[Sample2] = HardType[Sample2]
-  val s3: HardType[Sample3] = HardType[Sample3]
+  val t: ScalaType[Example] = ScalaType[Example]
+  val s1: ScalaType[Sample1] = ScalaType[Sample1]
+  val s2: ScalaType[Sample2] = ScalaType[Sample2]
+  val s3: ScalaType[Sample3] = ScalaType[Sample3]
   val typeSystem: TypeSystem = TypeSystem("sample", t, s1, s2, s3)
 
   "types are in type system" in {

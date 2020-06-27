@@ -17,7 +17,7 @@ object Application extends App with LazyLogging {
   logger.info("Starting application")
 
   val config = ConfigFactory.load()
-  implicit val t: Type = HardType[Example]
+  implicit val t: Type = ScalaType[Example]
 
   import akka.http.scaladsl.server.Directives._
   import dev.rudiments.hardcore.http.CirceSupport._
@@ -41,9 +41,9 @@ object Application extends App with LazyLogging {
     )
   )
 
-  exampleModule.context.adapter apply Create(SoftID(1), t.softFromHard(Example(1, "one", Seq("red", "green"))))
-  exampleModule.context.adapter apply Create(SoftID(2), t.softFromHard(Example(2, "two", Seq("blue"))))
-  exampleModule.context.adapter apply Create(SoftID(3), t.softFromHard(Example(3, "three")))
+  exampleModule.context.adapter apply Create(SoftID(1), t.fromScala(Example(1, "one", Seq("red", "green"))))
+  exampleModule.context.adapter apply Create(SoftID(2), t.fromScala(Example(2, "two", Seq("blue"))))
+  exampleModule.context.adapter apply Create(SoftID(3), t.fromScala(Example(3, "three")))
 
   new SoftApp(ConfigFactory.load(), exampleModule).init()
 

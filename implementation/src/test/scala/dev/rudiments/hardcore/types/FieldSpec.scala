@@ -9,7 +9,7 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class FieldSpec extends WordSpec with Matchers {
-  val t: HardType[Example] = HardType[Example]
+  val t: ScalaType[Example] = ScalaType[Example]
 
   "Type transforms all basic types to BasicTypes" in {
     t.fields should be (Map(

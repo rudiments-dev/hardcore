@@ -78,7 +78,7 @@ class CommandToSqlTransformerTest extends FlatSpec with Matchers {
 
 
   it should "test query from create" in {
-    val instance = fooType.softFromHard(Foo(5, "foo", Some(5)))
+    val instance = fooType.fromScala(Foo(5, "foo", Some(5)))
     val id = SoftID1(5)(fooType)
     val command = Create(id, instance)
 
@@ -150,7 +150,7 @@ class CommandToSqlTransformerTest extends FlatSpec with Matchers {
 
 
   it should "create query from update" in {
-    val instance = fooType.softFromHard(Foo(5, "foo", Some(5)))
+    val instance = fooType.fromScala(Foo(5, "foo", Some(5)))
     val id = SoftID1(5)(fooType)
     val command = Update(id, instance)
 

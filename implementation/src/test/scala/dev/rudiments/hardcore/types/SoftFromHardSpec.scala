@@ -7,22 +7,22 @@ import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
 class SoftFromHardSpec extends WordSpec with Matchers {
-  private val s1: Type = HardType[Sample1]
-  private val c1: Type = HardType[Complicated1]
-  private val c2: Type = HardType[Complicated2]
-  private val c3: Type = HardType[Complicated3]
+  private val s1: Type = ScalaType[Sample1]
+  private val c1: Type = ScalaType[Complicated1]
+  private val c2: Type = ScalaType[Complicated2]
+  private val c3: Type = ScalaType[Complicated3]
 
   private val softEnum = Types.Enum("dev.rudiments.hardcore.data.MyEnum", Seq("One", "Two", "Red"))
 
   "can construct soft instance" in {
-    val s = s1.softFromHard(Sample1(1, None, Set.empty))
+    val s = s1.fromScala(Sample1(1, None, Set.empty))
     s should be (SoftInstance(Map("a" -> 1, "b" -> None, "c" -> Set.empty))(s1))
     s.fields.head should be ("a" -> 1)
     s.fields.last should be ("c" -> Set.empty)
   }
 
   "can extract value from soft instance" in {
-    val s = s1.softFromHard(Sample1(1, None, Set.empty))
+    val s = s1.fromScala(Sample1(1, None, Set.empty))
     s1.extract(s, "a") should be (1)
     s1.extract(s, "b") should be (None)
     s1.extract(s, "c") should be (Set.empty)
@@ -35,7 +35,7 @@ class SoftFromHardSpec extends WordSpec with Matchers {
       c = Set("red", "green", "blue"),
       d = Map ("1" -> 1, "2" -> 2, "3" -> 3)
     )
-    c1.softFromHard(complicatedPlain) should be (SoftInstance(
+    c1.fromScala(complicatedPlain) should be (SoftInstance(
       42, Some(42L), Set("red", "green", "blue"), Map ("1" -> 1, "2" -> 2, "3" -> 3)
     )(c1))
   }
@@ -55,7 +55,7 @@ class SoftFromHardSpec extends WordSpec with Matchers {
         "full" -> Sample1(42, Some("value"), Set("sky", "ocean", "land"))
       )
     )
-    c2.softFromHard(complicatedComposite) should be (SoftInstance(
+    c2.fromScala(complicatedComposite) should be (SoftInstance(
       SoftInstance(1, None, Set.empty)(s1),
       Some(SoftInstance(1, None, Set.empty)(s1)),
       Set(
@@ -82,7 +82,7 @@ class SoftFromHardSpec extends WordSpec with Matchers {
         "red" -> MyEnum.Red
       )
     )
-    c3.softFromHard(complicatedEnum) should be (SoftInstance(
+    c3.fromScala(complicatedEnum) should be (SoftInstance(
       SoftEnum(softEnum, 0),
       Some(SoftEnum(softEnum, 1)),
       Set(

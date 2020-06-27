@@ -5,19 +5,19 @@ import dev.rudiments.hardcode.sql.schema.{FK, Table}
 import dev.rudiments.hardcore.{Service, Command, Result, Skill, Success, Failure, Error, Event}
 import dev.rudiments.data.CRUD.Create
 import dev.rudiments.data.ReadOnly._
-import dev.rudiments.hardcore.types.{HardType, SoftID, Type}
+import dev.rudiments.hardcore.types.{ScalaType, SoftID, Type}
 
 class H2Service(adapter: H2Adapter, persistent: SoftCache) extends Service[SchemaCommand, SchemaEvent] {
   override def isDefinedAt(cmd: Command): Boolean = f.isDefinedAt(cmd)
   override def apply(cmd: Command): Result[SchemaEvent] = f(cmd)
 
-  private implicit val t: Type = HardType[Schema]
+  private implicit val t: Type = ScalaType[Schema]
   val f: Skill[SchemaEvent] = {
     case ReadSchema(schemaName) =>
       persistent(
         Create(
           SoftID(schemaName),
-          t.softFromHard(discoverSchema(schemaName))
+          t.fromScala(discoverSchema(schemaName))
         )
       )
       findSchema(schemaName).toEither

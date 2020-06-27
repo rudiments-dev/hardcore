@@ -27,12 +27,12 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
                             ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val t: Type = HardType[Example] //todo fix primary keys
+  private implicit val t: Type = ScalaType[Example] //todo fix primary keys
 
 
   private implicit val en: Encoder[SoftInstance] = SoftEncoder(t)
   private implicit val de: Decoder[SoftInstance] = SoftDecoder(t)
-  private val sample = t.softFromHard(Example(42, "sample"))
+  private val sample = t.fromScala(Example(42, "sample"))
   private val id = SoftID(t.extract(sample, "id"))
   val config: Config = ConfigFactory.parseMap(Map(
     "driver" -> "org.h2.Driver",

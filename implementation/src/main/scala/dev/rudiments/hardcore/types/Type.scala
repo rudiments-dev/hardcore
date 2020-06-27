@@ -15,7 +15,7 @@ class SoftValidationError(field: String, e: ValidationError) extends RuntimeExce
 
 //todo fix primary keys
 case class Type(name: String, fields: Map[String, Field]) extends DTO {
-  def constructSoft(arguments: Any*): SoftInstance = {
+  def construct(arguments: Any*): SoftInstance = {
     SoftInstance(
       fields
         .zip(arguments)
@@ -60,8 +60,8 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
     case (_, _) => f.kind.validate(arg)
   }
 
-  def softFromHard(hard: Any): SoftInstance = hard match {
-    case p: Product => constructSoft(
+  def fromScala(hard: Any): SoftInstance = hard match {
+    case p: Product => construct(
       p.productIterator.toSeq.zip(fields.values).map { case (vi, fi) => wrapComposite(vi, fi.kind) }: _*
     )
     case other      => ???
@@ -86,7 +86,7 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
     }
     case (i: Iterable[_], Types.List(of)) => i.map(wrapComposite(_, of))
     case (p: Product, Types.Reference(t)) =>
-      t.constructSoft(
+      t.construct(
         p.productIterator.toSeq
           .zip(t.fields.values)
           .map { case(pi, fi) => wrapComposite(pi, fi.kind) }: _*

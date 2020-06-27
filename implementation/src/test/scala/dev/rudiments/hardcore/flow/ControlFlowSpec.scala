@@ -2,7 +2,7 @@ package dev.rudiments.hardcore.flow
 
 import dev.rudiments.data.CRUD.{Create, Created}
 import dev.rudiments.data.SoftCache
-import dev.rudiments.hardcore.types.{DTO, Defaults, SoftID, HardType, SoftInstance, Type}
+import dev.rudiments.hardcore.types.{DTO, Defaults, SoftID, ScalaType, SoftInstance, Type}
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.junit.JUnitRunner
@@ -16,7 +16,7 @@ class ControlFlowSpec extends WordSpec with Matchers {
     name: String
   ) extends DTO
 
-  private implicit val t: Type = HardType[Example]
+  private implicit val t: Type = ScalaType[Example]
 
   private implicit val flow: ControlFlow = new ControlFlow()
   private val ctrl = new Controlled(new SoftCache)

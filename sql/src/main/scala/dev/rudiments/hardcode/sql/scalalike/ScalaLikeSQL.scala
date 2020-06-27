@@ -33,7 +33,7 @@ case class FindByIDSQL(
   override def exec(transaction: ScalaLikeTransaction): DataEvent = {
     implicit val session: DBSession = transaction.dbCon.withinTxSession(transaction.underlying)
     sql().map { rs =>
-      softType.constructSoft(rs.toMap().values.toSeq :_*) //todo refactor to Map
+      softType.construct(rs.toMap().values.toSeq :_*) //todo refactor to Map
     }.single().apply() match {
       case Some(value) => Found(id, value)
       case None => NotFound(id)
@@ -143,7 +143,7 @@ case class QuerySQL(
     implicit val session: DBSession = transaction.dbCon.withinTxSession(transaction.underlying)
     Try {
       sql().map { rs =>
-        softType.constructSoft(rs.toMap().values.toSeq :_*) //todo refactor to Map
+        softType.construct(rs.toMap().values.toSeq :_*) //todo refactor to Map
       }.list().apply()
     } match {
       case Failure(exception) => throw exception //todo error data command
