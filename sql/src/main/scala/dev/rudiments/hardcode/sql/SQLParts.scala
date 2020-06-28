@@ -6,8 +6,8 @@ object SQLParts {
 
   case class From(schema: TypedSchema, table: Table, as: Option[String])
 
-  case class Selector(column: Column, as: Option[String])
-  case class Select(selectors: Seq[Selector])
+  case class SelectField(column: Column, as: Option[String])
+  case class Select(selects: Seq[SelectField])
   case class Where(expressions: Set[WhereExpression])
 
   sealed trait WhereExpression

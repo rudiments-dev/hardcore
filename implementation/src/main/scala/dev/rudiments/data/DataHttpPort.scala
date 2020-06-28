@@ -49,7 +49,7 @@ class DataHttpPort(
 
     case Success(AllCreated(_)) =>            complete(StatusCodes.Created)
     case Success(AllReplaced(_)) =>           complete(StatusCodes.Created)
-    case Success(AllDeleted) =>               complete(StatusCodes.NoContent)
+    case Success(AllDeleted()) =>               complete(StatusCodes.NoContent)
 
     case Failure(NotFound(_)) =>              complete(StatusCodes.NotFound)
     case Failure(AlreadyExists(_, _)) =>      complete(StatusCodes.Conflict)

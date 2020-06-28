@@ -6,8 +6,9 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.config.{Config, ConfigFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import dev.rudiments.hardcode.sql.{SQLAdapter, SQLDataHttpPort}
-import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, TypedSchema, Table}
+import dev.rudiments.data.DataHttpPort
+import dev.rudiments.hardcode.sql.SQLAdapter
+import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Table, TypedSchema}
 import dev.rudiments.hardcore.http.{SoftDecoder, SoftEncoder}
 import dev.rudiments.hardcore.types._
 import io.circe.{Decoder, Encoder}
@@ -56,18 +57,22 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
 
 
 
-  private val repo: SQLAdapter = new SQLAdapter(DB.connect(), schema = TypedSchema("hi", Map(
+  private val repo: SQLAdapter = new SQLAdapter(schema = TypedSchema("hi", Map(
     t -> Table("example", Seq(
       Column("id", ColumnTypes.INT, nullable = false, default = false, pk = true),
       Column("name", ColumnTypes.VARCHAR(255), nullable = false, default = false, pk = false)
     ))
-  ), Set.empty))
+  ), Set.empty), session = AutoSession)
 
-  private val router: SQLDataHttpPort = new SQLDataHttpPort(
+  private val router: DataHttpPort = new DataHttpPort(
     "example",
     "id",
     i => SoftID(t.extract(i, "id")),
     repo
+  )(
+    t,
+    SoftEncoder(t).contramap { case i: SoftInstance => i },
+    SoftDecoder(t).map(_.asInstanceOf[Instance])
   )
 
   private val routes = Route.seal(router.routes)

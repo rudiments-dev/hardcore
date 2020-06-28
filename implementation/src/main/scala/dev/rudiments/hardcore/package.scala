@@ -1,41 +1,64 @@
 package dev.rudiments
 
+import dev.rudiments.hardcore.Message
 import dev.rudiments.hardcore.types.DTO
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+import scala.util.{Either, Left, Right}
 
 package object hardcore {
 
-  sealed abstract class SkillResult[+A <: Message, +B <: Message] {
+  sealed abstract class SkillResult[+A, +B] {
 
-    def map[B1 <: Message](f: B => B1) : SkillResult[A, B1] = this match {
+    def map[B1](f: B => B1) : SkillResult[A, B1] = this match {
       case dev.rudiments.hardcore.Success(message) => Success(f(message))
       case dev.rudiments.hardcore.Failure(message) => Failure(message)
     }
 
-    def flatMap[A1 <: Message,B1 <: Message](f: B => SkillResult[A1, B1]): SkillResult[A1, B1] = this match {
+    def flatMap[A1, B1](f: B => SkillResult[A1, B1]): SkillResult[A1, B1] = this match {
       case dev.rudiments.hardcore.Success(message) => f(message)
       case dev.rudiments.hardcore.Failure(message) => this.asInstanceOf[SkillResult[A1, B1]]
     }
 
-    def expecting[T <: Event : ClassTag]: SkillResult[Message, T] = this match {
-      case dev.rudiments.hardcore.Success(message) => message match {
-        case e: T => Success[Message, T](e)
-        case _ => Failure(message)
-      }
-      case msg@dev.rudiments.hardcore.Failure(message) => Failure(message)
+    def transform[A1, B1](f: A => A1, g: B => B1): SkillResult[A1, B1] = this match {
+      case Success(message) => Success(g(message))
+      case Failure(message) => Failure(f(message))
     }
 
-    def merge(): Message = this match {
-      case dev.rudiments.hardcore.Success(message) => message
-      case dev.rudiments.hardcore.Failure(message) => message
+    def recover[A1](f: A => A1) : SkillResult[A1, B] = this match {
+      case dev.rudiments.hardcore.Success(message) => Success(message)
+      case dev.rudiments.hardcore.Failure(message) => Failure(f(message))
+    }
+
+    def filter[F](p: B => Boolean): Option[SkillResult[F, B]] = this match {
+      case x @ Success(a) if p(a) => Some(x.asInstanceOf[SkillResult[F, B]])
+      case _                      => None
+    }
+
+    def expecting[T <: Event : ClassTag]: SkillResult[Message, T] = this match {
+      case dev.rudiments.hardcore.Success(message) => message match {
+        case e: T => Success(e)
+        case _ => Failure(message).asInstanceOf[SkillResult[Message, T]]
+      }
+      case dev.rudiments.hardcore.Failure(message) => message match {
+        case e: T => Success(e)
+        case _ => Failure(message).asInstanceOf[SkillResult[Message, T]]
+      }
     }
   }
 
+  object SkillResult {
+    implicit class Mergeable[T](private val x: SkillResult[T, T]) extends AnyVal {
+      def merge: T = x match {
+        case Success(a) => a
+        case Failure(a) => a
+      }
+    }
+  }
 
-  case class Success[+A <: Message, +B <: Message](message: B) extends SkillResult[A, B]
-  case class Failure[+A <: Message, +B <: Message](message: A) extends SkillResult[A, B]
+  case class Success[+A, +B](message: B) extends SkillResult[A, B]
+  case class Failure[+A, +B](message: A) extends SkillResult[A, B]
 
   trait Message extends DTO {
     def toEither[E <: Event]: SkillResult[Message, E] = Failure(this)
