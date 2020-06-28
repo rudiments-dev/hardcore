@@ -21,24 +21,22 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   ) extends DTO
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
   private implicit val t: Type = ScalaType[Example]
   private val cache: SoftCache = new SoftCache
+
+  private implicit val en: Encoder[Instance] = SoftEncoder(t)
+  private implicit val de: Decoder[Instance] = SoftDecoder(t)
 
   private val router: DataHttpPort = new DataHttpPort(
     "example",
     "id",
-    i => SoftID(t.extract(i, "id")),
+    i => i.extractID[Any]("id"),
     cache
-  )(
-    t,
-    SoftEncoder(t).contramap { case i: SoftInstance => i },
-    SoftDecoder(t).map(_.asInstanceOf[Instance])
   )
-  private implicit val en: Encoder[SoftInstance] = SoftEncoder(t)
-  private implicit val de: Decoder[SoftInstance] = SoftDecoder(t)
 
   private val routes = Route.seal(router.routes)
-  private val sample = SoftInstance(42L, "sample")
+  private val sample: Instance = SoftInstance(42L, "sample")
 
   "SoftEncoder can encode" in {
     en.apply(sample) should be (Json.obj(
@@ -63,22 +61,22 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   "put item into repository" in {
     Post("/example", sample) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      responseAs[SoftInstance] should be (sample)
+      responseAs[Instance] should be (sample)
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (sample)
+      responseAs[Instance] should be (sample)
     }
   }
 
   "update item in repository" in {
     Put("/example/42", SoftInstance(42L, "test")) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
+      responseAs[Instance] should be (SoftInstance(42L, "test"))
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
+      responseAs[Instance] should be (SoftInstance(42L, "test"))
     }
   }
 
@@ -106,7 +104,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     cache(Count).merge should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42L, "42'th element"))
+      responseAs[Instance] should be (SoftInstance(42L, "42'th element"))
     }
   }
 
@@ -117,7 +115,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
     }
     Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(10042L, "10042'th element"))
+      responseAs[Instance] should be (SoftInstance(10042L, "10042'th element"))
     }
   }
 

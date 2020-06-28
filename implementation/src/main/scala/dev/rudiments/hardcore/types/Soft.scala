@@ -19,9 +19,11 @@ object                SoftID {
   final def apply(key1: Any, key2: Any, key3: Any)(implicit t: Type): SoftID = SoftID3(key1, key2, key3)(t)
 }
 
-final case class SoftInstance(fields: Map[String, Any])(implicit t: Type) extends SoftRef()(t) with Instance
-object           SoftInstance {
-  def apply(fields: Any*)(implicit t: Type): SoftInstance = t.construct(fields: _*)
+case class SoftInstance(fields: Map[String, Any])(implicit t: Type) extends SoftRef()(t) with Instance
+object     SoftInstance {
+  def apply(fields: Any*)(implicit t: Type): Instance = t.construct(fields: _*)
 }
 
-final case class SoftEnum(enum: Types.Enum, index: Int)
+final case class SoftEnum(enum: Enum, index: Int) {
+  def name: String = enum.candidates(index).name
+}

@@ -7,31 +7,33 @@ import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
 object SoftDecoder {
 
-  def apply(implicit t: Type): Decoder[SoftInstance] = new Decoder[SoftInstance] {
-    override def apply(c: HCursor): Result[SoftInstance] = {
+  def apply(implicit t: Type): Decoder[Instance] = new Decoder[Instance] {
+    override def apply(c: HCursor): Result[Instance] = {
       t.fields.map {
-        case (name, Field(Types.Reference(t), FieldFlag.Required)) =>
-          c.downField(name).as(SoftDecoder(t))
-        case (name, Field(Types.Reference(t), FieldFlag.Optional)) =>
-          c.downField(name).as(Decoder.decodeOption(SoftDecoder(t)))
-        case (name, Field(Types.Reference(t), FieldFlag.WithDefault)) =>
-          c.downField(name).as(SoftDecoder(t))
+        case (name, Field(Types.Reference(of), FieldFlag.Required))    => c.downField(name).as(referenceEncoder(of))
+        case (name, Field(Types.Reference(of), FieldFlag.Optional))    => c.downField(name).as(Decoder.decodeOption(referenceEncoder(of)))
+        case (name, Field(Types.Reference(of), FieldFlag.WithDefault)) => c.downField(name).as(referenceEncoder(of))
 
-        case (name, Field(f, FieldFlag.Required)) =>
-          c.downField(name).as(plainRequiredFieldDecoder(f))
-        case (name, Field(f, FieldFlag.Optional)) =>
-          c.downField(name).as(Decoder.decodeOption(plainRequiredFieldDecoder(f)))
-        case (name, Field(f, FieldFlag.WithDefault)) =>
-          c.downField(name).as(Decoder.decodeOption(plainRequiredFieldDecoder(f)).map(_.get))//TODO add default values for common cases
+        case (name, Field(f, FieldFlag.Required))     => c.downField(name).as(plainRequiredFieldDecoder(f))
+        case (name, Field(f, FieldFlag.Optional))     => c.downField(name).as(Decoder.decodeOption(plainRequiredFieldDecoder(f)))
+        case (name, Field(f, FieldFlag.WithDefault))  => c.downField(name).as(Decoder.decodeOption(plainRequiredFieldDecoder(f)).map(_.get))//TODO add default values for common cases
 
-        case (name, Field(Types.List(of), _)) =>
-          c.downField(name).as(Decoder.decodeSeq(plainRequiredFieldDecoder(of)))
-        case (name, Field(Types.Index(Types.Text(_), over), _)) =>
-          c.downField(name).as(Decoder.decodeMap(KeyDecoder.decodeKeyString, plainRequiredFieldDecoder(over)))
+        case (name, Field(Types.List(of), _)) => c.downField(name).as(Decoder.decodeSeq(plainRequiredFieldDecoder(of)))
+
+        case (name, Field(Types.Index(Types.Text(_), over), _)) => c.downField(name).as(Decoder.decodeMap(KeyDecoder.decodeKeyString, plainRequiredFieldDecoder(over)))
+
       }.foldRight(Right(scala.Nil): Either[DecodingFailure, scala.List[Any]]) {
         (e, acc) => for (xs <- acc.right; x <- e.right) yield x :: xs
       }.map(values => SoftInstance(values: _*)(t))
     }
+  }
+
+  private def referenceEncoder(of: Thing): Decoder[_] = of match {
+    case s: Singleton => Decoder.decodeString.map(str => if(s.name == str) s else ???)
+    case _: Declaration => ??? //TODO typeSystem.descendants(d)
+    case t: Type => SoftDecoder(t)
+    case e: Enum => Decoder.decodeString.map(i => SoftEnum(e, e.candidates.map(_.toString).indexOf(i)))
+    case a: Algebraic => a.candidates.map(referenceEncoder(_).asInstanceOf[Decoder[Any]]).reduce(_ or _)
   }
 
   private def plainRequiredFieldDecoder(f: FieldType): Decoder[_] = f match {
@@ -58,8 +60,6 @@ object SoftDecoder {
     case Types.Timestamp => Decoder.decodeString.map(java.sql.Timestamp.valueOf)
 
     case Types.UUID => Decoder.decodeUUID
-
-    case e@Types.Enum(_, values) => Decoder.decodeString.map(i => SoftEnum(e, values.indexOf(i)))
 
     case other => ???
   }

@@ -17,7 +17,7 @@ class CreateAction(schema: TypedSchema, t: Type)(session: DBSession) extends Act
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
     val entity = SqlEntity(t.fields.keys.map { field =>
-      SqlValue(fieldToColumn(field), t.extract(value, field))
+      SqlValue(fieldToColumn(field), value.extract[Any](field))
     }.toSeq)
 
 

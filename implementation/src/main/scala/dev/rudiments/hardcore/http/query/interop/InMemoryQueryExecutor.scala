@@ -14,7 +14,7 @@ object InMemoryQueryExecutor {
       case PredicatesQuery(parts, softType) =>
         val predicates = parts.map {
           case predicate: FieldPredicate[_] => dto: Instance => {
-            val value = softType.extract(dto, predicate.fieldName)
+            val value = dto.extract[Any](predicate.fieldName)
             if (fieldFunctions(value)(predicate)) {
               Some(dto)
             } else None
@@ -50,7 +50,7 @@ object InMemoryQueryExecutor {
     case OptionValuePredicate(_, underlying) => param.asInstanceOf[Option[_]].exists(value => fieldFunctions(value)(underlying))
     case ProductFieldPredicate(_, underlying) =>
       fieldFunctions(
-        param.asInstanceOf[SoftInstance].t.extract(param.asInstanceOf[SoftInstance], underlying.fieldName)
+        param.asInstanceOf[Instance].extract[Any](underlying.fieldName)
       )(underlying)
   }
 }

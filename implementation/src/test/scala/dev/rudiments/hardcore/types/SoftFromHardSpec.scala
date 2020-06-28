@@ -7,15 +7,24 @@ import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
 class SoftFromHardSpec extends WordSpec with Matchers {
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
   private val s1: Type = ScalaType[Sample1]
   private val c1: Type = ScalaType[Complicated1]
   private val c2: Type = ScalaType[Complicated2]
   private val c3: Type = ScalaType[Complicated3]
 
-  private val softEnum = Types.Enum("dev.rudiments.hardcore.data.MyEnum", Seq("One", "Two", "Red"))
+  private val softEnum = new Enum(
+    "dev.rudiments.hardcore.data.MyEnum",
+    Declaration("MyEnum"),
+    Seq(
+      Singleton("One"),
+      Singleton("Two"),
+      Singleton("Red")
+    )
+  )
 
   "can construct soft instance" in {
-    val s = s1.fromScala(Sample1(1, None, Set.empty))
+    val s = s1.fromScala(Sample1(1, None, Set.empty)).asInstanceOf[SoftInstance]
     s should be (SoftInstance(Map("a" -> 1, "b" -> None, "c" -> Set.empty))(s1))
     s.fields.head should be ("a" -> 1)
     s.fields.last should be ("c" -> Set.empty)
@@ -23,9 +32,9 @@ class SoftFromHardSpec extends WordSpec with Matchers {
 
   "can extract value from soft instance" in {
     val s = s1.fromScala(Sample1(1, None, Set.empty))
-    s1.extract(s, "a") should be (1)
-    s1.extract(s, "b") should be (None)
-    s1.extract(s, "c") should be (Set.empty)
+    s.extract[Any]("a") should be (1)
+    s.extract[Any]("b") should be (None)
+    s.extract[Any]("c") should be (Set.empty)
   }
 
   "can construct instance with plain field and it's composition" in {
@@ -97,24 +106,3 @@ class SoftFromHardSpec extends WordSpec with Matchers {
     )(c3))
   }
 }
-
-case class Complicated1(
-  a: Int,
-  b: Option[Long],
-  c: Set[String],
-  d: Map[String, Int]
-)
-
-case class Complicated2(
-  e: Sample1,
-  f: Option[Sample1],
-  g: Set[Sample1],
-  h: Map[String, Sample1],
-)
-
-case class Complicated3(
-  i: MyEnum,
-  j: Option[MyEnum],
-  k: Set[MyEnum],
-  l: Map[String, MyEnum]
-)

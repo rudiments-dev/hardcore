@@ -1,5 +1,6 @@
 package dev.rudiments.hardcore.types
 
+import dev.rudiments.hardcore.types.Types.Reference
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.junit.JUnitRunner
@@ -8,11 +9,11 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class TypeSpec extends WordSpec with Matchers {
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
   val t: ScalaType[Sample1] = ScalaType[Sample1]
-  val tt: ScalaType[Type] = ScalaType[Type]
 
   "can construct soft instance" in {
-    val s = t.construct(1, None, Set.empty)
+    val s = t.construct(1, None, Set.empty).asInstanceOf[SoftInstance]
     s should be (SoftInstance(Map("a" -> 1, "b" -> None, "c" -> Set.empty))(t))
     s.fields.head should be ("a" -> 1)
     s.fields.last should be ("c" -> Set.empty)
@@ -21,15 +22,15 @@ class TypeSpec extends WordSpec with Matchers {
   "fail if invalid argument" in {
     assertThrows[SoftValidationError] {
       val i = SoftInstance("1", Some("thing"), Set.empty)(t)
-      t.extract(i, "a") // without extraction - does not fail
+      i.extract("a") // without extraction - does not fail
     }
   }
 
   "can extract value from soft instance" in {
     val s = t.construct(1, None, Set.empty)
-    t.extract(s, "a") should be (1)
-    t.extract(s, "b") should be (None)
-    t.extract(s, "c") should be (Set.empty)
+    s.extract[Any]("a") should be (1)
+    s.extract[Any]("b") should be (None)
+    s.extract[Any]("c") should be (Set.empty)
   }
 
   "can construct instance of HardType as T" in {
@@ -41,6 +42,52 @@ class TypeSpec extends WordSpec with Matchers {
     t.extract(v, "a") should be (1)
     t.extract(v, "b") should be (None)
     t.extract(v, "c") should be (Set.empty)
+  }
+
+  case class FieldFlagContainer(flag: FieldFlag) extends DTO
+
+  "can construct FieldFlag enum" in {
+    val tt = ScalaType[FieldFlagContainer]
+    tt.name should be ("FieldFlagContainer")
+    tt.fields("flag") should be (Field(Reference(Algebraic(
+      "dev.rudiments.hardcore.types.FieldFlag",
+      Declaration("FieldFlag"),
+      Seq(
+        Singleton("Required"),
+        Singleton("Optional"),
+        Singleton("WithDefault"),
+        Singleton("NonEmpty"),
+        Singleton("CanBeEmpty")
+      )
+    )), FieldFlag.Required))
+  }
+
+  val tt: ScalaType[Type] = ScalaType[Type]
+  "type of type contains ADT" ignore {
+    tt.name should be ("Type")
+    tt.fields should be (ListMap(
+      "name" -> Field(ScalaTypes.ScalaString, FieldFlag.Required),
+      "fields" -> Field(
+        Types.Index(
+          ScalaTypes.ScalaString,
+          Types.Reference(Type(
+            "Field", ListMap(
+              "kind" -> Field(Types.Unknown, FieldFlag.Required),
+              "fieldFlag" -> Field(Types.Reference(new Enum(
+                "dev.rudiments.hardcore.types.FieldFlag",
+                Declaration("FieldFlag"),
+                Seq(
+                  Singleton("Required"),
+                  Singleton("Optional"),
+                  Singleton("WithDefault"),
+                  Singleton("NonEmpty"),
+                  Singleton("CanBeEmpty")
+                )
+              )), FieldFlag.Required)
+            )
+          ))
+        ), FieldFlag.NonEmpty)
+    ))
   }
 
   "can construct type of type" in {
