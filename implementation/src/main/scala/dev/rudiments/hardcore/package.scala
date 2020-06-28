@@ -1,5 +1,8 @@
 package dev.rudiments
 
+import dev.rudiments.data.Action
+import dev.rudiments.data.ReadOnly.NotFound
+import dev.rudiments.hardcore.Error.NoHandler
 import dev.rudiments.hardcore.Message
 import dev.rudiments.hardcore.types.DTO
 
@@ -69,6 +72,21 @@ package object hardcore {
   }
   type Result[E <: Event] = SkillResult[Message, E]
   type Skill[E <: Event] = PartialFunction[Command, Result[E]]
+
+  object Skill {
+    def fromActions[E <: Event](actions: Action[_ <: Command, _ <: E]*): Skill[E] = {
+      new Skill[E] {
+
+        val possibleCommands: Seq[Class[_]] = actions.map(_.commandType)
+        override def isDefinedAt(x: Command): Boolean = possibleCommands.contains(x.getClass)
+
+        override def apply(v1: Command): Result[E] = {
+          actions.find(_.commandType == v1.getClass).map(_.runCommand(v1))
+            .getOrElse(Failure(NoHandler))
+        }
+      }
+    }
+  }
 
   type MessageProcessor = PartialFunction[Message, Message]
 

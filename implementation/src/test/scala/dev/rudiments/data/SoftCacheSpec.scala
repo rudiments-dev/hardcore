@@ -94,7 +94,7 @@ class SoftCacheSpec extends WordSpec with Matchers {
 
   "clear repository" in {
     cache(Count).merge should be (Counted(100000))
-    cache(DeleteAll).merge should be (AllDeleted())
+    cache(DeleteAll()).merge should be (AllDeleted())
     cache(Count).merge should be (Counted(0))
   }
 }

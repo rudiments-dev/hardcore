@@ -28,7 +28,7 @@ class DataHttpPort(
       PostPort((value: Instance) => Create(identify(value), value), s, responseWith),
       PostPort((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
       PutPort((batch: Seq[Instance]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
-      DeletePort(DeleteAll, s, responseWith),
+      DeletePort(DeleteAll(), s, responseWith),
       CompositeRouter(customRoutes.map { case (p, r) => PrefixRouter(p, r) } : _*)
     ),
     IDRouter(
@@ -49,7 +49,7 @@ class DataHttpPort(
 
     case Success(AllCreated(_)) =>            complete(StatusCodes.Created)
     case Success(AllReplaced(_)) =>           complete(StatusCodes.Created)
-    case Success(AllDeleted()) =>               complete(StatusCodes.NoContent)
+    case Success(AllDeleted()) =>             complete(StatusCodes.NoContent)
 
     case Failure(NotFound(_)) =>              complete(StatusCodes.NotFound)
     case Failure(AlreadyExists(_, _)) =>      complete(StatusCodes.Conflict)
