@@ -50,11 +50,11 @@ object Batch {
   }
 
 
-  case object DeleteAll extends DataCommand with BulkMutate
+  case class DeleteAll() extends DataCommand with BulkMutate
   case class AllDeleted() extends DataEvent with BulkMutated
 
   def deleteAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
-    case DeleteAll =>
+    case DeleteAll() =>
       try {
         content --= content.keysIterator
         AllDeleted().toEither

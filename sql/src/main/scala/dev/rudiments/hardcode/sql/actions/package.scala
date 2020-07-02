@@ -7,7 +7,7 @@ import dev.rudiments.hardcore.http.query.predicates.{DoubleEquals, DoubleLess, D
 import dev.rudiments.hardcore.types.SoftID.{SoftID0, SoftID1, SoftID2}
 import dev.rudiments.hardcore.types.{ID, Type}
 
-package object skills {
+package object actions {
 
   def selectPart(select: Select): String = select.selects.map {
     case SelectField(column, Some(as)) => s"${column.name} as $as"
