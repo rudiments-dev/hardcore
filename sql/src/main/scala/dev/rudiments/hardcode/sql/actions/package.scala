@@ -22,10 +22,11 @@ package object actions {
   def wherePart(where: Where): (String, Seq[Binding]) = {
     val expressions = where.expressions.map {
       case exp@ColumnWhereExpression(column, predicate) =>
-        val code = exp.hashCode().toString
+        val code = math.abs(exp.hashCode()).toString
         val bindingKey = s"${code}_${column.name}"
         predicate match {
           case IsNull =>
+
             (
               s"${column.name} IS NULL",
               Seq.empty
