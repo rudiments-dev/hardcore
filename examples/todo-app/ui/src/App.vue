@@ -1,6 +1,6 @@
 <template>
   <div id="app" class="w-full h-screen p-2">
-    <Todo v-bind:todos="todos" @todoAdded="addTodo" />
+    <Todo v-bind:todos="todos" @todoAdded="addTodo" @todoStatusChanged="changeTodoStatus"/>
   </div>
 </template>
 
@@ -20,11 +20,6 @@ export default {
       errors: []
     }
   },
-  watch: {
-    todos: {
-      handler: 'fetchTodos'
-    }
-  },
   methods: {
     addTodo(todoName) {
       axios({
@@ -38,6 +33,28 @@ export default {
         }
       });
       this.newTodo = '';
+      this.fetchTodos();
+    },
+    changeTodoStatus(todo) {
+      console.log("todoId: " + todo.id + " todostatus: " + todo.done )
+      if(todo.done) {
+        axios({
+          method: 'post',
+          url: process.env.VUE_APP_BACKEND + '/todo/' + todo.id + '/done',
+          data: {}
+        });
+        console.log("todoId: " + todo.id + " todostatus: " + todo.done )
+      }
+      else {
+        axios({
+          method: 'post',
+          url: process.env.VUE_APP_BACKEND + '/todo/' + todo.id + '/undone',
+          data: {}
+        });
+        console.log("todoId: " + todo.id + " todostatus: " + todo.done )
+      }
+      todo.id = ''
+      this.fetchTodos()
     },
     fetchTodos() {
       axios.get(process.env.VUE_APP_BACKEND + "/todo")

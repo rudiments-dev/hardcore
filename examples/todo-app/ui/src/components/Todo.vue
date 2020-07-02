@@ -9,7 +9,15 @@
           <p class="text-gray-700 text-base">
             {{ todo.comment }}
           </p>
-          <div class="font-light text-sm mb-2">Done: {{ todo.done }}</div>
+          <div class="font-light text-sm mb-2">
+            <input
+                type="checkbox"
+                class="form-control"
+                id="checkbox"
+                v-model="todo.done"
+                @change="changeTodoStatus(todo)"
+            >
+            Done: {{ todo.done }}</div>
         </div>
       </div>
     </li>
@@ -22,7 +30,6 @@
         placeholder="Todo text"
         aria-label="Todo name"
         v-model="todoName"
-
     />
     <button class="flex-shrink-0 bg-blue-500 hover:bg-blue-700 border-blue-500 hover:border-blue-700 text-sm border-2 text-white py-1 px-2 rounded"
             type="button"
@@ -47,6 +54,9 @@
           console.log(this.todoName)
           this.$emit('todoAdded', this.todoName);
           this.todoName = ''
+        },
+        changeTodoStatus(todo) {
+          this.$emit('todoStatusChanged', todo)
         }
       },
       props: ['todos']
