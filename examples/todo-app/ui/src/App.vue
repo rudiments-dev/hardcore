@@ -54,7 +54,7 @@ export default {
         console.log("todoId: " + todo.id + " todostatus: " + todo.done )
       }
       todo.id = ''
-      this.fetchTodos()
+      setTimeout(function() { this.fetchTodos() }, 500);
     },
     fetchTodos() {
       axios.get(process.env.VUE_APP_BACKEND + "/todo")
