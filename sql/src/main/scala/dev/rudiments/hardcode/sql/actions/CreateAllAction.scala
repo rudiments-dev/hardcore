@@ -19,7 +19,7 @@ class CreateAllAction(schema: TypedSchema, t: Type)(session: DBSession) extends 
 
         val entities = batch.values.map { entity =>
           SqlEntity(t.fields.keys.map { field =>
-            SqlValue(fieldToColumn(field), t.extract(entity, field))
+            SqlValue(fieldToColumn(field), entity.extract[Any](field))
           }.toSeq)
         }
         val bindings: Seq[Seq[(Symbol, Any)]] = entities.map(_.values

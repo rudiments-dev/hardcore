@@ -1,7 +1,8 @@
 package dev.rudiments.hardcore.http.query
+
 import dev.rudiments.hardcore.http.query.predicates._
 import dev.rudiments.hardcore.types.Types.{Reference, UUID}
-import dev.rudiments.hardcore.types.{DTO, Field, FieldFlag, FieldType, NumberFormat, Type, Types}
+import dev.rudiments.hardcore.types._
 
 
 object QueryParser {
@@ -35,7 +36,7 @@ object QueryParser {
           }
       case _ =>
         field.kind match {
-          case Reference(of) =>
+          case Reference(of: Type) =>
             val p = Param(
               part.text.replaceFirst(part.fieldName + ".", "")
             )
@@ -76,10 +77,10 @@ object QueryParser {
       case Types.Date => Seq.empty
       case Types.Time => Seq.empty
       case Types.Timestamp => Seq.empty
-      case Types.Enum(name, values) => Seq.empty
       case Types.List(of) => Seq.empty
       case Types.Index(of, over) => Seq.empty
-      case Types.Reference(of) => Seq.empty
+      case Types.Reference(of: Type) => Seq.empty
+      case Types.Reference(of: Enum) => Seq.empty
       case Types.Unknown => Seq.empty
       case UUID => Seq.empty
     }

@@ -2,15 +2,16 @@ package dev.rudiments.db.registry
 
 import dev.rudiments.data.SoftCache
 import dev.rudiments.hardcode.sql.schema.{FK, Table}
-import dev.rudiments.hardcore.{Service, Command, Result, Skill, Success, Failure, Error, Event}
+import dev.rudiments.hardcore.{Command, Error, Event, Failure, Result, Service, Skill, Success}
 import dev.rudiments.data.CRUD.Create
 import dev.rudiments.data.ReadOnly._
-import dev.rudiments.hardcore.types.{ScalaType, SoftID, Type}
+import dev.rudiments.hardcore.types.{ScalaType, SoftID, Type, TypeSystem}
 
 class H2Service(adapter: H2Adapter, persistent: SoftCache) extends Service[SchemaCommand, SchemaEvent] {
   override def isDefinedAt(cmd: Command): Boolean = f.isDefinedAt(cmd)
   override def apply(cmd: Command): Result[SchemaEvent] = f(cmd)
 
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
   private implicit val t: Type = ScalaType[Schema]
   val f: Skill[SchemaEvent] = {
     case ReadSchema(schemaName) =>
@@ -72,9 +73,9 @@ class H2Service(adapter: H2Adapter, persistent: SoftCache) extends Service[Schem
     persistent(Find(SoftID(schemaName))) match {
       case Success(Found(_, value)) => SchemaFound(
         Schema(
-          t.extract(value, "name").asInstanceOf[String],
-          t.extract(value, "tables").asInstanceOf[Set[Table]],
-          t.extract(value, "references").asInstanceOf[Set[FK]]
+          value.extract("name"),
+          value.extract("tables"),
+          value.extract("references")
         )
       )
       case Failure(NotFound(_)) => SchemaNotFound(schemaName)

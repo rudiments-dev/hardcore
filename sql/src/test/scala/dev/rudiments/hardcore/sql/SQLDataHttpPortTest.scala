@@ -23,18 +23,18 @@ import scala.collection.JavaConverters._
 class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest with FailFastCirceSupport {
 
   private case class Example(
-                              id: Long = Defaults.long,
-                              name: String
-                            ) extends DTO
+    id: Long = Defaults.long,
+    name: String
+  ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
   private implicit val t: Type = ScalaType[Example] //todo fix primary keys
+  private implicit val en: Encoder[Instance] = SoftEncoder(t)
+  private implicit val de: Decoder[Instance] = SoftDecoder(t)
 
-
-  private implicit val en: Encoder[SoftInstance] = SoftEncoder(t)
-  private implicit val de: Decoder[SoftInstance] = SoftDecoder(t)
   private val sample = t.fromScala(Example(42, "sample"))
-  private val id = SoftID(t.extract(sample, "id"))
+
   val config: Config = ConfigFactory.parseMap(Map(
     "driver" -> "org.h2.Driver",
     "url" -> "jdbc:h2:mem:hi",
@@ -42,6 +42,7 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
     "password" -> "pass",
     "schema" -> "hi"
   ).asJava)
+
   def initConnectionPool(config: Config): String = {
     val driver =    config.getString("driver")
     val url =       config.getString("url")
@@ -53,10 +54,6 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
   }
   initConnectionPool(config)
 
-
-
-
-
   private val repo: SQLAdapter = new SQLAdapter(schema = TypedSchema("hi", Map(
     t -> Table("example", Seq(
       Column("id", ColumnTypes.INT, nullable = false, default = false, pk = true),
@@ -67,12 +64,8 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
   private val router: DataHttpPort = new DataHttpPort(
     "example",
     "id",
-    i => SoftID(t.extract(i, "id")),
+    i => i.extractID("id"),
     repo
-  )(
-    t,
-    SoftEncoder(t).contramap { case i: SoftInstance => i },
-    SoftDecoder(t).map(_.asInstanceOf[Instance])
   )
 
   private val routes = Route.seal(router.routes)
@@ -99,14 +92,14 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
   "put item into repository" in {
     Post("/example", sample) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      responseAs[SoftInstance] should be (sample)
+      responseAs[Instance] should be (sample)
     }
   }
 
   "update item in repository" in {
     Put("/example/42", SoftInstance(42L, "test")) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
+      responseAs[Instance] should be (SoftInstance(42L, "test"))
     }
   }
 
@@ -116,7 +109,7 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[SoftInstance] should be (SoftInstance(42L, "test"))
+      responseAs[Instance] should be (SoftInstance(42L, "test"))
     }
   }
 

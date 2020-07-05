@@ -9,6 +9,7 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class FieldSpec extends WordSpec with Matchers {
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
   val t: ScalaType[Example] = ScalaType[Example]
 
   "Type transforms all basic types to BasicTypes" in {
@@ -131,42 +132,3 @@ class FieldSpec extends WordSpec with Matchers {
     t.fields("optUuid") should be (Field(Types.UUID, FieldFlag.Optional))
   }
 }
-
-case class Example(
-  bool: Boolean,
-  optBool: Option[Boolean],
-  defaultBool: Boolean = true,
-
-  string: String,
-  optString: Option[String],
-  defaultString: String = "default",
-  defaultOptString: Option[String] = None,
-  listOfStrings: Seq[String],
-
-  byte: Byte,
-  optByte: Option[Byte],
-  short: Short,
-  optShort: Option[Short],
-  int: Int,
-  optInt: Option[Int],
-  long: Long,
-  optLong: Option[Long],
-  float: Float,
-  optFloat: Option[Float],
-  double: Double,
-  optDouble: Option[Double],
-  integer: BigInt,
-  optInteger: Option[BigInt],
-  decimal: BigDecimal,
-  optDecimal: Option[BigDecimal],
-
-  timestamp: Timestamp,
-  optTimestamp: Option[Timestamp],
-  date: Date,
-  optDate: Option[Date],
-  time: Time,
-  optTime: Option[Time],
-
-  uuid: UUID,
-  optUuid: Option[UUID]
-) extends DTO

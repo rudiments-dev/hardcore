@@ -17,6 +17,7 @@ object Application extends App with LazyLogging {
   logger.info("Starting application")
 
   val config = ConfigFactory.load()
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
   implicit val t: Type = ScalaType[Example]
 
   import akka.http.scaladsl.server.Directives._

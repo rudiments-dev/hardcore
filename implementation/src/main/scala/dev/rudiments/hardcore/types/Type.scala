@@ -1,21 +1,19 @@
 package dev.rudiments.hardcore.types
 
 import java.util.UUID
+import enumeratum.EnumEntry
 
-import enumeratum.{Enum, EnumEntry}
-
-import scala.collection.immutable
-
-case class TypeSystem(name: String, types: Map[String, Type]) extends DTO
-object     TypeSystem {
-  def apply(name: String, types: Type*): TypeSystem = new TypeSystem(name, types.map(t => t.name -> t).toMap)
+sealed trait Thing extends ADT {
+  val name: String
 }
+case class LateInit(name: String) extends Thing
 
-class SoftValidationError(field: String, e: ValidationError) extends RuntimeException(s"Validation error on field '$field': $e")
+case class Singleton(name: String) extends Thing with Instance // Only 1 instance can exists
+case class Declaration(name: String) extends Thing // No instances can exists
 
 //todo fix primary keys
-case class Type(name: String, fields: Map[String, Field]) extends DTO {
-  def construct(arguments: Any*): SoftInstance = {
+case class Type(name: String, fields: Map[String, Field]) extends Thing {
+  def construct(arguments: Any*): Instance = {
     SoftInstance(
       fields
         .zip(arguments)
@@ -33,34 +31,23 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
     case (FieldFlag.Optional, Some(v)) => f.kind.validate(v).map(Some.apply)
     case (FieldFlag.Required, v) => f.kind.validate(v)
     case (FieldFlag.WithDefault, v) => f.kind.validate(v) //TODO use default value if empty
-    case (FieldFlag.NonEmpty, v: Iterable[_]) =>
-      if(v.isEmpty)
-        Left(RequiredNonEmptyCollection(name))
-      else
-        v.map(f.kind.validate).reduce[Either[ValidationError, Any]] {
-          case (Right(a), Right(_)) => Right(a)
-          case (Left(e), _) => Left(e)
-          case (_, Left(e)) => Left(e)
-        } match {
-          case Right(_) => Right(arg)
-          case l: Left[ValidationError, _] => l
-        }
-    case (FieldFlag.CanBeEmpty, v: Iterable[_]) =>
-      if(v.isEmpty)
-        Right(arg)
-      else
-        v.map(f.kind.validate).reduce[Either[ValidationError, Any]] {
-          case (Right(a), Right(_)) => Right(a)
-          case (Left(e), _) => Left(e)
-          case (_, Left(e)) => Left(e)
-        } match {
-          case Right(_) => Right(arg)
-          case l: Left[ValidationError, _] => l
-        }
+    case (flag, v: Iterable[_]) if v.isEmpty => flag match {
+      case FieldFlag.NonEmpty => Left(RequiredNonEmptyCollection(name))
+      case FieldFlag.CanBeEmpty => Right(arg)
+    }
+    case (_, v: Iterable[_]) =>
+      v.map(f.kind.validate).reduce[Either[ValidationError, Any]] {
+        case (Right(a), Right(_)) => Right(a)
+        case (Left(e), _) => Left(e)
+        case (_, Left(e)) => Left(e)
+      } match {
+        case Right(_) => Right(arg)
+        case l: Left[ValidationError, _] => l
+      }
     case (_, _) => f.kind.validate(arg)
   }
 
-  def fromScala(hard: Any): SoftInstance = hard match {
+  def fromScala(hard: Any): Instance = hard match {
     case p: Product => construct(
       p.productIterator.toSeq.zip(fields.values).map { case (vi, fi) => wrapComposite(vi, fi.kind) }: _*
     )
@@ -80,96 +67,24 @@ case class Type(name: String, fields: Map[String, Field]) extends DTO {
     case (i: BigInt, ScalaTypes.ScalaBigInteger) => i
     case (i: BigDecimal, ScalaTypes.ScalaBigDecimal) => i
     case (i: Option[_], _) => i.map(wrapComposite(_, f))
-    case (i: EnumEntry, e@Types.Enum(_, values)) => SoftEnum(e, values.indexOf(i.entryName))
     case (m: Map[_, _], Types.Index(of, over)) => m.map {
       case (k, v) => wrapComposite(k, of) -> wrapComposite(v, over)
     }
     case (i: Iterable[_], Types.List(of)) => i.map(wrapComposite(_, of))
-    case (p: Product, Types.Reference(t)) =>
+    case (p: Product, Types.Reference(t: Type)) =>
       t.construct(
         p.productIterator.toSeq
           .zip(t.fields.values)
           .map { case(pi, fi) => wrapComposite(pi, fi.kind) }: _*
       )
+    case (i: EnumEntry, Types.Reference(of: Enum)) => SoftEnum(of, of.candidates.map(_.name).indexOf(i.entryName))
     case (_, _) => throw new RuntimeException(s"Incompatible: value $v and field $f")
   }
+}
 
-  def extract(value: Instance, field: String): Any = value match {
-    case s: SoftInstance          => s.fields(field)
-    case other                    => ???
-  }
-
-  def productField(p: Product, f: String): Any = {
-    fields
-      .zipWithIndex
-      .filter { case ((n, _), _) => n == f }
-      .collectFirst { case ((_, _), i) => p.productElement(i) }
-      .get
+case class Algebraic(name: String, root: Declaration, candidates: Seq[Thing]) extends Thing {
+  def by(name: String): Option[Thing] = candidates.collectFirst {
+    case t: Thing if t.name == name => t
   }
 }
-
-case class Field(kind: FieldType, fieldFlag: FieldFlag) extends DTO
-
-trait ValidationError extends dev.rudiments.hardcore.Error
-
-sealed trait FieldType {
-  def validate(arg: Any): Either[ValidationError, Any] = Right(arg)
-}
-
-object Types {
-  case object Bool        extends FieldType
-  case class  Text(
-    maxSize: NumberSize
-  )                       extends FieldType
-  case class  Number(
-    min: NumberSize,
-    max: NumberSize,
-    format: NumberFormat
-  )                       extends FieldType
-  case object Date        extends FieldType
-  case object Time        extends FieldType
-  case object Timestamp   extends FieldType
-
-  case object UUID        extends FieldType
-
-  case class Enum(
-    name: String,
-    values: Seq[String]
-  )                       extends FieldType
-
-  case class List(of: FieldType)                    extends FieldType
-  case class Index(of: FieldType, over: FieldType)  extends FieldType
-  case class Reference(of: Type)                    extends FieldType
-
-  case object Unknown                               extends FieldType
-}
-
-sealed trait NumberSize {}
-case class  Big(size: BigDecimal) extends NumberSize
-case object Infinity              extends NumberSize
-case object PositiveInfinity      extends NumberSize
-case object NegativeInfinity      extends NumberSize
-
-sealed trait NumberFormat extends EnumEntry
-object NumberFormat extends enumeratum.Enum[NumberFormat] {
-  override def values: immutable.IndexedSeq[NumberFormat] = findValues
-
-  case object Integer extends NumberFormat
-  case object Float   extends NumberFormat
-  case object Decimal extends NumberFormat
-}
-
-
-sealed trait FieldFlag extends EnumEntry
-object FieldFlag extends enumeratum.Enum[FieldFlag] {
-  override def values: immutable.IndexedSeq[FieldFlag] = findValues
-
-  case object Required    extends FieldFlag
-  case object Optional    extends FieldFlag
-  case object WithDefault extends FieldFlag
-
-  case object NonEmpty    extends FieldFlag
-  case object CanBeEmpty  extends FieldFlag
-}
-
-case class RequiredNonEmptyCollection(field: String) extends ValidationError
+class Enum(name: String, root: Declaration, values: Seq[Singleton]) extends Algebraic(name, root, values)

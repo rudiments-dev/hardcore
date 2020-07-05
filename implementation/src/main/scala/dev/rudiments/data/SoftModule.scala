@@ -58,7 +58,7 @@ case class ModuleContext[E <: Event](
   decoder: Decoder[Instance]
 ) {
   val id: Instance => ID = {
-    case i: SoftInstance => SoftID(t.extract(i, idField))(t)
+    case i: SoftInstance => SoftID(i.extract[Any](idField))(t)
     case other => ???
   }
 }

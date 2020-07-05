@@ -1,43 +1,34 @@
 package dev.rudiments.hardcore.types
 
 import org.junit.runner.RunWith
-import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.junit.JUnitRunner
+import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
 class TypeSystemSpec extends WordSpec with Matchers {
-  val t: ScalaType[Example] = ScalaType[Example]
-  val s1: ScalaType[Sample1] = ScalaType[Sample1]
-  val s2: ScalaType[Sample2] = ScalaType[Sample2]
-  val s3: ScalaType[Sample3] = ScalaType[Sample3]
-  val typeSystem: TypeSystem = TypeSystem("sample", t, s1, s2, s3)
 
-  "types are in type system" in {
-    typeSystem.types.head should be ("Example" -> t)
-    typeSystem.types.last should be ("Sample3" -> s3)
-    typeSystem.types should be(Map(
-      "Example" -> t,
-      "Sample1" -> s1,
-      "Sample2" -> s2,
-      "Sample3" -> s3,
-    ))
+  sealed trait A extends ADT {
+    case object B extends A
+    case class C(f: F) extends A
+  }
+
+  sealed trait F extends ADT {
+    case class E(s: String) extends F
+    case class D(a: A) extends F
+  }
+
+  case class SomethingA(a: A)
+  case class SomethingF(f: F)
+
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
+
+  "can save cross-dependent ADT into type system" in {
+    val t = ScalaType[SomethingA]
+    t.name should be ("SomethingA")
+
+    val f = ScalaType[SomethingF]
+    f.name should be ("SomethingF")
+
+    typeSystem.types.foreach { case (name, thing) => println(name + ": " + thing.toString)}
   }
 }
-
-case class Sample1 (
-  a: Int,
-  b: Option[String] = None,
-  c: Set[String] = Set.empty
-) extends DTO
-
-case class Sample2 (
-  a: Int,
-  b: Option[String] = None,
-  c: Set[String] = Set.empty
-) extends DTO
-
-case class Sample3 (
-  a: Int,
-  b: Option[String] = None,
-  c: Set[String] = Set.empty
-) extends DTO

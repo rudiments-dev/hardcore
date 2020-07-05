@@ -18,10 +18,11 @@ class SoftCacheSpec extends WordSpec with Matchers {
     comment: Option[String] = None
   ) extends DTO
 
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
   private implicit val t: Type = ScalaType[Example]
   private val cache: SoftCache = new SoftCache
   private val sample = SoftInstance(42L, "sample", None)
-  private val id: ID = SoftID(t.extract(sample, "id"))
+  private val id: ID = sample.extractID("id")
 
   "no element by ID" in {
     cache(Count).merge should be (Counted(0))
@@ -60,7 +61,7 @@ class SoftCacheSpec extends WordSpec with Matchers {
   "endure 100.000 records" in {
     (1 to 100000)
       .map(i => SoftInstance(i.toLong, s"$i'th element", None))
-      .foreach(s => cache(Create(SoftID(t.extract(s, "id")), s)))
+      .foreach(s => cache(Create(s.extractID("id"), s)))
 
     cache(Count).merge should be (Counted(100000))
 

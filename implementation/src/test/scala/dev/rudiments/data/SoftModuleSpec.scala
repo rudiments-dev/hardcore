@@ -20,6 +20,7 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
   ) extends DTO
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
+  private implicit val typeSystem: TypeSystem = new TypeSystem()
   private implicit val t: Type = ScalaType[Example]
   private val module = SoftModule("example", "id")
   private implicit val en: Encoder[Instance] = module.context.encoder

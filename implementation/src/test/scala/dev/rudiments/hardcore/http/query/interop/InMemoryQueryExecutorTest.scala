@@ -1,9 +1,9 @@
 package dev.rudiments.hardcore.http.query.interop
 
-import dev.rudiments.hardcore.http.query.predicates.{IntEquals, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StringEquals}
-import dev.rudiments.hardcore.http.query.{HttpParams, PredicatesQuery, QueryParser}
+import dev.rudiments.hardcore.http.query.PredicatesQuery
+import dev.rudiments.hardcore.http.query.predicates._
 import dev.rudiments.hardcore.types.ScalaTypes.{ScalaInt, ScalaString}
-import dev.rudiments.hardcore.types.{DTO, Field, FieldFlag, Infinity, NegativeInfinity, NumberFormat, PositiveInfinity, SoftInstance, Type, Types}
+import dev.rudiments.hardcore.types._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -30,7 +30,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       StringEquals("b", "hi")
     ), fooType)
 
-    val input: Seq[SoftInstance] = Seq(
+    val input: Seq[Instance] = Seq(
       Foo(3, "hi"),
       Foo(4, "bay"),
       Foo(5, "tra")

@@ -22,7 +22,7 @@ class UpdateAction(schema: TypedSchema, t: Type)(session: DBSession) extends Act
         val (whereSQL, whereBindings) = wherePart(idToWhere(table, t)(key))
 
         val entity = SqlEntity(t.fields.keys.map { field =>
-          SqlValue(fieldToColumn(field), t.extract(value, field))
+          SqlValue(fieldToColumn(field), value.extract[Any](field))
         }.toSeq)
 
         val entityBindings = entity.values.map { case SqlValue(column, value) => Binding(column.name, value) }.toSet
