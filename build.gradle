@@ -9,19 +9,28 @@ buildscript {
         classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
         classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.21.2'
         classpath 'gradle.plugin.org.scoverage:gradle-scoverage:4.0.2'
+        classpath 'com.palantir.gradle.gitversion:gradle-git-version:0.12.3'
     }
 }
+
+apply plugin: 'com.palantir.git-version'
+
+def base_version = '0.3-SNAPSHOT'
+def details = versionDetails()
+ext.calculated_version = project.hasProperty("tagged-build") ? details.lastTag : base_version
+
 
 allprojects {
     apply plugin: 'org.scoverage'
 
     group 'dev.rudiments'
-    version '0.3-SNAPSHOT'
+    version rootProject.ext.calculated_version
 
     repositories {
         mavenLocal()
         mavenCentral()
     }
+
 }
 
 subprojects {
@@ -75,7 +84,7 @@ subprojects {
     }
 
     signing {
-        ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+        ext.isReleaseVersion = false
         required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
     }
 }

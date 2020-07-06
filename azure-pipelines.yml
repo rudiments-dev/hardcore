@@ -9,14 +9,21 @@ variables:
     value: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
   - name: isDevelop
     value: $[eq(variables['Build.SourceBranch'], 'refs/heads/develop')]
+  - name: triggeredByTag
+    value: $[startsWith(variables['Build.SourceBranch'], 'refs/tags/')]
 
 pr:
   - master
   - develop
 
 trigger:
-  - master
-  - develop
+  branches:
+    include:
+      - master
+      - develop
+  tags:
+    include:
+      - '*'
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -31,7 +38,6 @@ jobs:
            bash <(curl -s https://codecov.io/bash)
         displayName: 'Run unit testing with gradlew'
 
-
   - job: push_snapshots
     displayName: 'Push latest Rudiments snapshots to Maven Snapshots repo'
     condition: eq(variables.isDevelop, true)
@@ -42,6 +48,24 @@ jobs:
         env:
           SONATYPE_USERNAME: $(SONATYPE_USERNAME)
           SONATYPE_PASSWORD: $(SONATYPE_PASSWORD)
+
+  - job: push_tagged_jars
+    displayName: 'Push tagged Rudiments jars to Maven Snapshots repo'
+    condition: and(eq(variables.isDevelop, true), eq(variables.triggeredByTag, true))
+    steps:
+      - task: DownloadSecureFile@1
+        name: secretkeys
+        displayName: 'Download gpg secret keys'
+        inputs:
+          secureFile: 'secret-keys.gpg'
+      - script: |
+          ./gradlew uploadArchives -Ptagged-build -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD -Psigning.keyId=$GPG_KEY_ID -Psigning.password=$GPG_PASSPHRASE -Psigning.secretKeyRingFile=$(secretkeys.secureFilePath)
+        displayName: 'Push tagged Rudiments jars to Maven Snapshots repo'
+        env:
+          SONATYPE_USERNAME: $(SONATYPE_USERNAME)
+          SONATYPE_PASSWORD: $(SONATYPE_PASSWORD)
+          GPG_KEY_ID: $(GPG_KEY_ID)
+          GPG_PASSPHRASE: $(GPG_PASSPHRASE)
 
   - job: release
     displayName: 'Release Rudiments to Maven Central'
