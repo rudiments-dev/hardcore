@@ -1,7 +1,7 @@
 package dev.rudiments.data
 
 import dev.rudiments.hardcore.flow.{BulkMutate, BulkMutated}
-import dev.rudiments.hardcore.types.{ID, Instance}
+import dev.rudiments.types.{ID, Instance}
 
 import scala.collection.parallel
 

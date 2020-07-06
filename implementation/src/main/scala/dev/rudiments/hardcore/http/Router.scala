@@ -4,9 +4,8 @@ import java.sql.Date
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
-import dev.rudiments.hardcore.types.{FieldType, ID, ScalaTypes, Type}
-
-import scala.language.implicitConversions
+import dev.rudiments.types.hard.ScalaTypes
+import dev.rudiments.types.{ID, Plain, Thing, Type}
 
 trait Router {
   val routes: Route
@@ -41,22 +40,18 @@ case class ResourceRouter(
   idRouters: Seq[ID => Router] = Seq.empty
 )(implicit t: Type) extends Router {
   override val routes: Route = PrefixRouter(prefix,
-    IDRouter(IDPath(t.fields(idField).kind)(t), idRouters: _*),
+    IDRouter(IDPath(t.fields(idField).`type`)(t), idRouters: _*),
     CompositeRouter(pathRouters: _*)
   ).routes
 }
 
-import dev.rudiments.hardcore.types.SoftID.SoftID1
-import dev.rudiments.hardcore.types.Types
 object IDPath {
-  implicit def toID(directive: Directive1[SoftID1]): Directive1[ID] = directive.map(_.asInstanceOf[ID])
-
-  def apply(f: FieldType)(implicit t: Type): Directive1[ID] = f match {
-    case ScalaTypes.ScalaLong =>  pathPrefix(LongNumber).map(l => SoftID1(l))
-    case ScalaTypes.ScalaInt =>   pathPrefix(IntNumber).map(l => SoftID1(l))
-    case Types.Text(_) =>         pathPrefix(Segment).map(s => SoftID1(s))
-    case Types.UUID =>            pathPrefix(JavaUUID).map(u => SoftID1(u))
-    case Types.Date =>            pathPrefix(Segment).map(s => SoftID1(Date.valueOf(s)))
+  def apply(f: Thing)(implicit t: Type): Directive1[ID] = f match {
+    case ScalaTypes.ScalaLong =>  pathPrefix(LongNumber).map(l => ID(l))
+    case ScalaTypes.ScalaInt =>   pathPrefix(IntNumber).map(l => ID(l))
+    case Plain.Text(_) =>         pathPrefix(Segment).map(s => ID(s))
+    case Plain.UUID =>            pathPrefix(JavaUUID).map(u => ID(u))
+    case Plain.Date =>            pathPrefix(Segment).map(s => ID(Date.valueOf(s)))
     case other => ???
   }
 }

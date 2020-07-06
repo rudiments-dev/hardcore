@@ -2,7 +2,8 @@ package dev.rudiments.types.registry
 
 import java.sql.{Date, Time, Timestamp}
 
-import dev.rudiments.hardcore.types.{DTO, Defaults}
+import dev.rudiments.Defaults
+import dev.rudiments.types.DTO
 import enumeratum.{Enum, EnumEntry}
 
 import scala.collection.immutable

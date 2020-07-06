@@ -6,7 +6,7 @@ import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, Where}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcore.Result
-import dev.rudiments.hardcore.types.Type
+import dev.rudiments.types.Type
 import scalikejdbc.{DBSession, SQL}
 
 class CountAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[Count, Counted] {

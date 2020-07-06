@@ -1,13 +1,12 @@
 package dev.rudiments.hardcode.sql.actions
 
-import dev.rudiments.data
+import dev.rudiments.data.Action
 import dev.rudiments.data.CRUD.{Delete, Deleted, FailedToDelete}
-import dev.rudiments.data.{Action, DataSkill}
-import dev.rudiments.data.ReadOnly.{Find, Found, NotFound}
+import dev.rudiments.data.ReadOnly.{Find, NotFound}
 import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.schema.TypedSchema
-import dev.rudiments.hardcore.{Command, Result}
-import dev.rudiments.hardcore.types.Type
+import dev.rudiments.hardcore.Result
+import dev.rudiments.types.Type
 import scalikejdbc.{DBSession, SQL}
 
 class DeleteAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[Delete, Deleted] {

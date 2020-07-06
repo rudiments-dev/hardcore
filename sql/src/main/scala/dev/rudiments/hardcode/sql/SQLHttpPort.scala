@@ -11,7 +11,7 @@ import dev.rudiments.data.DataEvent
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http.query.{Directives, Query}
 import dev.rudiments.hardcore.http._
-import dev.rudiments.hardcore.types.{ID, Instance, Type}
+import dev.rudiments.types.{ID, Instance, Type}
 import dev.rudiments.hardcore.{Command, Failure, Port, Result, Skill, Success}
 import io.circe.{Decoder, Encoder}
 import scalikejdbc.{ConnectionPool, DBSession}
@@ -35,7 +35,7 @@ class SQLHttpPort
       DeletePort[DeleteAll, DataEvent, DBSession](DeleteAll(),  s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
     ),
     IDRouter(
-      IDPath(t.fields(idField).kind)(t),
+      IDPath(t.fields(idField).`type`)(t),
       { id: ID => GetPort[Find, DataEvent, DBSession](Find(id), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith) },
       { id: ID => PutPort[Update, Instance, DataEvent, DBSession]((value: Instance) => Update(id, value), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith) },
       { id: ID => DeletePort[Delete, DataEvent, DBSession](Delete(id), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith) }

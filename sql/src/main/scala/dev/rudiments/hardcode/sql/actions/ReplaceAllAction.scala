@@ -4,7 +4,7 @@ import dev.rudiments.data.Action
 import dev.rudiments.data.Batch.{AllReplaced, CreateAll, DeleteAll, ReplaceAll}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcore.Result
-import dev.rudiments.hardcore.types.Type
+import dev.rudiments.types.Type
 import scalikejdbc.DBSession
 
 class ReplaceAllAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[ReplaceAll, AllReplaced] {

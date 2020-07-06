@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore.http.query
 
 import akka.http.scaladsl.server.Directive1
-import dev.rudiments.hardcore.types.{DTO, Type}
+import dev.rudiments.types.{DTO, Type}
 import akka.http.scaladsl.server.Directives._
 
 import scala.reflect.runtime.universe.TypeTag

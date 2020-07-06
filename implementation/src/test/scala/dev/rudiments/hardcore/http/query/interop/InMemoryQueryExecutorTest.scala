@@ -2,8 +2,8 @@ package dev.rudiments.hardcore.http.query.interop
 
 import dev.rudiments.hardcore.http.query.PredicatesQuery
 import dev.rudiments.hardcore.http.query.predicates._
-import dev.rudiments.hardcore.types.ScalaTypes.{ScalaInt, ScalaString}
-import dev.rudiments.hardcore.types._
+import dev.rudiments.types._
+import dev.rudiments.types.hard.ScalaTypes.{ScalaInt, ScalaString}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -15,13 +15,13 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
   case class Foo(a: Int, b: String, d: Option[Int] = None, baz: Option[Baz] = None) extends DTO
 
   val bazType: Type = Type("Baz", Map(
-    "f" -> Field(ScalaInt, FieldFlag.Required)
+    "f" -> Field("f", ScalaInt, true)
   ))
   val fooType: Type = Type("Foo", Map(
-    "a" -> Field(ScalaInt, FieldFlag.Required),
-    "b" -> Field(ScalaString, FieldFlag.Required),
-    "d" -> Field(ScalaInt, FieldFlag.Optional),
-    "baz" -> Field(Types.Reference(bazType), FieldFlag.Optional),
+    "a" -> Field("a", ScalaInt, true),
+    "b" -> Field("b", ScalaString, true),
+    "d" -> Field("d", ScalaInt, false),
+    "baz" -> Field("baz", bazType, false),
   ))
 
 

@@ -1,6 +1,6 @@
 package dev.rudiments.hardcode.sql
 
-import dev.rudiments.hardcore.types.DTO
+import dev.rudiments.types.DTO
 
 sealed trait SQLPredicate extends DTO
 
