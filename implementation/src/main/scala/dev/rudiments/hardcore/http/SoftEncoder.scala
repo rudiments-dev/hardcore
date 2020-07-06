@@ -100,8 +100,8 @@ object SoftEncoder {
     case ScalaTypes.ScalaInt => value.asInstanceOf[Option[Int]].map(Json.fromInt)
     case ScalaTypes.ScalaLong => value.asInstanceOf[Option[Long]].map(Json.fromLong)
 
-    case ScalaTypes.ScalaFloat => value.asInstanceOf[Option[Float]].map(Json.fromFloat).get
-    case ScalaTypes.ScalaDouble => value.asInstanceOf[Option[Double]].map(Json.fromDouble).get
+    case ScalaTypes.ScalaFloat => value.asInstanceOf[Option[Float]].flatMap(Json.fromFloat)
+    case ScalaTypes.ScalaDouble => value.asInstanceOf[Option[Double]].flatMap(Json.fromDouble)
 
     case ScalaTypes.ScalaBigInteger => value.asInstanceOf[Option[BigInt]].map(Json.fromBigInt)
     case ScalaTypes.ScalaBigDecimal =>value.asInstanceOf[Option[BigDecimal]].map(Json.fromBigDecimal)
