@@ -9,6 +9,7 @@ buildscript {
         classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
         classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.21.2'
         classpath 'gradle.plugin.org.scoverage:gradle-scoverage:4.0.2'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.+'
     }
 }
 
@@ -16,7 +17,7 @@ allprojects {
     apply plugin: 'org.scoverage'
 
     group 'dev.rudiments'
-    version '0.3-SNAPSHOT'
+    version '0.0.1'
 
     repositories {
         mavenLocal()
@@ -28,6 +29,7 @@ subprojects {
     apply plugin: 'maven'
     apply plugin: 'scala'
     apply plugin: 'com.bmuschko.nexus'
+    apply plugin: 'com.jfrog.bintray'
 
     modifyPom {
         project {
@@ -77,6 +79,24 @@ subprojects {
     signing {
         ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
         required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+    }
+
+    bintray {
+        user = 'ignatev'
+        key = '2ebd8a293bcf4b17e51e7295d9c9b3ec0725c653'
+        filesSpec {
+            from 'build/libs'
+            into '.'
+        }
+        pkg {
+            repo = 'rudiments'
+            name = "${parent.project.group}.${project.name}"
+            userOrg = 'rudiments'
+            licenses = ['Apache-2.0']
+            vcsUrl = 'https://github.com/rudiments-dev/hardcore'
+            publicDownloadNumbers = true
+        }
+
     }
 }
 
