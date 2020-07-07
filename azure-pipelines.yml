@@ -29,21 +29,29 @@ pool:
   vmImage: 'ubuntu-latest'
 
 jobs:
-  - job: unit_testing
-    displayName: 'Run unit testing with gradlew'
+  - job: publish_unit_testing_report
+    displayName: 'Publish unit testing report for branch develop'
     condition: eq('${{ parameters.release }}', false)
     steps:
+      - task: Gradle@2
+        name: gradlew
+        displayName: 'Run unit tests and publish report'
+        inputs:
+          gradleWrapperFile: 'gradlew'
+          tasks: 'build test aggregateScoverage'
+          publishJUnitResults: true
+          testResultsFiles: '**/TEST-*.xml'
+          testRunTitle: 'Unit tests report for develop'
       - script: |
-          ./gradlew build aggregateScoverage
            bash <(curl -s https://codecov.io/bash)
-        displayName: 'Run unit testing with gradlew'
+        displayName: 'Publish code coverage report to codecov.io'
 
   - job: push_snapshots
     displayName: 'Push latest Rudiments snapshots to Maven Snapshots repo'
     condition: eq(variables.isDevelop, true)
     steps:
       - script: |
-          ./gradlew uploadArchives -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
+          ./gradlew test uploadArchives -PnexusUsername=$SONATYPE_USERNAME -PnexusPassword=$SONATYPE_PASSWORD
         displayName: 'Push latest Rudiments snapshots to Maven Snapshots repo'
         env:
           SONATYPE_USERNAME: $(SONATYPE_USERNAME)
