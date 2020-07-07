@@ -12,6 +12,7 @@ variables:
   - name: triggeredByTag
     value: $[startsWith(variables['Build.SourceBranch'], 'refs/tags/')]
 
+
 pr:
   - master
   - develop
