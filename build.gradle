@@ -17,8 +17,7 @@ apply plugin: 'com.palantir.git-version'
 
 def base_version = '0.3-SNAPSHOT'
 def details = versionDetails()
-ext.calculated_version = project.hasProperty("tagged-build") ? details.lastTag : base_version
-
+ext.calculated_version = project.hasProperty("tagged-build") ? details.lastTag + "-" + base_version: base_version
 
 allprojects {
     apply plugin: 'org.scoverage'
@@ -30,7 +29,6 @@ allprojects {
         mavenLocal()
         mavenCentral()
     }
-
 }
 
 subprojects {
@@ -84,7 +82,7 @@ subprojects {
     }
 
     signing {
-        ext.isReleaseVersion = false
+        ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
         required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
     }
 }
