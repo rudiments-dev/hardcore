@@ -1,6 +1,7 @@
 <template>
   <div id="app" class="w-full h-screen p-2">
     <Todo v-bind:todos="todos" @todoAdded="addTodo" @todoStatusChanged="changeTodoStatus"/>
+    <div>{{ todoList }}</div>
   </div>
 </template>
 
@@ -20,6 +21,12 @@ export default {
       errors: []
     }
   },
+  computed : {
+    todoList() {
+      return this.$store.getters.TODOS
+    }
+  }
+,
   methods: {
     addTodo(todoName) {
       axios({
