@@ -30,11 +30,11 @@ object ReadOnly {
     case FindAll(query) => FoundAll(InMemoryQueryExecutor(query)(content.values.toList)).toEither
   }
 
-  case object Count   extends DataCommand with AlwaysDo
-  case class  Counted(total: Long) extends DataEvent
+  case class Count() extends DataCommand with AlwaysDo
+  case class Counted(total: Long) extends DataEvent
 
   def count(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
-    case Count => Counted(content.size).toEither
+    case Count() => Counted(content.size).toEither
   }
 
   //TODO case class Query[T](?) extends DataCommand[T]

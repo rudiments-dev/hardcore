@@ -101,7 +101,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         response.status should be (StatusCodes.Created)
       }
     }
-    cache(Count).merge should be (Counted(10000))
+    cache(Count()).merge should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (SoftInstance(42L, "42'th element"))
@@ -111,7 +111,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   "endure 190.000 batch" in {
     Post("/example", (10001 to 200000).map(i => SoftInstance(i.toLong, s"$i'th element"))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      cache(Count).merge should be (Counted(200000))
+      cache(Count()).merge should be (Counted(200000))
     }
     Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
@@ -122,7 +122,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
-      cache(Count).merge should be (Counted(0))
+      cache(Count()).merge should be (Counted(0))
     }
   }
 

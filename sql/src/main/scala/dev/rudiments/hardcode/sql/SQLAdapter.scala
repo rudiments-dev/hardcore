@@ -20,7 +20,8 @@ class SQLAdapter(schema: TypedSchema, session: DBSession)(implicit t: Type) exte
     new FindAction(schema, t)(session),
     new ReplaceAllAction(schema, t)(session),
     new UpdateAction(schema, t)(session),
-    new QueryAction(schema, t)(session)
+    new QueryAction(schema, t)(session),
+    new CountAction(schema, t)(session)
   )
 
 }

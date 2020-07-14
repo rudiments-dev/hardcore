@@ -31,8 +31,8 @@ class CreateAllAction(schema: TypedSchema, t: Type)(session: DBSession) extends 
 
         SQL(
           s"""
-             |INSERT INTO ${schema.name}.${table.name} (${t.fields.mkString(", ")})
-             |VALUES (${t.fields.map(field => s"{$field}").mkString(", ")})
+             |INSERT INTO ${schema.name}.${table.name} (${table.columns.map(_.name).mkString(", ")})
+             |VALUES (${table.columns.map(column => s"{${column.name}}").mkString(", ")})
              |""".stripMargin
         ).batchByName(bindings: _*).apply()
 
