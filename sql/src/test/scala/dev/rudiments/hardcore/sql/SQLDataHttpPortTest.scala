@@ -6,9 +6,8 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.config.{Config, ConfigFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import dev.rudiments.data.DataHttpPort
 import dev.rudiments.data.ReadOnly.{Count, Counted}
-import dev.rudiments.hardcode.sql.SQLAdapter
+import dev.rudiments.hardcode.sql.{SQLAdapter, SQLHttpPort}
 import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Table, TypedSchema}
 import dev.rudiments.hardcore.http.{SoftDecoder, SoftEncoder}
 import dev.rudiments.hardcore.types._
@@ -50,38 +49,43 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
     val user =      config.getString("user")
     val password =  config.getString("password")
     Class.forName(driver)
-    ConnectionPool.singleton(url, user, password)
+    ConnectionPool.add("test", url, user, password)
     config.getString("schema")
   }
   initConnectionPool(config)
 
-  private val repo: SQLAdapter = new SQLAdapter(schema = TypedSchema("hi", Map(
+  private val repoFunction: DBSession => SQLAdapter = session => new SQLAdapter(schema = TypedSchema("hi", Map(
     t -> Table("example", Seq(
       Column("id", ColumnTypes.INT, nullable = false, default = false, pk = true),
       Column("name", ColumnTypes.VARCHAR(255), nullable = false, default = false, pk = false)
     ))
-  ), Set.empty), session = AutoSession)
+  ), Set.empty), session)
+  val pool = ConnectionPool.get("test")
 
-  private val router: DataHttpPort = new DataHttpPort(
+  private val router: SQLHttpPort = new SQLHttpPort(
     "example",
     "id",
     i => i.extractID("id"),
-    repo
+    pool,
+    repoFunction
   )
 
   private val routes = Route.seal(router.routes)
 
   "should create table schema by name" in {
-    implicit val session: DBSession = AutoSession
-    sql"CREATE SCHEMA hi".execute().apply()
-    sql"SET SCHEMA hi".execute().apply()
+    using(DB(pool.borrow())) { db =>
+      db.localTx { implicit session =>
+        sql"CREATE SCHEMA hi".execute().apply()
+        sql"SET SCHEMA hi".execute().apply()
 
-    sql"""CREATE TABLE example (
-         |      id IDENTITY PRIMARY KEY,
-         |      name VARCHAR(255) NOT NULL,
-         |)""".stripMargin.execute().apply()
+        sql"""CREATE TABLE example (
+             |      id IDENTITY PRIMARY KEY,
+             |      name VARCHAR(255) NOT NULL,
+             |)""".stripMargin.execute().apply()
 
-    sql"""SELECT * FROM example""".execute().apply()
+        sql"""SELECT * FROM example""".execute().apply()
+      }
+    }
   }
 
   "no element by ID" in {
