@@ -21,6 +21,7 @@ class DataHttpPort(
   customRoutes: Seq[(String, Router)] = Seq.empty,
   customIdRoutes: Seq[(String, ID => Router)] = Seq.empty
 )(implicit t: Type, en: Encoder[Instance], de: Decoder[Instance]) extends PortWithoutDependency(s) with Router with FailFastCirceSupport {
+  import ports._
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(

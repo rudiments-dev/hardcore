@@ -8,8 +8,8 @@ import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.data.CRUD.Create
 import dev.rudiments.data.ReadOnly.{Find, Found, NotFound}
 import dev.rudiments.data.{SoftApp, SoftModule}
+import dev.rudiments.hardcore.http.HttpPorts.DependencyLess
 import dev.rudiments.hardcore.{Command, Error, Event, Failure, Success}
-import dev.rudiments.hardcore.http.PostPort
 import dev.rudiments.hardcore.types._
 import io.circe.Encoder
 
@@ -24,7 +24,7 @@ object Application extends App with LazyLogging {
   import dev.rudiments.hardcore.http.CirceSupport._
   private val exampleModule = SoftModule("example", "id",
     Seq(
-      "sample" -> (ctx => PostPort[Extract, Sample, Event](
+      "sample" -> (ctx => DependencyLess.PostPort[Extract, Sample, Event](
         value => Extract(value.what),
         {
           case Extract(id) => ctx.adapter(Find(SoftID(id))) match {

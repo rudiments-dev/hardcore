@@ -1,22 +1,20 @@
 package dev.rudiments.hardcode.sql
 
-import java.sql.Connection
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.complete
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import dev.rudiments.data.Batch.{AllCreated, AllDeleted, AllReplaced, CreateAll, DeleteAll, ReplaceAll}
-import dev.rudiments.data.CRUD.{AlreadyExists, Create, Created, Delete, Deleted, Update, Updated}
+import dev.rudiments.data.Batch._
+import dev.rudiments.data.CRUD._
 import dev.rudiments.data.DataEvent
-import dev.rudiments.data.ReadOnly.{Find, FindAll, Found, FoundAll, NotFound}
-import dev.rudiments.hardcore.http.{CompositeRouter, DeletePort, GetDirectivePort, GetPort, IDPath, IDRouter, PostPort, PrefixRouter, PutPort, Router}
-import dev.rudiments.hardcore.http.query.Directives
+import dev.rudiments.data.ReadOnly._
+import dev.rudiments.hardcore.http.query.{Directives, Query}
+import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.types.{ID, Instance, Type}
-import dev.rudiments.hardcore.{Failure, PortWithResource, Result, Skill, Success}
+import dev.rudiments.hardcore.{Command, Failure, Port, Result, Skill, Success}
 import io.circe.{Decoder, Encoder}
-import scalikejdbc.{ConnectionPool, DB, DBConnection, DBSession}
-import scalikejdbc._
+import scalikejdbc.{ConnectionPool, DBSession}
 
 class SQLHttpPort
 (
@@ -24,22 +22,23 @@ class SQLHttpPort
   idField: String,
   identify: Instance => ID,
   connectionPool: ConnectionPool,
-  override val s: DBSession => Skill[DataEvent]
-)(implicit t: Type, en: Encoder[Instance], de: Decoder[Instance]) extends PortWithResource(s) with Router with FailFastCirceSupport {
+  val s: DBSession => Skill[DataEvent]
+)(implicit t: Type, en: Encoder[Instance], de: Decoder[Instance]) extends Port[Command, DataEvent] with Router with FailFastCirceSupport {
+  import dev.rudiments.hardcore.http.HttpPorts.WithDependencies._
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
-      GetDirectivePort(Directives.query(t), FindAll.apply, using(DB(connectionPool.borrow())){db => db.localTx(s)}, responseWith),
-      PostPort((value: Instance) => Create(identify(value), value), using(DB(connectionPool.borrow())){db => db.localTx(s)}, responseWith),
-      PostPort((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), using(DB(connectionPool.borrow())){db => db.localTx(s)}, responseWith),
-      PutPort((batch: Seq[Instance]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), using(DB(connectionPool.borrow())){db => db.localTx(s)}, responseWith),
-      DeletePort(DeleteAll(), using(DB(connectionPool.borrow())){db => db.localTx(s)}, responseWith),
+      GetDirectivePort[Query, FindAll, DataEvent, DBSession](Directives.query(t), FindAll.apply, s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
+      PostPort[Create, Instance, DataEvent, DBSession]((value: Instance) => Create(identify(value), value), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
+      PostPort[CreateAll, Seq[Instance], DataEvent, DBSession]((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
+      PutPort[ReplaceAll, Seq[Instance], DataEvent, DBSession]((batch: Seq[Instance]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
+      DeletePort[DeleteAll, DataEvent, DBSession](DeleteAll(),  s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
     ),
     IDRouter(
       IDPath(t.fields(idField).kind)(t),
-      { id: ID => GetPort(Find(id), using(DB(connectionPool.borrow())){db => db.localTx(s)}, responseWith) },
-      { id: ID => PutPort((value: Instance) => Update(id, value), using(DB(connectionPool.borrow())){db => db.localTx(s)}, responseWith) },
-      { id: ID => DeletePort(Delete(id), using(DB(connectionPool.borrow())){db => db.localTx(s)}, responseWith) }
+      { id: ID => GetPort[Find, DataEvent, DBSession](Find(id), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith) },
+      { id: ID => PutPort[Update, Instance, DataEvent, DBSession]((value: Instance) => Update(id, value), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith) },
+      { id: ID => DeletePort[Delete, DataEvent, DBSession](Delete(id), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith) }
     )
   ).routes
 
