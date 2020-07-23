@@ -60,7 +60,7 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
       Column("name", ColumnTypes.VARCHAR(255), nullable = false, default = false, pk = false)
     ))
   ), Set.empty), session)
-  val pool = ConnectionPool.get("test")
+  private val pool = ConnectionPool.get("test")
 
   private val router: SQLHttpPort = new SQLHttpPort(
     "example",
@@ -137,7 +137,9 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
         response.status should be (StatusCodes.Created)
       }
     }
-    repo(Count()).merge should be (Counted(100))
+    using(DBSession(pool.borrow())) { session =>
+      repoFunction(session)(Count()).merge should be (Counted(100))
+    }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (SoftInstance(42L, "42'th element"))
@@ -147,7 +149,9 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
   "endure 190.000 batch" in {
     Post("/example", (10001 to 200000).map(i => SoftInstance(i.toLong, s"$i'th element"))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      repo(Count()).merge should be (Counted(190100))
+      using(DBSession(pool.borrow())) { session =>
+        repoFunction(session)(Count()).merge should be (Counted(190100))
+      }
     }
     Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
@@ -186,7 +190,9 @@ class SQLDataHttpPortTest extends WordSpec with Matchers with ScalatestRouteTest
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
       response.status should be (StatusCodes.NoContent)
-      repo(Count()).merge should be (Counted(0))
+      using(DBSession(pool.borrow())) { session =>
+        repoFunction(session)(Count()).merge should be (Counted(0))
+      }
     }
   }
 
