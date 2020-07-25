@@ -10,7 +10,7 @@ import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.http.query.Directives
 import dev.rudiments.hardcore.types.{ID, Instance, Type}
-import dev.rudiments.hardcore.{Failure, Port, Result, Skill, Success}
+import dev.rudiments.hardcore.{Failure, PortWithoutDependency, Result, Skill, Success}
 import io.circe.{Decoder, Encoder}
 
 class DataHttpPort(
@@ -20,7 +20,8 @@ class DataHttpPort(
   override val s: Skill[DataEvent],
   customRoutes: Seq[(String, Router)] = Seq.empty,
   customIdRoutes: Seq[(String, ID => Router)] = Seq.empty
-)(implicit t: Type, en: Encoder[Instance], de: Decoder[Instance]) extends Port(s) with Router with FailFastCirceSupport {
+)(implicit t: Type, en: Encoder[Instance], de: Decoder[Instance]) extends PortWithoutDependency(s) with Router with FailFastCirceSupport {
+  import ports._
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(

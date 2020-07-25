@@ -6,9 +6,9 @@ import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.data.CRUD.{Create, Update, Updated}
 import dev.rudiments.data.ReadOnly.{Find, Found}
 import dev.rudiments.data.{SoftApp, SoftModule}
+import dev.rudiments.hardcore.http.HttpPorts.DependencyLess
 import dev.rudiments.hardcore.{Command, Error, Event, Failure, Success}
 import dev.rudiments.hardcore.types._
-import dev.rudiments.hardcore.http.{EmptyPostPort, PostPort}
 import io.circe.Encoder
 
 object TodoApp extends App with LazyLogging {
@@ -21,7 +21,7 @@ object TodoApp extends App with LazyLogging {
   import akka.http.scaladsl.server.Directives._
   import dev.rudiments.hardcore.http.CirceSupport._
   private val todoItemModule = SoftModule("todo", "id", Seq.empty, Seq(
-    "done" -> (ctx => id => EmptyPostPort[Done, Event](
+    "done" -> (ctx => id => DependencyLess.EmptyPostPort[Done, Event](
       Done(id),
       {
         case Done(id) =>
@@ -45,7 +45,7 @@ object TodoApp extends App with LazyLogging {
           complete(StatusCodes.Conflict, item)
       }
     )),
-    "undone" -> (ctx => id => EmptyPostPort[Undone, Event](
+    "undone" -> (ctx => id => DependencyLess.EmptyPostPort[Undone, Event](
       Undone(id),
       {
         case Undone(id) =>
