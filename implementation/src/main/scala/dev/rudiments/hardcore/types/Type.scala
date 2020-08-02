@@ -26,6 +26,17 @@ case class Type(name: String, fields: Map[String, Field]) extends Thing {
     )(this)
   }
 
+  def constructFromMap(arguments: Map[String, Any]): Instance = {
+    SoftInstance(
+      fields.map { case (name, field) =>
+        name -> (validate(field, name, arguments(name)) match {
+          case Left(e) => throw new SoftValidationError(name, e)
+          case Right(v) => v
+        })
+      }
+    )(this)
+  }
+
   private def validate(f: Field, name: String, arg: Any): Either[ValidationError, Any] = (f.fieldFlag, arg) match {
     case (FieldFlag.Optional, None) => Right(None)
     case (FieldFlag.Optional, Some(v)) => f.kind.validate(v).map(Some.apply)

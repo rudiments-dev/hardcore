@@ -35,7 +35,7 @@ class QueryAction(schema: TypedSchema, t: Type)(session: DBSession) extends Acti
              |FROM ${fromPart(From(schema, table, None))}
              |""".stripMargin
         ).map { rs =>
-          softType.construct(rs.toMap().values.toSeq: _*) //todo refactor to Map
+          softType.constructFromMap(rs.toMap())
         }.list().apply()
 
       case PredicatesQuery(parts, softType) =>
@@ -48,7 +48,7 @@ class QueryAction(schema: TypedSchema, t: Type)(session: DBSession) extends Acti
              |WHERE $whereSQL
              |""".stripMargin
         ).bindByName(whereBindings.map(Binding.toScalaLikeSQL): _*).map { rs =>
-          softType.construct(rs.toMap().values.toSeq: _*)
+          softType.constructFromMap(rs.toMap())
         }.list().apply()
     }
     Success(FoundAll(instances))
