@@ -45,7 +45,7 @@ case class Type(
   def constructFromMap(arguments: Map[String, Any]): Instance = {
     Instance(
       fields.map { case (name, field) =>
-        name -> (validate(field, name, arguments(name)) match {
+        name -> (field.validate(arguments(name)) match {
           case Left(e) => throw new SoftValidationError(name, e)
           case Right(v) => v
         })

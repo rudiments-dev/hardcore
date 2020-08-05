@@ -153,19 +153,6 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
     }
   }
 
-  it should "endure 190.000 batch" in {
-    Post("/example", (10001 to 200000).map(i => Instance(i.toLong, s"$i'th element"))) ~> routes ~> check {
-      response.status should be(StatusCodes.Created)
-      using(DBSession(pool.borrow())) { session =>
-        repoFunction(session)(Count()).merge should be(Counted(190100))
-      }
-    }
-    Get("/example/10042") ~> routes ~> check {
-      response.status should be(StatusCodes.OK)
-      responseAs[Instance] should be(Instance(10042L, "10042'th element"))
-    }
-  }
-
   it should "should filter entities" in {
     Get("/example?query=id=less:10") ~> routes ~> check {
       response.status should be(StatusCodes.OK)
