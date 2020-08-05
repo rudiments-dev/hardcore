@@ -161,4 +161,27 @@ class TypeSystemSpec extends WordSpec with Matchers {
       )
     )
   }
+
+  "can save List and Index in TypeSystem" in {
+    typeSystem.getType("List") should be (
+      Type(
+        "List",
+        ListMap(
+          "of" -> Field("of", typeSystem.getAbstract("Thing"), true) //TODO put Anything to typeSystem
+        ),
+        Seq(Abstract("Thing"))
+      )
+    )
+
+    typeSystem.getType("Index") should be (
+      Type(
+        "Index",
+        ListMap(
+          "of" -> Field("of", typeSystem.getAbstract("Thing"), true), //TODO put Anything to typeSystem
+          "over" -> Field("over", typeSystem.getAbstract("Thing"), true) //TODO put Anything to typeSystem
+        ),
+        Seq(Abstract("Thing"))
+      )
+    )
+  }
 }
