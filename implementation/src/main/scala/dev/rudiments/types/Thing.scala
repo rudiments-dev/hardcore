@@ -104,6 +104,8 @@ case class Type(
     }.getOrElse {
       throw new RuntimeException(s"Incompatible: value $v and field $f")
     }
+
+    case (_: Abstract, t: Thing) => t
     case (_, _) => throw new RuntimeException(s"Incompatible: value $v and field $f")
   }
 }
@@ -157,7 +159,7 @@ case class List(of: Thing) extends Thing("List", Seq.empty) {
 case class Index(of: Thing, over: Thing) extends Thing("Index", Seq.empty) {
 
   override def validate(arg: Any): Either[ValidationError, Any] = arg match {
-    case i: Map[_, _] => i.map(v => of.validate(v._1) -> over.validate(v._2)).reduce[(Either[ValidationError, Any], Either[ValidationError, Any])] {
+    case i: Map[_, _] if i.nonEmpty => i.map(v => of.validate(v._1) -> over.validate(v._2)).reduce[(Either[ValidationError, Any], Either[ValidationError, Any])] {
       case ((Right(a), Right(b)), (Right(_), Right(_))) => (Right(a), Right(b))
       case ((Left(e), b), _) => (Left(e), b)
       case ((b, Left(e)), _) => (Left(e), b)
@@ -167,6 +169,7 @@ case class Index(of: Thing, over: Thing) extends Thing("Index", Seq.empty) {
       case (Right(_), _) => Right(arg)
       case (l: Left[ValidationError, _], _) => l
     }
+    case _: Map[_, _] => Right(arg)
     case other => Left(IncompatibleType(of.name, other))
   }
 }

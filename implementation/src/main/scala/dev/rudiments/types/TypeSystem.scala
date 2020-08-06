@@ -144,10 +144,14 @@ case class TypeSystem(types: mutable.Map[String, Thing] = mutable.Map.empty) ext
   def forAlgebraic(s: Symbol, asc: Seq[Thing]): Thing = {
     val t = s.asType
     if(t.isAbstract) {
-      val a = Abstract(name(t))
+      val a = Abstract(name(t), asc)
       save(a)
       t.asClass.knownDirectSubclasses.map(s => forAlgebraic(s, asc.+:(a))).foreach(save)
-      save(Algebraic(a, descendants(a).toSet, asc))
+      if(descendants(a).nonEmpty) {
+        save(Algebraic(a, descendants(a), asc)) //TODO sava as abstract if no descendants
+      } else {
+        a
+      }
     } else if(t.isModuleClass) {
       OnlyOne(name(t), asc)
     } else if(t.isClass) {
