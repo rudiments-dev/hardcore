@@ -34,7 +34,7 @@ class FindAction(schema: TypedSchema, t: Type)(session: DBSession) extends Actio
          |WHERE $whereSQL
          |""".stripMargin,
     ).bindByName(bindings.map(Binding.toScalaLikeSQL) : _*).map { rs =>
-      t.construct(rs.toMap().values.toSeq :_*)
+      t.constructFromMap(rs.toMap())
     }.single().apply() match {
       case Some(value) => Found(key, value).toEither
       case None => NotFound(key).toEither

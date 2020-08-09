@@ -1,10 +1,11 @@
 package dev.rudiments.hardcore.sql
 
+import java.sql.{Date, Time, Timestamp}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.dimafeng.testcontainers.scalatest.TestContainerForAll
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.{Config, ConfigFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
@@ -18,6 +19,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, FreeSpec, Matchers, WordSpec}
 import scalikejdbc.{AutoSession, DBSession, _}
+import java.time.{LocalDate, LocalDateTime, LocalTime}
 
 import scala.collection.JavaConverters._
 
@@ -35,7 +37,10 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
 
   private case class Example(
     id: Long,
-    name: String
+    name: String,
+    date: Date,
+    timestamp: Timestamp,
+    time: Time
   ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
@@ -44,7 +49,17 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
   private implicit val en: Encoder[Instance] = new InstanceEncoder(typeSystem)(t)
   private implicit val de: Decoder[Instance] = new InstanceDecoder(typeSystem)(t)
 
-  private val sample = t.construct(42L, "sample")
+  def exampleInstance(id: Long, text: String): Instance = {
+    t.fromScala(Example(
+      id, text,
+      Date.valueOf(LocalDate.now),
+      Timestamp.valueOf(LocalDateTime.now),
+      Time.valueOf(LocalTime.now)
+    ))
+  }
+
+  private val sample = exampleInstance(42L, "sample")
+
   lazy val config: Config = ConfigFactory.parseMap(Map(
     "driver" -> container.driverClassName,
     "url" -> container.jdbcUrl,
@@ -66,7 +81,10 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
   val repoFunction: DBSession => SQLAdapter = session => new SQLAdapter(schema = TypedSchema("test", Map(
     t -> Table("example", Seq(
       Column("id", ColumnTypes.INT, nullable = false, default = false, pk = true),
-      Column("name", ColumnTypes.VARCHAR(255), nullable = false, default = false, pk = false)
+      Column("name", ColumnTypes.VARCHAR(255), nullable = false, default = false, pk = false),
+      Column("date", ColumnTypes.DATE(100), nullable = false, default = false, pk = false),
+      Column("timestamp", ColumnTypes.TIMESTAMP(255, timeZone = false), nullable = false, default = false, pk = false),
+      Column("time", ColumnTypes.TIME(255, timeZone = false), nullable = false, default = false, pk = false)
     ))
   ), Set.empty), session)
 
@@ -87,7 +105,10 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
 
         sql"""CREATE TABLE test.example (
              |      id BIGINT PRIMARY KEY,
-             |      name VARCHAR(255) NOT NULL
+             |      name VARCHAR(255) NOT NULL,
+             |      date DATE NOT NULL,
+             |      timestamp TIMESTAMP NOT NULL,
+             |      time TIME  NOT NULL
              |)""".stripMargin.execute().apply()
 
         sql"""SELECT * FROM test.example""".execute().apply()
@@ -113,13 +134,14 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
   }
 
   it should "update item in repository" in {
-    Put("/example/42", Instance(42L, "test")) ~> routes ~> check {
+    val toUpdate = exampleInstance(42L, "test")
+    Put("/example/42", toUpdate) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(42L, "test"))
+      responseAs[Instance] should be(toUpdate)
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(42L, "test"))
+      responseAs[Instance] should be(toUpdate)
     }
   }
 
@@ -140,38 +162,26 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
 
   it should "endure 100 records" in {
     (1 to 100).foreach { i =>
-      Post("/example", Instance(i.toLong, s"$i'th element")) ~> routes ~> check {
+      val instance = exampleInstance(i, s"$i'th element")
+
+      Post("/example", instance) ~> routes ~> check {
         response.status should be(StatusCodes.Created)
       }
     }
     using(DBSession(pool.borrow())) { session =>
       repoFunction(session)(Count()).merge should be(Counted(100))
     }
-    Get("/example/42") ~> routes ~> check {
-      response.status should be(StatusCodes.OK)
-      responseAs[Instance] should be(Instance(42L, "42'th element"))
-    }
   }
 
   it should "should filter entities" in {
     Get("/example?query=id=less:10") ~> routes ~> check {
       response.status should be(StatusCodes.OK)
-      responseAs[Seq[Instance]] should be(
-        (1 until 10).map(i => Instance(i.toLong, s"$i'th element"))
-      )
-    }
-  }
-
-  it should "should update entity" in {
-    val toUpdate = Instance(42L, "updated")
-    Put("/example/42", toUpdate) ~> routes ~> check {
-      response.status should be(StatusCodes.OK)
-      responseAs[Instance] should be(toUpdate)
+      responseAs[Seq[Instance]].map(_.extract[Long]("id")) should be((1 until 10))
     }
   }
 
   it should "should replace all entities" in {
-    val toUpdate = Seq(Instance(1L, "replaced"))
+    val toUpdate = Seq(exampleInstance(1L, "replaced"))
     Put("/example", toUpdate) ~> routes ~> check {
       response.status should be(StatusCodes.Created)
     }
