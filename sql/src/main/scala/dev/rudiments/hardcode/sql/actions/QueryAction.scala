@@ -1,13 +1,13 @@
 package dev.rudiments.hardcode.sql.actions
 
-import dev.rudiments.data.{Action, DataSkill}
+import dev.rudiments.data.Action
 import dev.rudiments.data.ReadOnly.{FindAll, FoundAll}
 import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField, Where}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
-import dev.rudiments.hardcore.{Command, Event, Result, SkillResult, Success}
 import dev.rudiments.hardcore.http.query.{PassAllQuery, PredicatesQuery}
-import dev.rudiments.hardcore.types.Type
+import dev.rudiments.hardcore.{Result, Success}
+import dev.rudiments.types.Type
 import scalikejdbc.{DBSession, SQL}
 
 class QueryAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[FindAll, FoundAll] {

@@ -5,7 +5,7 @@ import dev.rudiments.data.Batch.{AllCreated, CreateAll}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcode.sql.{Binding, SqlEntity, SqlValue}
 import dev.rudiments.hardcore.Result
-import dev.rudiments.hardcore.types.Type
+import dev.rudiments.types.Type
 import scalikejdbc.{DBSession, SQL}
 
 class CreateAllAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[CreateAll, AllCreated] {

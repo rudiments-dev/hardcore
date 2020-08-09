@@ -3,7 +3,7 @@ package dev.rudiments.hardcode.sql
 import dev.rudiments.data.{DataCommand, DataEvent, DataSkill}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcode.sql.actions._
-import dev.rudiments.hardcore.types.Type
+import dev.rudiments.types.Type
 import dev.rudiments.hardcore.{Adapter, Command, Result, Skill}
 import scalikejdbc.DBSession
 

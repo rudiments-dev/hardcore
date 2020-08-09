@@ -6,14 +6,14 @@ import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcore.Result
-import dev.rudiments.hardcore.types.{SoftID, Type}
+import dev.rudiments.types.{ID, Type}
 import scalikejdbc.{DBSession, SQL}
 
 class FindAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[Find, Found] {
   override def apply(command: Find): Result[Found] = {
     import command.key
     implicit val s = session
-    val t = key.asInstanceOf[SoftID].t
+    val t = key.t
     val table = schema.tables(t)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
@@ -34,7 +34,7 @@ class FindAction(schema: TypedSchema, t: Type)(session: DBSession) extends Actio
          |WHERE $whereSQL
          |""".stripMargin,
     ).bindByName(bindings.map(Binding.toScalaLikeSQL) : _*).map { rs =>
-      t.construct(rs.toMap().values.toSeq :_*)
+      t.constructFromMap(rs.toMap())
     }.single().apply() match {
       case Some(value) => Found(key, value).toEither
       case None => NotFound(key).toEither

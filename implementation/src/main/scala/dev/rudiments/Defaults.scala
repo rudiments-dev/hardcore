@@ -1,4 +1,4 @@
-package dev.rudiments.hardcore.types
+package dev.rudiments
 
 import java.sql.{Date, Timestamp}
 import java.time.{LocalDate, LocalDateTime}

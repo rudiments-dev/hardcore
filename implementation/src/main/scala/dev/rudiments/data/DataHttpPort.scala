@@ -9,8 +9,10 @@ import dev.rudiments.data.CRUD._
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.http.query.Directives
-import dev.rudiments.hardcore.types.{ID, Instance, Type}
+import dev.rudiments.types.{ID, Instance, Type}
 import dev.rudiments.hardcore.{Failure, PortWithoutDependency, Result, Skill, Success}
+import dev.rudiments.types.{ID, Instance, Type}
+import dev.rudiments.hardcore.{Failure, Port, Result, Skill, Success}
 import io.circe.{Decoder, Encoder}
 
 class DataHttpPort(
@@ -33,7 +35,7 @@ class DataHttpPort(
       CompositeRouter(customRoutes.map { case (p, r) => PrefixRouter(p, r) } : _*)
     ),
     IDRouter(
-      IDPath(t.fields(idField).kind)(t),
+      IDPath(t.fields(idField).`type`)(t),
       { id: ID => GetPort(Find(id), s, responseWith) },
       { id: ID => PutPort((value: Instance) => Update(id, value), s, responseWith) },
       { id: ID => DeletePort(Delete(id), s, responseWith) },

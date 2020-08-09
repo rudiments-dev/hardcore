@@ -1,8 +1,8 @@
 package dev.rudiments.data
 
 import dev.rudiments.data.ReadOnly.NotFound
-import dev.rudiments.hardcore.flow.{AlwaysDo, Mutated, Mutates, SideEffect}
-import dev.rudiments.hardcore.types.{ID, Instance}
+import dev.rudiments.hardcore.flow.{Mutated, Mutates, SideEffect}
+import dev.rudiments.types.{ID, Instance}
 
 import scala.collection.parallel
 

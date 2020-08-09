@@ -1,5 +1,6 @@
-package dev.rudiments.hardcore.types
+package dev.rudiments.types
 
+import dev.rudiments.types.hard.{IncompatibleScalaType, ScalaStrictValid}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}

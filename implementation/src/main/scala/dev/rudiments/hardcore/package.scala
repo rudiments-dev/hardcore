@@ -1,14 +1,11 @@
 package dev.rudiments
 
 import dev.rudiments.data.Action
-import dev.rudiments.data.ReadOnly.NotFound
 import dev.rudiments.hardcore.Error.NoHandler
-import dev.rudiments.hardcore.Message
-import dev.rudiments.hardcore.types.DTO
+import dev.rudiments.types.DTO
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
-import scala.util.{Either, Left, Right}
 
 package object hardcore {
 

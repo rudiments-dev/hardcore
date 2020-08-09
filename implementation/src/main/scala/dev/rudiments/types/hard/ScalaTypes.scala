@@ -1,36 +1,39 @@
-package dev.rudiments.hardcore.types
+package dev.rudiments.types.hard
+
+import dev.rudiments.types.NumberSize.{Big, NegativeInfinity, PositiveInfinity}
+import dev.rudiments.types.{NumberFormat, Plain, ValidationError}
 
 import scala.reflect.ClassTag
 
 object ScalaTypes {
-  object ScalaString extends Types.Text(MaxInt) {
+  object ScalaString extends Plain.Text(MaxInt) {
     override def validate(arg: Any): Either[ValidationError, String] = ScalaStrictValid[String](arg)
   }
 
-  object ScalaByte   extends Types.Number(MinByte,  MaxByte,   NumberFormat.Integer) {
+  object ScalaByte   extends Plain.Number(MinByte,  MaxByte,   NumberFormat.Integer) {
     override def validate(arg: Any): Either[ValidationError, Byte] = ScalaStrictValid[Byte](arg)
   }
-  object ScalaShort  extends Types.Number(MinShort, MaxShort,  NumberFormat.Integer) {
+  object ScalaShort  extends Plain.Number(MinShort, MaxShort,  NumberFormat.Integer) {
     override def validate(arg: Any): Either[ValidationError, Short] = ScalaStrictValid[Short](arg)
   }
-  object ScalaInt    extends Types.Number(MinInt,   MaxInt,    NumberFormat.Integer) {
+  object ScalaInt    extends Plain.Number(MinInt,   MaxInt,    NumberFormat.Integer) {
     override def validate(arg: Any): Either[ValidationError, Int] = ScalaStrictValid[Int](arg)
   }
-  object ScalaLong   extends Types.Number(MinLong,  MaxLong,   NumberFormat.Integer) {
+  object ScalaLong   extends Plain.Number(MinLong,  MaxLong,   NumberFormat.Integer) {
     override def validate(arg: Any): Either[ValidationError, Long] = ScalaStrictValid[Long](arg)
   }
 
-  object ScalaFloat  extends Types.Number(MinFloat,   MaxFloat,  NumberFormat.Float) {
+  object ScalaFloat  extends Plain.Number(MinFloat,   MaxFloat,  NumberFormat.Float) {
     override def validate(arg: Any): Either[ValidationError, Float] = ScalaStrictValid[Float](arg)
   }
-  object ScalaDouble extends Types.Number(MinDouble,  MaxDouble, NumberFormat.Float) {
+  object ScalaDouble extends Plain.Number(MinDouble,  MaxDouble, NumberFormat.Float) {
     override def validate(arg: Any): Either[ValidationError, Double] = ScalaStrictValid[Double](arg)
   }
 
-  object ScalaBigInteger extends Types.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer) {
+  object ScalaBigInteger extends Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer) {
     override def validate(arg: Any): Either[ValidationError, BigInt] = ScalaStrictValid[BigInt](arg)
   }
-  object ScalaBigDecimal extends Types.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Decimal) {
+  object ScalaBigDecimal extends Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Decimal) {
     override def validate(arg: Any): Either[ValidationError, BigDecimal] = ScalaStrictValid[BigDecimal](arg)
   }
 
@@ -55,6 +58,7 @@ object ScalaTypes {
 }
 
 case class IncompatibleScalaType(typeName: String, arg: Any) extends ValidationError
+case class IncompatibleType(typeName: String, arg: Any) extends ValidationError
 
 object ScalaStrictValid {
   import scala.reflect.runtime.universe._

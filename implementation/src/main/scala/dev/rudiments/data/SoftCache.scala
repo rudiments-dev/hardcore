@@ -1,10 +1,10 @@
 package dev.rudiments.data
 
 import dev.rudiments.data.CRUD.Created
-import dev.rudiments.hardcore.{Adapter, Command, Failure, Result, Success}
+import dev.rudiments.hardcore.{Adapter, Command, Result, Success}
 import dev.rudiments.hardcore.flow.BulkMutated
-import dev.rudiments.hardcore.types.SoftID.SoftID1
-import dev.rudiments.hardcore.types._
+import dev.rudiments.types.ID.ID1
+import dev.rudiments.types.{ID, Instance, Type}
 
 import scala.collection.parallel
 
@@ -24,7 +24,7 @@ class SoftCache(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
     }
   }
 
-  private val generator = () => SoftID1(counter)
+  private val generator = () => ID1(counter)
   private var counter: Long = 1
 
   val f: DataSkill = {

@@ -1,4 +1,4 @@
-package dev.rudiments.hardcore.types
+package dev.rudiments.types
 
 import java.sql.{Date, Time, Timestamp}
 import java.util.UUID

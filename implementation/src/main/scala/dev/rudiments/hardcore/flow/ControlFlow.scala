@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore.flow
 
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.types.ID
+import dev.rudiments.types.ID
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

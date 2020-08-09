@@ -2,7 +2,7 @@ package dev.rudiments.hardcore.http.query
 
 
 import dev.rudiments.hardcore.http.query.predicates.Predicate
-import dev.rudiments.hardcore.types.Type
+import dev.rudiments.types.Type
 
 sealed trait Query {
   val softType: Type

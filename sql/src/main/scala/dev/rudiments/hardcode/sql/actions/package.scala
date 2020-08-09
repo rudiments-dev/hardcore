@@ -4,8 +4,8 @@ import dev.rudiments.hardcode.sql.SQLParts.{ColumnWhereExpression, From, Select,
 import dev.rudiments.hardcode.sql.SQLPredicates.{Between, Contains, EndsWith, Equals, Greater, GreaterOrEquals, In, IsNull, Less, LessOrEquals, NotEquals, NotNull, StartsWith}
 import dev.rudiments.hardcode.sql.schema.{Column, Table}
 import dev.rudiments.hardcore.http.query.predicates.{DoubleEquals, DoubleLess, DoubleLessOrEquals, DoubleMore, DoubleMoreOrEquals, FieldPredicate, IntEquals, IntLess, IntLessOrEquals, IntMore, IntMoreOrEquals, IsDefined, IsEmpty, IsFalse, IsTrue, OptionValuePredicate, Predicate, StringContains, StringEndsWith, StringEquals, StringStartsWith}
-import dev.rudiments.hardcore.types.SoftID.{SoftID0, SoftID1, SoftID2}
-import dev.rudiments.hardcore.types.{ID, Type}
+import dev.rudiments.types.ID.{ID0, ID1, ID2}
+import dev.rudiments.types.{ID, Type}
 
 package object actions {
 
@@ -106,8 +106,8 @@ package object actions {
   def idToWhere(table: Table, t: Type): PartialFunction[ID, Where] = {
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
     val function: PartialFunction[ID, Set[WhereExpression]] = {
-      case _: SoftID0 => throw new UnsupportedOperationException("SoftID0 not supported for where expression")
-      case id: SoftID1 =>
+      case _: ID0 => throw new UnsupportedOperationException("SoftID0 not supported for where expression")
+      case id: ID1 =>
         val keys = table.pk.map(_.name)
         Set(
           ColumnWhereExpression(
@@ -115,7 +115,7 @@ package object actions {
             Equals(id.key)
           )
         )
-      case id: SoftID2 =>
+      case id: ID2 =>
         val keys = table.pk.map(_.name)
         Set(
           ColumnWhereExpression(

@@ -5,9 +5,9 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.data.{ReadOnlyHttpPort, SoftCache}
-import dev.rudiments.hardcode.sql.schema.{ColumnType, FK, TypedSchema}
-import dev.rudiments.hardcore.http.{IDPath, RootRouter, Router}
-import dev.rudiments.hardcore.types.{ID, ScalaType, TypeSystem}
+import dev.rudiments.hardcode.sql.schema.{ColumnType, FK}
+import dev.rudiments.hardcore.http.RootRouter
+import dev.rudiments.types.{Type, TypeSystem}
 import io.circe.{Encoder, Json}
 
 import scala.concurrent.ExecutionContext
@@ -20,7 +20,7 @@ object Application extends App with LazyLogging {
   implicit val mat: ActorMaterializer = ActorMaterializer()
   private implicit val typeSystem: TypeSystem = new TypeSystem()
 
-  implicit val t: ScalaType[Schema] = ScalaType[Schema]
+  implicit val t: Type = typeSystem.asType[Schema]
 
   try {
     val config = ConfigFactory.load()

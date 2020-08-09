@@ -1,4 +1,4 @@
-package dev.rudiments.hardcore.types
+package dev.rudiments.types
 
 import dev.rudiments.hardcore.data.MyEnum
 import org.junit.runner.RunWith
@@ -8,24 +8,18 @@ import org.scalatest.{Matchers, WordSpec}
 @RunWith(classOf[JUnitRunner])
 class SoftFromHardSpec extends WordSpec with Matchers {
   private implicit val typeSystem: TypeSystem = new TypeSystem()
-  private val s1: Type = ScalaType[Sample1]
-  private val c1: Type = ScalaType[Complicated1]
-  private val c2: Type = ScalaType[Complicated2]
-  private val c3: Type = ScalaType[Complicated3]
+  private val s1: Type = typeSystem.asType[Sample1]
+  private val c1: Type = typeSystem.asType[Complicated1]
+  private val c2: Type = typeSystem.asType[Complicated2]
+  private val c3: Type = typeSystem.asType[Complicated3]
 
-  private val softEnum = new Enum(
-    "dev.rudiments.hardcore.data.MyEnum",
-    Declaration("MyEnum"),
-    Seq(
-      Singleton("One"),
-      Singleton("Two"),
-      Singleton("Red")
-    )
-  )
+
+  private val enum = typeSystem.find("MyEnum").get
+  private val values = typeSystem.descendants(enum).groupBy(_.name).mapValues(_.head)
 
   "can construct soft instance" in {
-    val s = s1.fromScala(Sample1(1, None, Set.empty)).asInstanceOf[SoftInstance]
-    s should be (SoftInstance(Map("a" -> 1, "b" -> None, "c" -> Set.empty))(s1))
+    val s = s1.fromScala(Sample1(1, None, Set.empty))
+    s should be (Instance(Map("a" -> 1, "b" -> None, "c" -> Set.empty))(s1))
     s.fields.head should be ("a" -> 1)
     s.fields.last should be ("c" -> Set.empty)
   }
@@ -44,9 +38,13 @@ class SoftFromHardSpec extends WordSpec with Matchers {
       c = Set("red", "green", "blue"),
       d = Map ("1" -> 1, "2" -> 2, "3" -> 3)
     )
-    c1.fromScala(complicatedPlain) should be (SoftInstance(
-      42, Some(42L), Set("red", "green", "blue"), Map ("1" -> 1, "2" -> 2, "3" -> 3)
-    )(c1))
+    c1.fromScala(complicatedPlain) should be (
+      Instance(
+        42,
+        Some(42L),
+        Set("red", "green", "blue"),
+        Map ("1" -> 1, "2" -> 2, "3" -> 3)
+      )(c1))
   }
 
   "can construct instance with nested type field and it's composition" in {
@@ -64,18 +62,18 @@ class SoftFromHardSpec extends WordSpec with Matchers {
         "full" -> Sample1(42, Some("value"), Set("sky", "ocean", "land"))
       )
     )
-    c2.fromScala(complicatedComposite) should be (SoftInstance(
-      SoftInstance(1, None, Set.empty)(s1),
-      Some(SoftInstance(1, None, Set.empty)(s1)),
+    c2.fromScala(complicatedComposite) should be (Instance(
+      Instance(1, None, Set.empty)(s1),
+      Some(Instance(1, None, Set.empty)(s1)),
       Set(
-        SoftInstance(1, None, Set.empty)(s1),
-        SoftInstance(2, Some("thing"), Set.empty)(s1),
-        SoftInstance(3, Some("other thing"), Set("white", "black", "grey"))(s1)
+        Instance(1, None, Set.empty)(s1),
+        Instance(2, Some("thing"), Set.empty)(s1),
+        Instance(3, Some("other thing"), Set("white", "black", "grey"))(s1)
       ),
       Map(
-        "empty" -> SoftInstance(0, None, Set.empty)(s1),
-        "one" -> SoftInstance(1, Some("one"), Set.empty)(s1),
-        "full" -> SoftInstance(42, Some("value"), Set("sky", "ocean", "land"))(s1)
+        "empty" -> Instance(0, None, Set.empty)(s1),
+        "one" -> Instance(1, Some("one"), Set.empty)(s1),
+        "full" -> Instance(42, Some("value"), Set("sky", "ocean", "land"))(s1)
       )
     )(c2))
   }
@@ -91,17 +89,14 @@ class SoftFromHardSpec extends WordSpec with Matchers {
         "red" -> MyEnum.Red
       )
     )
-    c3.fromScala(complicatedEnum) should be (SoftInstance(
-      SoftEnum(softEnum, 0),
-      Some(SoftEnum(softEnum, 1)),
-      Set(
-        SoftEnum(softEnum, 1),
-        SoftEnum(softEnum, 2)
-      ),
+    c3.fromScala(complicatedEnum) should be (Instance(
+      values("One"),
+      Some(values("Two")),
+      Set(values("Red"), values("Two")),
       Map(
-        "1" -> SoftEnum(softEnum, 0),
-        "2" -> SoftEnum(softEnum, 1),
-        "red" -> SoftEnum(softEnum, 2)
+        "1" -> values("One"),
+        "2" -> values("Two"),
+        "red" -> values("Red")
       )
     )(c3))
   }
