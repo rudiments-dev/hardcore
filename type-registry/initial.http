@@ -1,0 +1,302 @@
+PUT http://localhost:8080/types
+Content-Type: application/json
+
+[
+  {
+    "type": "Abstract",
+    "name": "Thing",
+    "ascendants": []
+  },
+  {
+    "type": "Type",
+    "name": "Abstract",
+    "fields": {
+      "name": {
+        "type": { "type": "Text", "maxSize": "2147483647" },
+        "name": "name",
+        "isRequired": true
+      },
+      "ascendants": {
+        "type": { "type": "List", "of": { "type": "Thing" } },
+        "name": "ascendants",
+        "isRequired": true
+      }
+    },
+    "ascendants": [{ "type": "Thing" }]
+  },
+  {
+    "type": "Type",
+    "name": "Type",
+    "fields": {
+      "name": {
+        "type": { "type": "Text", "maxSize": "2147483647" },
+        "name": "name",
+        "isRequired": true
+      },
+      "fields": {
+        "type": {
+          "type": "Index",
+          "of": { "type": "Text", "maxSize": "2147483647" },
+          "over": { "type": "Field" }
+        },
+        "name": "fields",
+        "isRequired": true
+      },
+      "ascendants": {
+        "type": { "type": "List", "of": { "type": "Thing" } },
+        "name": "ascendants",
+        "isRequired": true
+      }
+    },
+    "ascendants": [{ "type": "Thing" }]
+  },
+  {
+    "type": "Type",
+    "name": "OnlyOne",
+    "fields": {
+      "name": {
+        "type": { "type": "Text", "maxSize": "2147483647" },
+        "name": "name",
+        "isRequired": true
+      },
+      "ascendants": {
+        "type": { "type": "List", "of": { "type": "Thing" } },
+        "name": "ascendants",
+        "isRequired": true
+      },
+      "value": {
+        "type": { "type": "Instance" },
+        "name": "value",
+        "isRequired": true
+      }
+    },
+    "ascendants": [{ "type": "Thing" }]
+  },
+  {
+    "type": "Type",
+    "name": "Algebraic",
+    "fields": {
+      "root": {
+        "type": { "type": "Abstract" },
+        "name": "root",
+        "isRequired": true
+      },
+      "descendants": {
+        "type": { "type": "List", "of": { "type": "Thing" } },
+        "name": "descendants",
+        "isRequired": true
+      },
+      "ascendants": {
+        "type": { "type": "List", "of": { "type": "Thing" }},
+        "name": "ascendants",
+        "isRequired": true
+      }
+    },
+    "ascendants": [{ "type": "Thing" }]
+  },
+
+  {
+    "type": "Type",
+    "name": "List",
+    "fields": {
+      "of": {
+        "type": { "type": "Thing" },
+        "name": "of",
+        "isRequired": true
+      }
+    },
+    "ascendants": [{ "type": "Thing" }]
+  },
+  {
+    "type": "Type",
+    "name": "Index",
+    "fields": {
+      "of": {
+        "type": { "type": "Thing" },
+        "name": "of",
+        "isRequired": true
+      },
+      "over": {
+        "type": { "type": "Thing" },
+        "name": "over",
+        "isRequired": true
+      }
+    },
+    "ascendants": [{ "type": "Thing" }]
+  },
+
+  {
+    "type": "Type",
+    "name": "Field",
+    "fields": {
+      "name": {
+        "type": { "type": "Text", "maxSize": "2147483647" },
+        "name": "name",
+        "isRequired": true
+      },
+      "type": {
+        "type": { "type": "Thing" },
+        "name": "type",
+        "isRequired": true
+      },
+      "isRequired": {
+        "type": { "type": "Bool" },
+        "name": "isRequired",
+        "isRequired": true
+      },
+      "value": {
+        "type": { "type": "Instance" },
+        "name": "value",
+        "isRequired": false
+      }
+    },
+    "ascendants": []
+  },
+  {
+    "type": "Type",
+    "name": "Instance",
+    "fields": {
+      "type": {
+        "type": { "type": "Type" },
+        "name": "type",
+        "isRequired": true
+      },
+      "fields": {
+        "type": {
+          "type": "Index",
+          "of": { "type": "Text", "maxSize": "2147483647" },
+          "over": "Anything"
+        },
+        "name": "fields",
+        "isRequired": true
+      }
+    },
+    "ascendants": []
+  },
+
+  {
+    "type": "Abstract",
+    "name": "Plain",
+    "ascendants": [{ "type": "Thing" }]
+  },
+  {
+    "type": "OnlyOne",
+    "name": "Bool",
+    "ascendants": [{ "type": "Thing" }, { "type": "Plain" }]
+  },
+  {
+    "type": "Type",
+    "name": "Number",
+    "fields": {
+      "min": {
+        "type": { "type": "NumberSize" },
+        "name": "min",
+        "isRequired": true
+      },
+      "max": {
+        "type": { "type": "NumberSize" },
+        "name": "max",
+        "isRequired": true
+      },
+      "format": {
+        "type": { "type": "NumberFormat" },
+        "name": "format",
+        "isRequired": true
+      }
+    },
+    "ascendants": [{ "type": "Thing" }, { "type": "Plain" }]
+  },
+  {
+    "type": "Type",
+    "name": "Text",
+    "fields": {
+      "maxSize": {
+        "type": { "type": "NumberSize" },
+        "name": "maxSize",
+        "isRequired": true
+      }
+    },
+    "ascendants": [{ "type": "Thing" }, { "type": "Plain" }]
+  },
+  {
+    "type": "OnlyOne",
+    "name": "Date",
+    "ascendants": [{ "type": "Thing" }, { "type": "Plain" }]
+  },
+  {
+    "type": "OnlyOne",
+    "name": "Time",
+    "ascendants": [{ "type": "Thing" }, { "type": "Plain" }]
+  },
+  {
+    "type": "OnlyOne",
+    "name": "Timestamp",
+    "ascendants": [{ "type": "Thing" }, { "type": "Plain" }]
+  },
+  {
+    "type": "OnlyOne",
+    "name": "UUID",
+    "ascendants": [{ "type": "Thing" }, { "type": "Plain" }]
+  },
+
+  {
+    "type": "Abstract",
+    "name": "NumberFormat",
+    "ascendants": []
+  },
+  {
+    "type": "OnlyOne",
+    "name": "Decimal",
+    "ascendants": [{ "type": "NumberFormat" }]
+  },
+  {
+    "type": "OnlyOne",
+    "name": "Float",
+    "ascendants": [{ "type": "NumberFormat" }]
+  },
+  {
+    "type": "OnlyOne",
+    "name": "Integer",
+    "ascendants": [{ "type": "NumberFormat" }]
+  },
+
+  {
+    "type": "Abstract",
+    "name": "NumberSize",
+    "ascendants": []
+  },
+  {
+    "type": "OnlyOne",
+    "name": "Infinity",
+    "ascendants": [{ "type": "NumberSize" }]
+  },
+  {
+    "type": "OnlyOne",
+    "name": "NegativeInfinity",
+    "ascendants": [{ "type": "NumberSize" }]
+  },
+  {
+    "type": "OnlyOne",
+    "name": "PositiveInfinity",
+    "ascendants": [{ "type": "NumberSize" }]
+  },
+  {
+    "type": "Type",
+    "name": "Big",
+    "fields": {
+      "size": {
+        "type": {
+          "type": "Number",
+          "min": { "type": "NegativeInfinity" },
+          "max": { "type": "PositiveInfinity" },
+          "format": { "type": "Decimal" }
+        },
+        "name": "size",
+        "isRequired": true
+      }
+    },
+    "ascendants": [{ "type": "NumberSize" }]
+  }
+]
+
+###
