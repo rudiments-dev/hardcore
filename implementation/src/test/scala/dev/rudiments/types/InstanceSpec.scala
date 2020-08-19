@@ -17,7 +17,7 @@ class InstanceSpec extends WordSpec with Matchers {
       Type(
         "Instance",
         ListMap(
-          "fields" -> Field(Index(ScalaTypes.ScalaString, Type("Anything", Map.empty)), true) //TODO put Anything to typeSystem
+          "fields" -> ValueSpec(Index(ScalaTypes.ScalaString, Type("Anything", Map.empty)), true) //TODO put Anything to typeSystem
         )
       )
     )
@@ -53,7 +53,7 @@ class InstanceSpec extends WordSpec with Matchers {
               "isRequired" -> true,
               "default" -> Instance(Map("fields" -> Map.empty))(typeSystem.getType("Instance"))
             )
-          )(typeSystem.getType("Field"))),
+          )(typeSystem.getType("ValueSpec"))),
           "ascendants" -> Seq.empty
         )
       )(t)
@@ -106,7 +106,7 @@ class InstanceSpec extends WordSpec with Matchers {
           "descendants" -> Set(
             OnlyOne("SomeObject", asc, Empty),
             Abstract("SomeAbstract", asc),
-            Type("SomeAnotherType", Map("a" -> Field(ScalaTypes.ScalaString, true)), asc)
+            Type("SomeAnotherType", Map("a" -> ValueSpec(ScalaTypes.ScalaString, true)), asc)
           ),
           "ascendants" -> Seq.empty
         )

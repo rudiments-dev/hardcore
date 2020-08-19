@@ -15,11 +15,11 @@ class AlgebraicSpec extends WordSpec with Matchers {
 
   private val typeA = Abstract("A")
   private val objectB = OnlyOne("B", Seq(typeA))
-  private val typeC = Type("C", ListMap("s" -> Field(ScalaTypes.ScalaString, true)), Seq(typeA))
+  private val typeC = Type("C", ListMap("s" -> ValueSpec(ScalaTypes.ScalaString, true)), Seq(typeA))
 
   private implicit val prototype: Type = Type(
     "AlgebraicExample",
-    ListMap("a" -> Field(Algebraic(typeA, Set(objectB, typeC)), true))
+    ListMap("a" -> ValueSpec(Algebraic(typeA, Set(objectB, typeC)), true))
   )
 
   "Can create instances with different content" in {

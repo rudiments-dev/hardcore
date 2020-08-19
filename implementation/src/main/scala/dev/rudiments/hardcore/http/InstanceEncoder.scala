@@ -15,10 +15,10 @@ case class InstanceEncoder(typeSystem: TypeSystem) extends DTO {
     )
   }
 
-  private def fieldEncoder(field: Field): Any => Json = field match {
-    case Field(f, true, _) =>
+  private def fieldEncoder(field: ValueSpec): Any => Json = field match {
+    case ValueSpec(f, true, _) =>
       value => requiredEncoder(f)(value)
-    case Field(f, false, _) =>
+    case ValueSpec(f, false, _) =>
       value => value.asInstanceOf[Option[_]].map(requiredEncoder(f)).getOrElse(Json.Null)
 
     case other => ???

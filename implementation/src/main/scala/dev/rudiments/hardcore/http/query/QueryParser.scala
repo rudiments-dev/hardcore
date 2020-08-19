@@ -12,7 +12,7 @@ object QueryParser {
     if (httpParams.query.isEmpty) {
       Right(PassAllQuery(softType))
     } else {
-      val types: Map[String, Field] = softType.fields
+      val types: Map[String, ValueSpec] = softType.fields
 
       val predicates: Seq[Either[RuntimeException, Predicate[_]]] = httpParams.parts.map { part =>
         val tt = types(part.fieldName)
@@ -23,7 +23,7 @@ object QueryParser {
     }
   }
 
-  private def recurs(field: Field, part: Param):Either[RuntimeException, FieldPredicate[_]] = {
+  private def recurs(field: ValueSpec, part: Param):Either[RuntimeException, FieldPredicate[_]] = {
 
     val result: Option[FieldPredicate[_]] = if(field.isRequired) {
       field.`type` match {
@@ -31,7 +31,7 @@ object QueryParser {
           val p = Param(
             part.text.replaceFirst(part.fieldName + ".", "")
           )
-          val relativeTypes: Map[String, Field] = of.fields
+          val relativeTypes: Map[String, ValueSpec] = of.fields
           recurs(relativeTypes(p.fieldName), p).toOption.flatMap(ProductFieldPredicate.create(part.text, _))
         case _ =>
           val fabrics = fieldPossiblePredicates(field)
@@ -49,7 +49,7 @@ object QueryParser {
     result.toRight(left = new RuntimeException(s"unsupported format: ${part.text}"))
   }
 
-  private def fieldPossiblePredicates(field: Field): Seq[String => Option[FieldPredicate[_]]] =
+  private def fieldPossiblePredicates(field: ValueSpec): Seq[String => Option[FieldPredicate[_]]] =
     field.`type` match {
       case Plain.Bool => Seq(BooleanEquals.create)
       case Plain.Text(maxSize) => Seq(

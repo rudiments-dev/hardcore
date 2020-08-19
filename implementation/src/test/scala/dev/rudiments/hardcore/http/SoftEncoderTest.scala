@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore.http
 
 import dev.rudiments.types.hard.ScalaTypes
-import dev.rudiments.types.{Field, Type, TypeSystem}
+import dev.rudiments.types.{ValueSpec, Type, TypeSystem}
 import io.circe.Json
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -16,7 +16,7 @@ class SoftEncoderTest extends FlatSpec with Matchers {
 
   private val typeSystem = TypeSystem()
   private val `type`: Type = Type("Test", ListMap(
-    "f" -> Field(ScalaTypes.ScalaDouble, false)
+    "f" -> ValueSpec(ScalaTypes.ScalaDouble, false)
   ))
 
   it should "encode class with option flag" in {

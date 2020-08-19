@@ -2,7 +2,7 @@ package dev.rudiments.hardcore.http.query
 
 import dev.rudiments.hardcore.http.query.predicates.{IntEquals, IntLess, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StringEquals, StringStartsWith}
 import dev.rudiments.types.NumberSize.{Infinity, NegativeInfinity, PositiveInfinity}
-import dev.rudiments.types.{DTO, Field, NumberFormat, Plain, Type}
+import dev.rudiments.types.{DTO, ValueSpec, NumberFormat, Plain, Type}
 import org.scalatest.{Matchers, WordSpec}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -13,12 +13,12 @@ class QueryParserTest extends WordSpec with Matchers {
   case class Baz(f: Int) extends DTO
   case class Foo(a: Int, b: String, d: Option[Option[Int]], baz: Option[Baz] = Some(Baz(1))) extends DTO
 
-  val bazType: Type = Type("Baz", Map("f" -> Field(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true)))
+  val bazType: Type = Type("Baz", Map("f" -> ValueSpec(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true)))
   val fooType: Type = Type("Foo", Map(
-    "a" -> Field(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true),
-    "b" -> Field(Plain.Text(Infinity), true),
-    "d" -> Field(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), false),
-    "baz" -> Field(bazType, false),
+    "a" -> ValueSpec(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true),
+    "b" -> ValueSpec(Plain.Text(Infinity), true),
+    "d" -> ValueSpec(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), false),
+    "baz" -> ValueSpec(bazType, false),
   ))
 
   "parse equals expression" in {

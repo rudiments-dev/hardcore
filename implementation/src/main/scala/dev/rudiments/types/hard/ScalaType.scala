@@ -1,11 +1,11 @@
 package dev.rudiments.types.hard
 
-import dev.rudiments.types.{Field, Thing, Type}
+import dev.rudiments.types.{ValueSpec, Thing, Type}
 import scala.reflect.runtime.universe._
 
 class ScalaType[T : TypeTag] (
   name: String,
-  fields: Map[String, Field],
+  fields: Map[String, ValueSpec],
   ascendants: Seq[Thing] = Seq.empty
 ) extends Type(name, fields, ascendants) {
   def constructScala(arguments: Any*): T = {

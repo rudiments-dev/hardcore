@@ -26,7 +26,7 @@ case class OnlyOne(
 
 case class Type(
   override val name: String,
-               fields: Map[String, Field],
+               fields: Map[String, ValueSpec],
   override val ascendants: Seq[Thing] = Seq.empty
 ) extends Thing(name, ascendants) {
   def construct(arguments: Any*): Instance = {
@@ -175,7 +175,7 @@ case class Index(of: Thing, over: Thing) extends Thing("Index", Seq.empty) {
 }
 
 
-case class Field (
+case class ValueSpec (
   `type`: Thing,
   isRequired: Boolean,
   default: Instance = Empty

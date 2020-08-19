@@ -66,16 +66,16 @@ case class TypeSystem(types: mutable.Map[String, Thing] = mutable.Map.empty) ext
     }
   }
 
-  def castFields(t: Symbol): Map[String, Field] =
+  def castFields(t: Symbol): Map[String, ValueSpec] =
     ListMap(t.asClass.primaryConstructor.typeSignature.paramLists.head.collect {
       case ts: TermSymbol => name(ts) -> fieldOf(ts)
     }: _*)
 
-  def fieldOf(ts: TermSymbol): Field = {
+  def fieldOf(ts: TermSymbol): ValueSpec = {
     if(ts.typeSignature <:< typeOf[Option[_]]) {
-      Field(thingOf(ts.typeSignature.typeArgs.head), isRequired = false)
+      ValueSpec(thingOf(ts.typeSignature.typeArgs.head), isRequired = false)
     } else {
-      Field(thingOf(ts.typeSignature), isRequired = !ts.isParamWithDefault) //TODO implement default as Instance
+      ValueSpec(thingOf(ts.typeSignature), isRequired = !ts.isParamWithDefault) //TODO implement default as Instance
     }
   }
   

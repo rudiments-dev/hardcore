@@ -10,7 +10,7 @@ case class InstanceDecoder(typeSystem: TypeSystem) extends DTO {
   def decoder(implicit t: Type): Decoder[Instance] = new Decoder[Instance] {
     override def apply(c: HCursor): Result[Instance] = {
       t.fields.map {
-        case (name, Field(fieldType, isRequired, _)) =>
+        case (name, ValueSpec(fieldType, isRequired, _)) =>
           c.downField(name).as(
             if (isRequired) {
               thingDecoder(fieldType)

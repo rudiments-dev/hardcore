@@ -36,22 +36,22 @@ class TypeSpec extends WordSpec with Matchers {
   val tt: ScalaType[Type] = typeSystem.asType[Type]
   "type of type contains ADT" in {
     tt.name should be ("Type")
-    tt.fields("fields").`type` should be (Index(Plain.Text(ScalaTypes.MaxInt), typeSystem.asType[Field]))
+    tt.fields("fields").`type` should be (Index(Plain.Text(ScalaTypes.MaxInt), typeSystem.asType[ValueSpec]))
     //Field contains Thing: ADT
   }
 
   "can construct type of type" in {
     val m = tt.constructScala("FirstSyntheticType", ListMap(
-      "firstSyntheticField" -> Field(ScalaTypes.ScalaLong, isRequired = true),
-      "secondSyntheticField" -> Field(ScalaTypes.ScalaString, isRequired = false)
+      "firstSyntheticField" -> ValueSpec(ScalaTypes.ScalaLong, isRequired = true),
+      "secondSyntheticField" -> ValueSpec(ScalaTypes.ScalaString, isRequired = false)
     ), Seq.empty[Thing])
     m should be (typeSystem.asType[FirstSyntheticType])
   }
 
   "synthetic type should be able to construct Instance with values of Type" in {
     val m = tt.constructScala("FirstSyntheticType", ListMap(
-      "firstSyntheticField" -> Field(ScalaTypes.ScalaLong, isRequired = true),
-      "secondSyntheticField" -> Field(ScalaTypes.ScalaString, isRequired = false)
+      "firstSyntheticField" -> ValueSpec(ScalaTypes.ScalaLong, isRequired = true),
+      "secondSyntheticField" -> ValueSpec(ScalaTypes.ScalaString, isRequired = false)
     ), Seq.empty[Thing])
     m.construct(42L, Some("Because")) should be (Instance(Map(
       "firstSyntheticField" -> 42L,

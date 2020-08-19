@@ -35,15 +35,15 @@ class TypeSystemSpec extends WordSpec with Matchers {
     typeSystem.getAbstract("A") should be (Abstract("A"))
     typeSystem.getOnlyOne("B") should be (OnlyOne("B", Seq(Abstract("A"))))
     typeSystem.getType("C") should be (
-      Type("C", Map("f" -> Field(typeSystem.getAlgebraic("F"), true)), Seq(Abstract("A")))
+      Type("C", Map("f" -> ValueSpec(typeSystem.getAlgebraic("F"), true)), Seq(Abstract("A")))
     )
 
     typeSystem.getAbstract("F") should be (Abstract("F"))
     typeSystem.getType("E") should be (
-      Type("E", ListMap("s" -> Field(ScalaTypes.ScalaString, true)), Seq(Abstract("F")))
+      Type("E", ListMap("s" -> ValueSpec(ScalaTypes.ScalaString, true)), Seq(Abstract("F")))
     )
     typeSystem.getType("D") should be (
-      Type("D", ListMap("a" -> Field(typeSystem.getAbstract("A"), true)), Seq(Abstract("F")))
+      Type("D", ListMap("a" -> ValueSpec(typeSystem.getAbstract("A"), true)), Seq(Abstract("F")))
 //TODO fix abstract -> algebraic in type fields      Type("D", ListMap("a" -> Field(typeSystem.getAlgebraic("A"), true)), Seq(Abstract("F")))
     )
   }
@@ -71,7 +71,7 @@ class TypeSystemSpec extends WordSpec with Matchers {
     val ns = Seq(Abstract("NumberSize"))
     typeSystem.getAlgebraic("NumberSize") should be (
       Algebraic(Abstract("NumberSize"), Set(
-        Type("Big", ListMap("size"-> Field(Plain.Number(NumberSize.NegativeInfinity,NumberSize.PositiveInfinity,NumberFormat.Decimal), true)), ns),
+        Type("Big", ListMap("size"-> ValueSpec(Plain.Number(NumberSize.NegativeInfinity,NumberSize.PositiveInfinity,NumberFormat.Decimal), true)), ns),
         OnlyOne("Infinity", ns),
         OnlyOne("PositiveInfinity", ns),
         OnlyOne("NegativeInfinity", ns),
@@ -79,14 +79,14 @@ class TypeSystemSpec extends WordSpec with Matchers {
     )
 
     typeSystem.getType("Text") should be (
-      Type("Text", ListMap("maxSize" -> Field(typeSystem.getAlgebraic("NumberSize"), true)), Seq(Abstract("Plain")))
+      Type("Text", ListMap("maxSize" -> ValueSpec(typeSystem.getAlgebraic("NumberSize"), true)), Seq(Abstract("Plain")))
     )
 
     typeSystem.getType("Number") should be (
       Type("Number", ListMap(
-        "min" -> Field(typeSystem.getAlgebraic("NumberSize"), true),
-        "max" -> Field(typeSystem.getAlgebraic("NumberSize"), true),
-        "format" -> Field(typeSystem.getAlgebraic("NumberFormat"), true)
+        "min" -> ValueSpec(typeSystem.getAlgebraic("NumberSize"), true),
+        "max" -> ValueSpec(typeSystem.getAlgebraic("NumberSize"), true),
+        "format" -> ValueSpec(typeSystem.getAlgebraic("NumberFormat"), true)
       ), Seq(Abstract("Plain")))
     )
   }
@@ -101,8 +101,8 @@ class TypeSystemSpec extends WordSpec with Matchers {
       Type(
         "Abstract",
         ListMap(
-          "name" -> Field(ScalaTypes.ScalaString, true),
-          "ascendants" -> Field(List(typeSystem.getAbstract("Thing")), false) //TODO Abstract -> Algebraic
+          "name" -> ValueSpec(ScalaTypes.ScalaString, true),
+          "ascendants" -> ValueSpec(List(typeSystem.getAbstract("Thing")), false) //TODO Abstract -> Algebraic
         ),
         Seq(Abstract("Thing"))
       )
@@ -114,9 +114,9 @@ class TypeSystemSpec extends WordSpec with Matchers {
       Type(
         "OnlyOne",
         ListMap(
-          "name" -> Field(ScalaTypes.ScalaString, true),
-          "ascendants" -> Field(List(typeSystem.getAbstract("Thing")), false), //TODO Abstract -> Algebraic
-          "value" -> Field(typeSystem.getType("Instance"), false)
+          "name" -> ValueSpec(ScalaTypes.ScalaString, true),
+          "ascendants" -> ValueSpec(List(typeSystem.getAbstract("Thing")), false), //TODO Abstract -> Algebraic
+          "value" -> ValueSpec(typeSystem.getType("Instance"), false)
         ),
         Seq(Abstract("Thing"))
       )
@@ -128,9 +128,9 @@ class TypeSystemSpec extends WordSpec with Matchers {
       Type(
         "Type",
         ListMap(
-          "name" -> Field(ScalaTypes.ScalaString, true),
-          "fields" -> Field(Index(ScalaTypes.ScalaString, typeSystem.getType("Field")), true),
-          "ascendants" -> Field(List(typeSystem.getAbstract("Thing")), false) //TODO Abstract -> Algebraic
+          "name" -> ValueSpec(ScalaTypes.ScalaString, true),
+          "fields" -> ValueSpec(Index(ScalaTypes.ScalaString, typeSystem.getType("ValueSpec")), true),
+          "ascendants" -> ValueSpec(List(typeSystem.getAbstract("Thing")), false) //TODO Abstract -> Algebraic
         ),
         Seq(Abstract("Thing"))
       )
@@ -138,13 +138,13 @@ class TypeSystemSpec extends WordSpec with Matchers {
   }
 
   "can save Field in TypeSystem" in {
-    typeSystem.getType("Field") should be (
+    typeSystem.getType("ValueSpec") should be (
       Type(
-        "Field",
+        "ValueSpec",
         ListMap(
-          "type" -> Field(typeSystem.getAbstract("Thing"), true), //TODO Abstract -> Algebraic
-          "isRequired" -> Field(Plain.Bool, true),
-          "default" -> Field(typeSystem.getType("Instance"), false)
+          "type" -> ValueSpec(typeSystem.getAbstract("Thing"), true), //TODO Abstract -> Algebraic
+          "isRequired" -> ValueSpec(Plain.Bool, true),
+          "default" -> ValueSpec(typeSystem.getType("Instance"), false)
         )
       )
     )
@@ -155,7 +155,7 @@ class TypeSystemSpec extends WordSpec with Matchers {
       Type(
         "Instance",
         ListMap(
-          "fields" -> Field(Index(ScalaTypes.ScalaString, Type("Anything", Map.empty)), true) //TODO put Anything to typeSystem
+          "fields" -> ValueSpec(Index(ScalaTypes.ScalaString, Type("Anything", Map.empty)), true) //TODO put Anything to typeSystem
         )
       )
     )
@@ -166,7 +166,7 @@ class TypeSystemSpec extends WordSpec with Matchers {
       Type(
         "List",
         ListMap(
-          "of" -> Field(typeSystem.getAbstract("Thing"), true) //TODO put Anything to typeSystem
+          "of" -> ValueSpec(typeSystem.getAbstract("Thing"), true) //TODO put Anything to typeSystem
         ),
         Seq(Abstract("Thing"))
       )
@@ -176,8 +176,8 @@ class TypeSystemSpec extends WordSpec with Matchers {
       Type(
         "Index",
         ListMap(
-          "of" -> Field(typeSystem.getAbstract("Thing"), true), //TODO put Anything to typeSystem
-          "over" -> Field(typeSystem.getAbstract("Thing"), true) //TODO put Anything to typeSystem
+          "of" -> ValueSpec(typeSystem.getAbstract("Thing"), true), //TODO put Anything to typeSystem
+          "over" -> ValueSpec(typeSystem.getAbstract("Thing"), true) //TODO put Anything to typeSystem
         ),
         Seq(Abstract("Thing"))
       )
