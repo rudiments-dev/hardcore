@@ -46,8 +46,8 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val typeSystem: TypeSystem = TypeSystem()
   private implicit val t: Type = typeSystem.asType[Example] //todo fix primary keys
-  private implicit val en: Encoder[Instance] = new InstanceEncoder(typeSystem)(t)
-  private implicit val de: Decoder[Instance] = new InstanceDecoder(typeSystem)(t)
+  private implicit val en: Encoder[Instance] = InstanceEncoder(typeSystem).encoder(t)
+  private implicit val de: Decoder[Instance] = InstanceDecoder(typeSystem).decoder(t)
 
   def exampleInstance(id: Long, text: String): Instance = {
     t.fromScala(Example(

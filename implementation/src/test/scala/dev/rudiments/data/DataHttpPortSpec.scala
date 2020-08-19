@@ -25,8 +25,8 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   private implicit val t: Type = typeSystem.asType[Example]
   private val cache: SoftCache = new SoftCache
 
-  private implicit val en: Encoder[Instance] = new InstanceEncoder(typeSystem)(t)
-  private implicit val de: Decoder[Instance] = new InstanceDecoder(typeSystem)(t)
+  private implicit val en: Encoder[Instance] = InstanceEncoder(typeSystem).encoder(t)
+  private implicit val de: Decoder[Instance] = InstanceDecoder(typeSystem).decoder(t)
 
   private val router: DataHttpPort = new DataHttpPort(
     "example",

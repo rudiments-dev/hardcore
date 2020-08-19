@@ -16,11 +16,11 @@ class SoftEncoderTest extends FlatSpec with Matchers {
 
   private val typeSystem = TypeSystem()
   private val `type`: Type = Type("Test", ListMap(
-    "f" -> Field("f", ScalaTypes.ScalaDouble, false)
+    "f" -> Field(ScalaTypes.ScalaDouble, false)
   ))
 
   it should "encode class with option flag" in {
-    val encoder = new InstanceEncoder(typeSystem)(`type`)
+    val encoder = InstanceEncoder(typeSystem).encoder(`type`)
 
     val result = encoder.apply(`type`.fromScala(Test(None)))
     result should be(Json.fromFields(List("f" -> Json.Null)))

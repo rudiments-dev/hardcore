@@ -73,9 +73,9 @@ case class TypeSystem(types: mutable.Map[String, Thing] = mutable.Map.empty) ext
 
   def fieldOf(ts: TermSymbol): Field = {
     if(ts.typeSignature <:< typeOf[Option[_]]) {
-      Field(name(ts), thingOf(ts.typeSignature.typeArgs.head), isRequired = false)
+      Field(thingOf(ts.typeSignature.typeArgs.head), isRequired = false)
     } else {
-      Field(name(ts), thingOf(ts.typeSignature), isRequired = !ts.isParamWithDefault) //TODO implement default as Instance
+      Field(thingOf(ts.typeSignature), isRequired = !ts.isParamWithDefault) //TODO implement default as Instance
     }
   }
   

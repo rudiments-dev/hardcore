@@ -1,6 +1,5 @@
 package dev.rudiments.types
 
-import dev.rudiments.types.NumberSize.Big
 import dev.rudiments.types.hard.{ScalaType, ScalaTypes}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -43,16 +42,16 @@ class TypeSpec extends WordSpec with Matchers {
 
   "can construct type of type" in {
     val m = tt.constructScala("FirstSyntheticType", ListMap(
-      "firstSyntheticField" -> Field("firstSyntheticField", ScalaTypes.ScalaLong, isRequired = true),
-      "secondSyntheticField" -> Field("secondSyntheticField", ScalaTypes.ScalaString, isRequired = false)
+      "firstSyntheticField" -> Field(ScalaTypes.ScalaLong, isRequired = true),
+      "secondSyntheticField" -> Field(ScalaTypes.ScalaString, isRequired = false)
     ), Seq.empty[Thing])
     m should be (typeSystem.asType[FirstSyntheticType])
   }
 
   "synthetic type should be able to construct Instance with values of Type" in {
     val m = tt.constructScala("FirstSyntheticType", ListMap(
-      "firstSyntheticField" -> Field("firstSyntheticField", ScalaTypes.ScalaLong, isRequired = true),
-      "secondSyntheticField" -> Field("secondSyntheticField", ScalaTypes.ScalaString, isRequired = false)
+      "firstSyntheticField" -> Field(ScalaTypes.ScalaLong, isRequired = true),
+      "secondSyntheticField" -> Field(ScalaTypes.ScalaString, isRequired = false)
     ), Seq.empty[Thing])
     m.construct(42L, Some("Because")) should be (Instance(Map(
       "firstSyntheticField" -> 42L,

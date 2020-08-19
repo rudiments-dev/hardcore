@@ -16,7 +16,7 @@ class ReadOnlyHttpPort(
   override val s: Skill[DataEvent]
 )(implicit t: Type, typeSystem: TypeSystem) extends PortWithoutDependency(s) with Router {
 
-  private implicit val encoder: Encoder[Instance] = new InstanceEncoder(typeSystem)(t)
+  private implicit val encoder: Encoder[Instance] = InstanceEncoder(typeSystem).encoder(t)
   private val idPath = IDPath(t.fields(idField).`type`)(t)
 
   override val routes: Route = pathPrefix(prefix) {

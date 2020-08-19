@@ -7,8 +7,8 @@ package object types {
   trait DTO extends Product
   trait ADT extends Product
 
-  sealed abstract class Ref(implicit val t: Type)
-  case class Instance(fields: Map[String, Any])(implicit t: Type) extends Ref()(t) with DTO {
+  sealed abstract class Ref(val t: Type)
+  case class Instance(fields: Map[String, Any])(implicit t: Type) extends Ref(t) with DTO {
     def copy[A : ClassTag](fieldName: String, f: A => Either[Error, A]): Either[Error, Instance] = this match {
       case s: Instance =>
         s.fields.get(fieldName) match {
@@ -41,7 +41,7 @@ package object types {
     def apply(fields: Any*)(implicit t: Type): Instance = t.construct(fields: _*)
   }
 
-  sealed abstract class ID(implicit t: Type) extends Ref()(t)
+  sealed abstract class ID(implicit t: Type) extends Ref(t)
   object ID {
     def auto                                  (implicit t: Type): AutoID = AutoID()(t)
     def apply                                 (implicit t: Type): ID = ID0()(t)

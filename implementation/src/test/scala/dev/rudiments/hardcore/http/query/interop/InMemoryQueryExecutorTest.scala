@@ -15,13 +15,13 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
   case class Foo(a: Int, b: String, d: Option[Int] = None, baz: Option[Baz] = None) extends DTO
 
   val bazType: Type = Type("Baz", Map(
-    "f" -> Field("f", ScalaInt, true)
+    "f" -> Field(ScalaInt, true)
   ))
   val fooType: Type = Type("Foo", Map(
-    "a" -> Field("a", ScalaInt, true),
-    "b" -> Field("b", ScalaString, true),
-    "d" -> Field("d", ScalaInt, false),
-    "baz" -> Field("baz", bazType, false),
+    "a" -> Field(ScalaInt, true),
+    "b" -> Field(ScalaString, true),
+    "d" -> Field(ScalaInt, false),
+    "baz" -> Field(bazType, false),
   ))
 
 

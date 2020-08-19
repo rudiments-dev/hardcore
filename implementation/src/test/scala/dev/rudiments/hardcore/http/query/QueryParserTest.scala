@@ -13,12 +13,12 @@ class QueryParserTest extends WordSpec with Matchers {
   case class Baz(f: Int) extends DTO
   case class Foo(a: Int, b: String, d: Option[Option[Int]], baz: Option[Baz] = Some(Baz(1))) extends DTO
 
-  val bazType: Type = Type("Baz", Map("f" -> Field("f", Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true)))
+  val bazType: Type = Type("Baz", Map("f" -> Field(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true)))
   val fooType: Type = Type("Foo", Map(
-    "a" -> Field("a", Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true),
-    "b" -> Field("b", Plain.Text(Infinity), true),
-    "d" -> Field("d", Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), false),
-    "baz" -> Field("baz", bazType, false),
+    "a" -> Field(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true),
+    "b" -> Field(Plain.Text(Infinity), true),
+    "d" -> Field(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), false),
+    "baz" -> Field(bazType, false),
   ))
 
   "parse equals expression" in {

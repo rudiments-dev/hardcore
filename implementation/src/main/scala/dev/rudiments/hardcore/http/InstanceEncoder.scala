@@ -5,9 +5,9 @@ import dev.rudiments.types.hard.ScalaTypes
 import enumeratum.EnumEntry
 import io.circe.{Encoder, Json}
 
-class InstanceEncoder(typeSystem: TypeSystem) {
+case class InstanceEncoder(typeSystem: TypeSystem) extends DTO {
 
-  def apply(implicit t: Type): Encoder[Instance] = new Encoder[Instance] {
+  def encoder(implicit t: Type): Encoder[Instance] = new Encoder[Instance] {
     override def apply(a: Instance): Json = Json.obj(
       t.fields.map { case (name, field) =>
         name -> fieldEncoder(field)(a.fields(name))
@@ -16,9 +16,9 @@ class InstanceEncoder(typeSystem: TypeSystem) {
   }
 
   private def fieldEncoder(field: Field): Any => Json = field match {
-    case Field(_, f, true, _) =>
+    case Field(f, true, _) =>
       value => requiredEncoder(f)(value)
-    case Field(_, f, false, _) =>
+    case Field(f, false, _) =>
       value => value.asInstanceOf[Option[_]].map(requiredEncoder(f)).getOrElse(Json.Null)
 
     case other => ???
@@ -74,11 +74,11 @@ class InstanceEncoder(typeSystem: TypeSystem) {
         case i: Instance =>
           descendans
             .collectFirst { case ct: Type if ct == i.t => ct}
-            .map( ct => this.apply(ct)(i))
+            .map( ct => this.encoder(ct)(i))
             .getOrElse(throw new NotSupportedInstanceType(a.name, i))
       }
     case s: OnlyOne => Json.fromString(s.name)
-    case t: Type => this.apply(t)(value.asInstanceOf[Instance])
+    case t: Type => this.encoder(t)(value.asInstanceOf[Instance])
 
     case other => ???
   }

@@ -37,8 +37,8 @@ object SoftModule {
       flow,
       new Controlled(new SoftCache()(t)),
       prefix,
-      new InstanceEncoder(typeSystem)(t),
-      new InstanceDecoder(typeSystem)(t)
+      InstanceEncoder(typeSystem).encoder(t),
+      InstanceDecoder(typeSystem).decoder(t)
     )
     new SoftModule(
       context,

@@ -176,7 +176,6 @@ case class Index(of: Thing, over: Thing) extends Thing("Index", Seq.empty) {
 
 
 case class Field (
-  name: String,
   `type`: Thing,
   isRequired: Boolean,
   default: Instance = Empty
