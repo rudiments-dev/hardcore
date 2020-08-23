@@ -1,12 +1,10 @@
 package dev.rudiments.hardcore.http.query
 
 import akka.http.scaladsl.server.Directive1
-import dev.rudiments.types.{DTO, Type}
+import dev.rudiments.domain.Spec
 import akka.http.scaladsl.server.Directives._
-
-import scala.reflect.runtime.universe.TypeTag
 
 object Directives {
 
-  def query(softType: Type): Directive1[Query] = parameter("query".?).map(Query.apply(_, softType))
+  def query(softType: Spec): Directive1[Query] = parameter("query".?).map(Query.apply(_, softType))
 }

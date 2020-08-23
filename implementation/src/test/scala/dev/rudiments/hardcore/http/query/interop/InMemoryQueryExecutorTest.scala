@@ -1,28 +1,45 @@
 package dev.rudiments.hardcore.http.query.interop
 
+import dev.rudiments.domain.ScalaTypes._
 import dev.rudiments.hardcore.http.query.PredicatesQuery
 import dev.rudiments.hardcore.http.query.predicates._
-import dev.rudiments.types._
-import dev.rudiments.types.hard.ScalaTypes.{ScalaInt, ScalaString}
+import dev.rudiments.domain._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
+import scala.collection.immutable.ListMap
+
 @RunWith(classOf[JUnitRunner])
 class InMemoryQueryExecutorTest extends WordSpec with Matchers {
+
+  private val domain: Domain = Domain()
 
   case class Baz(f: Int) extends DTO
   case class Foo(a: Int, b: String, d: Option[Int] = None, baz: Option[Baz] = None) extends DTO
 
-  val bazType: Type = Type("Baz", Map(
-    "f" -> Field("f", ScalaInt, true)
-  ))
-  val fooType: Type = Type("Foo", Map(
-    "a" -> Field("a", ScalaInt, true),
-    "b" -> Field("b", ScalaString, true),
-    "d" -> Field("d", ScalaInt, false),
-    "baz" -> Field("baz", bazType, false),
-  ))
+  val bazType: Spec = domain.save(
+    Spec(
+      "Baz",
+      "dev.rudiments.hardcore.http.query.interop.InMemoryQueryExecutorTest.Baz",
+      ListMap("f" -> ValueSpec(ScalaInt, true))
+    ),
+    Set.empty
+  )
+
+  val fooType: Spec = domain.save(
+    Spec(
+      "Foo",
+      "dev.rudiments.hardcore.http.query.interop.InMemoryQueryExecutorTest.Foo",
+      ListMap(
+        "a" -> ValueSpec(ScalaInt, true),
+        "b" -> ValueSpec(ScalaString, true),
+        "d" -> ValueSpec(ScalaInt, false),
+        "baz" -> ValueSpec(bazType, false),
+      )
+    ),
+    Set.empty
+  )
 
 
   "simple query" in {
@@ -34,12 +51,12 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(3, "hi"),
       Foo(4, "bay"),
       Foo(5, "tra")
-    ).map(fooType.fromScala)
+    ).map(fooType.fromProduct(domain, _))
 
     val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
-      fooType.fromScala(Foo(3, "hi"))
+      fooType.fromProduct(domain, Foo(3, "hi"))
     ))
   }
 
@@ -55,13 +72,13 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.fromScala)
+    ).map(fooType.fromProduct(domain, _))
 
     val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(5, "bay")
-    ).map(fooType.fromScala))
+    ).map(fooType.fromProduct(domain, _)))
   }
 
   "simple query by option field" in {
@@ -74,13 +91,13 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.fromScala)
+    ).map(fooType.fromProduct(domain, _))
 
     val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(3, "hi", Some(1)),
-    ).map(fooType.fromScala))
+    ).map(fooType.fromProduct(domain, _)))
   }
 
   "simple query by option field, is empty" in {
@@ -93,7 +110,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.fromScala)
+    ).map(fooType.fromProduct(domain, _))
 
     val result = InMemoryQueryExecutor(query)(input)
 
@@ -101,7 +118,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.fromScala))
+    ).map(fooType.fromProduct(domain, _)))
   }
 
   "simple query by option field, is defined" in {
@@ -114,13 +131,13 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay"),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.fromScala)
+    ).map(fooType.fromProduct(domain, _))
 
     val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
       Foo(3, "hi", Some(1))
-    ).map(fooType.fromScala))
+    ).map(fooType.fromProduct(domain, _)))
   }
 
   "compile query with object field predicate" in {
@@ -142,12 +159,12 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
       Foo(4, "bay", Some(1), Some(Baz(1))),
       Foo(5, "bay"),
       Foo(6, "tra")
-    ).map(fooType.fromScala)
+    ).map(fooType.fromProduct(domain, _))
 
     val result = InMemoryQueryExecutor(query)(input)
     result should be (Seq(
       Foo(4, "bay", Some(1), Some(Baz(1))),
-    ).map(fooType.fromScala))
+    ).map(fooType.fromProduct(domain, _)))
   }
 
 }

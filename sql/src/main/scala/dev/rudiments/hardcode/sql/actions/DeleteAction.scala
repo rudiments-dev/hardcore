@@ -6,18 +6,18 @@ import dev.rudiments.data.ReadOnly.{Find, NotFound}
 import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcore.Result
-import dev.rudiments.types.Type
+import dev.rudiments.domain.{Domain, Spec}
 import scalikejdbc.{DBSession, SQL}
 
-class DeleteAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[Delete, Deleted] {
+class DeleteAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[Delete, Deleted] {
   override def apply(command: Delete): Result[Deleted] = {
     import command.key
-    val table = schema.tables(t)
+    val table = schema.tables(spec)
 
     for {
-      found <- new FindAction(schema, t)(session)(Find(key))
+      found <- new FindAction(schema, domain, spec)(session)(Find(key))
       _ = {
-        val (whereSQL, bindings) = wherePart(idToWhere(table, t)(key))
+        val (whereSQL, bindings) = wherePart(idToWhere(table, spec)(key))
 
         SQL(
           s"""
@@ -26,7 +26,7 @@ class DeleteAction(schema: TypedSchema, t: Type)(session: DBSession) extends Act
              |""".stripMargin,
         ).bindByName(bindings.map(Binding.toScalaLikeSQL) :_*).execute().apply()(session)
       }
-      _ <- new FindAction(schema, t)(session)(Find(key))
+      _ <- new FindAction(schema, domain, spec)(session)(Find(key))
         .expecting[NotFound]
         .recover(_ => FailedToDelete(found.key, found.value))
     } yield Deleted(key, found.value)

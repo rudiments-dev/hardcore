@@ -1,6 +1,6 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.types.ID
+import dev.rudiments.domain.ID
 
 package object flow {
 

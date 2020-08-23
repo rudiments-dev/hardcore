@@ -2,8 +2,8 @@ package dev.rudiments.data
 
 import dev.rudiments.hardcore.flow.{ControlFlow, Controlled}
 import dev.rudiments.hardcore.{Event, Skill}
-import dev.rudiments.hardcore.http.{InstanceDecoder, InstanceEncoder, Router}
-import dev.rudiments.types.{ID, Instance, Type, TypeSystem}
+import dev.rudiments.hardcore.http.{Router, ThingDecoder, ThingEncoder}
+import dev.rudiments.domain.{Domain, ID, Instance, Spec}
 import io.circe.{Decoder, Encoder}
 
 class SoftModule (
@@ -13,12 +13,12 @@ class SoftModule (
 ) {
   val port = new DataHttpPort(
     context.prefix,
-    context.idField,
+    context.spec.fields(context.idField).thing,
     context.id,
     context.adapter,
     custom,
     customId
-  )(context.t, context.encoder, context.decoder)
+  )(context.spec, context.encoder, context.decoder)
 }
 
 object SoftModule {
@@ -27,18 +27,18 @@ object SoftModule {
     idField: String,
     custom: Seq[(String, ModuleContext[DataEvent] => Router)] = Seq.empty,
     customId: Seq[(String, ModuleContext[DataEvent] => ID => Router)] = Seq.empty
-  )(implicit t: Type, typeSystem: TypeSystem): SoftModule = {
+  )(implicit spec: Spec, domain: Domain): SoftModule = {
 
     implicit val flow: ControlFlow = new ControlFlow()
 
     val context = ModuleContext[DataEvent](
-      t,
+      spec,
       idField,
       flow,
-      new Controlled(new SoftCache()(t)),
+      new Controlled(new SoftCache()(spec)),
       prefix,
-      new InstanceEncoder(typeSystem)(t),
-      new InstanceDecoder(typeSystem)(t)
+      new ThingEncoder(domain).specEncoder(spec),
+      new ThingDecoder(domain).specDecoder(spec)
     )
     new SoftModule(
       context,
@@ -49,7 +49,7 @@ object SoftModule {
 }
 
 case class ModuleContext[E <: Event](
-  t: Type,
+  spec: Spec,
   idField: String,
   flow: ControlFlow,
   adapter: Skill[E],
@@ -57,5 +57,5 @@ case class ModuleContext[E <: Event](
   encoder: Encoder[Instance],
   decoder: Decoder[Instance]
 ) {
-  val id: Instance => ID = _.extractID(idField)
+  val id: Instance => ID = it => ID(Seq(it.extract[Any](idField)))
 }

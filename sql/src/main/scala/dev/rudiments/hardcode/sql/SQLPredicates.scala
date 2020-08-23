@@ -1,8 +1,8 @@
 package dev.rudiments.hardcode.sql
 
-import dev.rudiments.types.DTO
+import dev.rudiments.domain.ADT
 
-sealed trait SQLPredicate extends DTO
+sealed trait SQLPredicate extends ADT
 
 object SQLPredicates {
 

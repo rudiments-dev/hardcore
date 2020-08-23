@@ -6,8 +6,8 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.data.ReadOnly._
-import dev.rudiments.hardcore.http.{InstanceDecoder, InstanceEncoder}
-import dev.rudiments.types._
+import dev.rudiments.domain._
+import dev.rudiments.hardcore.http.{ThingDecoder, ThingEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -21,22 +21,22 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   ) extends DTO
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val typeSystem: TypeSystem = TypeSystem()
-  private implicit val t: Type = typeSystem.asType[Example]
+  private implicit val domain: Domain = Domain()
+  private implicit val t: Spec = domain.makeFromScala[Spec, Example]
   private val cache: SoftCache = new SoftCache
 
-  private implicit val en: Encoder[Instance] = new InstanceEncoder(typeSystem)(t)
-  private implicit val de: Decoder[Instance] = new InstanceDecoder(typeSystem)(t)
+  private implicit val en: Encoder[Instance] = new ThingEncoder(domain).specEncoder(t)
+  private implicit val de: Decoder[Instance] = new ThingDecoder(domain).specDecoder(t)
 
   private val router: DataHttpPort = new DataHttpPort(
     "example",
-    "id",
-    i => i.extractID[Any]("id"),
+    ScalaTypes.ScalaLong,
+    i => ID(Seq(i.extract[Long]("id"))),
     cache
   )
 
   private val routes = Route.seal(router.routes)
-  private val sample: Instance = Instance(42L, "sample")
+  private val sample: Instance = Instance(t, Seq(42L, "sample"))
 
   "InstanceEncoder can encode" in {
     en.apply(sample) should be (Json.obj(
@@ -70,13 +70,13 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   }
 
   "update item in repository" in {
-    Put("/example/42", Instance(42L, "test")) ~> routes ~> check {
+    Put("/example/42", Instance(t, Seq(42L, "test"))) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(42L, "test"))
+      responseAs[Instance] should be (Instance(t, Seq(42L, "test")))
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(42L, "test"))
+      responseAs[Instance] should be (Instance(t, Seq(42L, "test")))
     }
   }
 
@@ -97,25 +97,25 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
   "endure 10.000 records" in {
     (1 to 10000).foreach { i =>
-      Post("/example", Instance(i.toLong, s"$i'th element")) ~> routes ~> check {
+      Post("/example", Instance(t, Seq(i.toLong, s"$i'th element"))) ~> routes ~> check {
         response.status should be (StatusCodes.Created)
       }
     }
     cache(Count()).merge should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(42L, "42'th element"))
+      responseAs[Instance] should be (Instance(t, Seq(42L, "42'th element")))
     }
   }
 
   "endure 190.000 batch" in {
-    Post("/example", (10001 to 200000).map(i => Instance(i.toLong, s"$i'th element"))) ~> routes ~> check {
+    Post("/example", (10001 to 200000).map(i => Instance(t, Seq(i.toLong, s"$i'th element")))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       cache(Count()).merge should be (Counted(200000))
     }
     Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(10042L, "10042'th element"))
+      responseAs[Instance] should be (Instance(t, Seq(10042L, "10042'th element")))
     }
   }
 

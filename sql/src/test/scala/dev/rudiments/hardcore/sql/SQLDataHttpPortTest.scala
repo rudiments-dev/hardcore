@@ -1,6 +1,7 @@
 package dev.rudiments.hardcore.sql
 
 import java.sql.{Date, Time, Timestamp}
+import java.time.{LocalDate, LocalDateTime, LocalTime}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
@@ -10,16 +11,15 @@ import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.{Config, ConfigFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.data.ReadOnly.{Count, Counted}
-import dev.rudiments.hardcode.sql.{SQLAdapter, SQLHttpPort}
+import dev.rudiments.domain._
 import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Table, TypedSchema}
-import dev.rudiments.hardcore.http.{InstanceDecoder, InstanceEncoder}
-import dev.rudiments.types._
+import dev.rudiments.hardcode.sql.{SQLAdapter, SQLHttpPort}
+import dev.rudiments.hardcore.http.{ThingDecoder, ThingEncoder}
 import io.circe.{Decoder, Encoder}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{FlatSpec, FreeSpec, Matchers, WordSpec}
-import scalikejdbc.{AutoSession, DBSession, _}
-import java.time.{LocalDate, LocalDateTime, LocalTime}
+import org.scalatest.{FlatSpec, Matchers}
+import scalikejdbc.{DBSession, _}
 
 import scala.collection.JavaConverters._
 
@@ -44,13 +44,13 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
   ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val typeSystem: TypeSystem = TypeSystem()
-  private implicit val t: Type = typeSystem.asType[Example] //todo fix primary keys
-  private implicit val en: Encoder[Instance] = new InstanceEncoder(typeSystem)(t)
-  private implicit val de: Decoder[Instance] = new InstanceDecoder(typeSystem)(t)
+  private implicit val domain: Domain = Domain()
+  private implicit val t: Spec = domain.makeFromScala[Spec, Example] //todo fix primary keys
+  private implicit val en: Encoder[Instance] = new ThingEncoder(domain).specEncoder(t)
+  private implicit val de: Decoder[Instance] = new ThingDecoder(domain).specDecoder(t)
 
   def exampleInstance(id: Long, text: String): Instance = {
-    t.fromScala(Example(
+    t.fromProduct(domain, Example(
       id, text,
       Date.valueOf(LocalDate.now),
       Timestamp.valueOf(LocalDateTime.now),
@@ -86,13 +86,13 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
       Column("timestamp", ColumnTypes.TIMESTAMP(255, timeZone = false), nullable = false, default = false, pk = false),
       Column("time", ColumnTypes.TIME(255, timeZone = false), nullable = false, default = false, pk = false)
     ))
-  ), Set.empty), session)
+  ), Set.empty), domain, session)
 
   lazy val pool = ConnectionPool.get("test")
   lazy val router: SQLHttpPort = new SQLHttpPort(
     "example",
     "id",
-    i => i.extractID("id"),
+    i => ID(Seq(i.extract[Long]("id"))),
     pool,
     repoFunction
   )

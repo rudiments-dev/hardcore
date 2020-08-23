@@ -1,8 +1,8 @@
 package dev.rudiments
 
 import dev.rudiments.data.Action
+import dev.rudiments.domain.DTO
 import dev.rudiments.hardcore.Error.NoHandler
-import dev.rudiments.types.DTO
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
