@@ -53,7 +53,6 @@ class TypeSystemSpec extends WordSpec with Matchers {
     typeSystem.find[The]("Timestamp") should be  (The("Timestamp"))
     typeSystem.find[The]("UUID") should be       (The("UUID"))
 
-    val nf = Seq(Abstract("NumberFormat"))
     typeSystem.children("NumberFormat") should be (
       Set(
         The("Integer"),

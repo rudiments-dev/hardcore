@@ -38,6 +38,8 @@ case class Abstract (
   override def validate(system: TypeSystem, value: Any): Any = value match {
     case i: Instance => system.afterParent(this, i.spec.name).validate(system, i)
     case one: The => system.afterParent(this, one.name).validate(system, one)
+    case t: Thing if name == "Thing" => t
+    case other => throw new IllegalArgumentException(s"Incompatible $other with Abstract $name")
   }
 }
 
@@ -56,14 +58,13 @@ case class Spec (
 ) extends Thing(name) {
 
   override def validate(system: TypeSystem, value: Any): Any = value match {
-    case i: Instance => if(i.spec == this) {
-      fields.zip(i.values).map {
-        case ((_, spec), value) => spec.validate(system, value)
+    case i: Instance =>
+      if(i.spec == this) {
+        fields.zip(i.values).map { case ((_, spec), v) => spec.validate(system, v) }
+        i
+      } else {
+        throw new IllegalArgumentException(s"Incompatible instance of ${i.spec.name} with $name")
       }
-      i
-    } else {
-      throw new IllegalArgumentException(s"Incompatible instance of ${i.spec.name} with $name")
-    }
     case other => throw new IllegalArgumentException(s"Not an Instance: $other of $name")
   }
 
@@ -126,6 +127,12 @@ case class Spec (
     case (ThingRef(r), any) => wrap(system, system.find(r), any)
 
     case (t, v) => throw new IllegalArgumentException(s"Incompatible ${t.name} with value $v")
+  }
+
+  import scala.reflect.runtime.universe._
+  def toScala[T : TypeTag](system: TypeSystem, args: Any*): T = {
+    val c = Class.forName(typeOf[T].typeSymbol.asClass.fullName)
+    c.getConstructors()(0).newInstance(args.map(_.asInstanceOf[Object]): _*).asInstanceOf[T]
   }
 }
 
