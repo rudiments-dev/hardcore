@@ -9,13 +9,15 @@ import scala.reflect.ClassTag
 trait DTO extends Product
 trait ADT extends Product
 
-case class Instance(spec: Spec, values: Seq[Any]) extends DTO {
+sealed trait Ref extends ADT
+case class Instance(spec: Spec, values: Seq[Any]) extends Ref {
   def extract[T : ClassTag](field: String): T = spec.fields.zip(values).collectFirst {
     case ((n, _), v: T) if n == field => v
   }.getOrElse {
     throw new IllegalArgumentException(s"Field $field not found")
   }
 }
+case class ID(values: Seq[Any]) extends Ref
 
 sealed abstract class Thing (
   val name: String
