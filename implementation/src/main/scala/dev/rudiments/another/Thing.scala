@@ -110,7 +110,6 @@ case class Spec (
         case spec: Spec if spec == i.spec => i
         case other => throw new IllegalArgumentException(s"Incompatible $i: ADT with thing $other")
       }
-    case (_: Abstract, t: Thing) => t
     case (a: Abstract, adt: ADT) =>
       system.afterParent(a, adt.productPrefix) match {
         case spec: Spec => spec.fromProduct(system, adt)

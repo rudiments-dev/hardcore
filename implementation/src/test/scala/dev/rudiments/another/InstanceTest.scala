@@ -55,7 +55,46 @@ class InstanceTest extends WordSpec with Matchers {
           ListMap(
             "f" -> Instance(
               typeSystem.find[Spec]("ValueSpec"),
-              Seq(Plain.Bool, true)
+              Seq(The("Bool"), true)
+            )
+          )
+        )
+      )
+    )
+  }
+
+  "can build Instance of a Spec" in {
+    val spec: Spec = typeSystem.find[Spec]("Spec")
+    val valueSpec = typeSystem.find[Spec]("ValueSpec")
+
+    val textInstance = Instance(
+      typeSystem.find[Spec]("Text"),
+      Seq(Instance(
+        typeSystem.find[Spec]("Big"),
+        Seq(BigDecimal(Int.MaxValue))
+      ))
+    )
+
+    val valueSpecInstance = spec.fromProduct(typeSystem, valueSpec)
+
+    val indexInstance = Instance(
+      typeSystem.find[Spec]("Index"),
+      Seq(textInstance, valueSpecInstance)
+    )
+
+    spec.fromProduct(typeSystem, spec) should be (
+      Instance(
+        spec,
+        Seq(
+          "Spec",
+          ListMap(
+            "name" -> Instance(
+              valueSpec,
+              Seq(textInstance, true)
+            ),
+            "fields" -> Instance(
+              valueSpec,
+              Seq(indexInstance, true)
             )
           )
         )
