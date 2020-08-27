@@ -6,7 +6,7 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
-class ThingEncoderTest extends WordSpec with Matchers {
+class ThingDecoderTest extends WordSpec with Matchers {
 
   case class Test(f : Option[Double]) extends DTO
 
@@ -14,35 +14,42 @@ class ThingEncoderTest extends WordSpec with Matchers {
   typeSystem.makeFromScala[Thing, Thing]
   typeSystem.makeFromScala[Spec, Test]
   typeSystem.makeFromScala[Spec, AlgebraicExample]
-  val encoder = new ThingEncoder(typeSystem)
+  val decoder = new ThingDecoder(typeSystem)
 
-  "encode class with option flag" in {
-    val value = typeSystem.find[Spec]("Test").fromProduct(typeSystem, Test(None))
-    encoder.specEncoder("Test")(value) should be (Json.obj("f" -> Json.Null))
-  }
-
-  "encode ADT" in {
-    val valueB = typeSystem
-      .find[Spec]("AlgebraicExample")
-      .fromProduct(typeSystem, AlgebraicExample(B))
-    encoder.specEncoder("AlgebraicExample")(valueB) should be (Json.obj(
-      "a" -> Json.obj("type" -> Json.fromString("B"))
-    ))
-
-    val valueC = typeSystem
-      .find[Spec]("AlgebraicExample")
-      .fromProduct(typeSystem, AlgebraicExample(C("something algebraic")))
-    encoder.specEncoder("AlgebraicExample")(valueC) should be (Json.obj(
-      "a" -> Json.obj(
-        "type" -> Json.fromString("C"),
-        "s" -> Json.fromString("something algebraic")
-      )
+  "decoder class with option flag" in {
+    decoder.specDecoder("Test").decodeJson(Json.obj("f" -> Json.Null)) should be (Right(
+      typeSystem.find[Spec]("Test").fromProduct(typeSystem, Test(None))
     ))
   }
 
-  "encode Spec" in {
+  "decode ADT" in {
+    decoder
+      .specDecoder("AlgebraicExample")
+      .decodeJson(Json.obj(
+        "a" -> Json.obj(
+          "type" -> Json.fromString("B")
+        )
+      )) should be (Right(
+      typeSystem
+        .find[Spec]("AlgebraicExample")
+        .fromProduct(typeSystem, AlgebraicExample(B))
+    ))
+
+    decoder.specDecoder("AlgebraicExample")
+      .decodeJson(Json.obj(
+        "a" -> Json.obj(
+          "type" -> Json.fromString("C"),
+          "s" -> Json.fromString("something algebraic")
+        )
+      )) should be (Right(
+      typeSystem
+        .find[Spec]("AlgebraicExample")
+        .fromProduct(typeSystem, AlgebraicExample(C("something algebraic")))
+    ))
+  }
+
+  "decode Spec" in {
     val spec = typeSystem.find[Spec]("Spec")
-    val value = spec.fromProduct(typeSystem, spec)
 
     val textJson: Json = Json.obj(
       "type" -> Json.fromString("Text"),
@@ -52,7 +59,7 @@ class ThingEncoderTest extends WordSpec with Matchers {
       )
     )
 
-    encoder.specEncoder("Spec")(value) should be (Json.obj(
+    decoder.specDecoder("Spec").decodeJson(Json.obj(
       "name" -> Json.fromString("Spec"),
       "fields" -> Json.obj(
         "name" -> Json.obj(
@@ -86,26 +93,24 @@ class ThingEncoderTest extends WordSpec with Matchers {
           "isRequired" -> Json.True
         )
       )
-    ))
+    )) should be (Right(spec.fromProduct(typeSystem, spec)))
   }
 
-  "encode Abstract Thing" in {
+  "decode Abstract Thing" in {
     val spec = typeSystem.find[Spec]("Abstract")
     val t = typeSystem.find[Abstract]("Thing")
-    val value = spec.fromProduct(typeSystem, t)
 
-    encoder.specEncoder("Abstract")(value) should be (Json.obj(
+    decoder.specDecoder("Abstract").decodeJson(Json.obj(
       "name" -> Json.fromString("Thing")
-    ))
+    )) should be (Right(spec.fromProduct(typeSystem, t)))
   }
 
-  "encode Plain" in {
+  "decode Plain" in {
     val spec = typeSystem.find[Spec]("The")
     val t = typeSystem.find[The]("Bool")
-    val value = spec.fromProduct(typeSystem, t)
 
-    encoder.specEncoder("The")(value) should be (Json.obj(
+    decoder.specDecoder("The").decodeJson(Json.obj(
       "name" -> Json.fromString("Bool")
-    ))
+    )) should be (Right(spec.fromProduct(typeSystem, t)))
   }
 }

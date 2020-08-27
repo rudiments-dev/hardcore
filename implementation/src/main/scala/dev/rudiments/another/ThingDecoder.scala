@@ -19,7 +19,7 @@ class ThingDecoder(typeSystem: TypeSystem, discriminator: String = "type") {
   // Abstract = Instance(spec) || The (name)
   def abstractDecoder(a: Abstract): Decoder[_] = new Decoder[Any] {
     override def apply(c: HCursor): Result[Any] = {
-      c.downField(discriminator).as[String].map { name =>
+      c.downField(discriminator).as[String].flatMap { name =>
         typeSystem.afterParent(a, name) match {
           case spec: Spec => specDecoder(spec).apply(c)
           case one: The => Right(one)
@@ -28,6 +28,8 @@ class ThingDecoder(typeSystem: TypeSystem, discriminator: String = "type") {
       }
     }
   }
+
+  def specDecoder(name: String): Decoder[Instance] = specDecoder(typeSystem.find[Spec](name))
 
   def specDecoder(spec: Spec): Decoder[Instance] = new Decoder[Instance] {
     override def apply(c: HCursor): Result[Instance] = {

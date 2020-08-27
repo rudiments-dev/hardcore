@@ -24,7 +24,6 @@ class ThingEncoder(typeSystem: TypeSystem, discriminator: String = "type") {
         discriminator -> Encoder.encodeString(name)
       )
       case e: EnumEntry => Encoder.encodeString(typeSystem.afterParent(a, e.entryName).name)
-      case t: Thing if a.name == "Thing" => ???
       case other => ???
     }
   }
