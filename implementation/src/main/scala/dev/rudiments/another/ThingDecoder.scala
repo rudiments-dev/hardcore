@@ -3,7 +3,7 @@ package dev.rudiments.another
 import io.circe.Decoder.Result
 import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
-class ThingDecoder(typeSystem: TypeSystem, discriminator: String = "type") {
+class ThingDecoder(domain: Domain, discriminator: String = "type") {
 
   def decoder(thing: Thing): Decoder[_] =
     thing match {
@@ -20,7 +20,7 @@ class ThingDecoder(typeSystem: TypeSystem, discriminator: String = "type") {
   def abstractDecoder(a: Abstract): Decoder[_] = new Decoder[Any] {
     override def apply(c: HCursor): Result[Any] = {
       c.downField(discriminator).as[String].flatMap { name =>
-        typeSystem.afterParent(a, name) match {
+        domain.afterParent(a, name) match {
           case spec: Spec => specDecoder(spec).apply(c)
           case one: The => Right(one)
           case other => ???
@@ -29,7 +29,7 @@ class ThingDecoder(typeSystem: TypeSystem, discriminator: String = "type") {
     }
   }
 
-  def specDecoder(name: String): Decoder[Instance] = specDecoder(typeSystem.find[Spec](name))
+  def specDecoder(name: String): Decoder[Instance] = specDecoder(domain.find[Spec](name))
 
   def specDecoder(spec: Spec): Decoder[Instance] = new Decoder[Instance] {
     override def apply(c: HCursor): Result[Instance] = {

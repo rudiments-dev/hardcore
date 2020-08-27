@@ -50,34 +50,34 @@ object ScalaTypes {
   )
 
   object ScalaString extends Plain.Text(MaxInt) {
-    override def validate(system: TypeSystem, value: Any): String = ScalaStrictValid[String](system, value)
+    override def validate(system: Domain, value: Any): String = ScalaStrictValid[String](system, value)
   }
 
   object ScalaByte   extends Plain.Number(MinByte,  MaxByte,   NumberFormat.Integer) {
-    override def validate(system: TypeSystem, value: Any): Byte = ScalaStrictValid[Byte](system, value)
+    override def validate(system: Domain, value: Any): Byte = ScalaStrictValid[Byte](system, value)
   }
   object ScalaShort  extends Plain.Number(MinShort, MaxShort,  NumberFormat.Integer) {
-    override def validate(system: TypeSystem, value: Any): Short = ScalaStrictValid[Short](system, value)
+    override def validate(system: Domain, value: Any): Short = ScalaStrictValid[Short](system, value)
   }
   object ScalaInt    extends Plain.Number(MinInt,   MaxInt,    NumberFormat.Integer) {
-    override def validate(system: TypeSystem, value: Any): Int = ScalaStrictValid[Int](system, value)
+    override def validate(system: Domain, value: Any): Int = ScalaStrictValid[Int](system, value)
   }
   object ScalaLong   extends Plain.Number(MinLong,  MaxLong,   NumberFormat.Integer) {
-    override def validate(system: TypeSystem, value: Any): Long = ScalaStrictValid[Long](system, value)
+    override def validate(system: Domain, value: Any): Long = ScalaStrictValid[Long](system, value)
   }
 
   object ScalaFloat  extends Plain.Number(MinFloat,   MaxFloat,  NumberFormat.Float) {
-    override def validate(system: TypeSystem, value: Any): Float = ScalaStrictValid[Float](system, value)
+    override def validate(system: Domain, value: Any): Float = ScalaStrictValid[Float](system, value)
   }
   object ScalaDouble extends Plain.Number(MinDouble,  MaxDouble, NumberFormat.Float) {
-    override def validate(system: TypeSystem, value: Any): Double = ScalaStrictValid[Double](system, value)
+    override def validate(system: Domain, value: Any): Double = ScalaStrictValid[Double](system, value)
   }
 
   object ScalaBigInteger extends Plain.Number(Size.NegativeInfinity, Size.PositiveInfinity, NumberFormat.Integer) {
-    override def validate(system: TypeSystem, value: Any): BigInt = ScalaStrictValid[BigInt](system, value)
+    override def validate(system: Domain, value: Any): BigInt = ScalaStrictValid[BigInt](system, value)
   }
   object ScalaBigDecimal extends Plain.Number(Size.NegativeInfinity, Size.PositiveInfinity, NumberFormat.Decimal) {
-    override def validate(system: TypeSystem, value: Any): BigDecimal = ScalaStrictValid[BigDecimal](system, value)
+    override def validate(system: Domain, value: Any): BigDecimal = ScalaStrictValid[BigDecimal](system, value)
   }
 
 
@@ -102,7 +102,7 @@ object ScalaTypes {
 
 object ScalaStrictValid {
   import scala.reflect.runtime.universe._
-  def apply[T : TypeTag : ClassTag](system: TypeSystem, value: Any): T = {
+  def apply[T : TypeTag : ClassTag](system: Domain, value: Any): T = {
     value match {
       case t: T => t
       case _ => throw new IllegalArgumentException(s"Incompatible ${typeOf[T].typeSymbol.asClass.fullName} strict scala value $value")

@@ -7,28 +7,28 @@ import scala.collection.immutable.ListMap
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-case class TypeSystem (
-  types: mutable.Map[String, Thing] = mutable.Map.empty,
-  parents: mutable.Map[String, Set[String]] = mutable.Map.empty
+case class Domain (
+  model: mutable.Map[String, Thing] = mutable.Map.empty,
+  groups: mutable.Map[String, Set[String]] = mutable.Map.empty
 ) extends DTO {
   def afterParent(a: Abstract, name: String): Thing = {
-    types.get(name) match {
-      case Some(spec: Spec) if parents(spec.name).contains(a.name) => spec
-      case Some(one: The) if parents(one.name).contains(a.name) => one
+    model.get(name) match {
+      case Some(spec: Spec) if groups(spec.name).contains(a.name) => spec
+      case Some(one: The) if groups(one.name).contains(a.name) => one
       case Some(other) => throw new IllegalArgumentException(s"Incompatible $name with thing $other")
       case None => throw new RuntimeException(s"Not found: $name")
     }
   }
 
-  def children(a: Abstract): Set[Thing] = types.collect {
-    case (_, t) if parents(t.name).contains(a.name) => t
+  def children(a: Abstract): Set[Thing] = model.collect {
+    case (_, t) if groups(t.name).contains(a.name) => t
   }.toSet
 
-  def children(name: String): Set[Thing] = types.collect {
-    case (_, t) if parents(t.name).contains(name) => t
+  def children(name: String): Set[Thing] = model.collect {
+    case (_, t) if groups(t.name).contains(name) => t
   }.toSet
 
-  def find[T <: Thing : ClassTag](name: String): T = types.get(name) match {
+  def find[T <: Thing : ClassTag](name: String): T = model.get(name) match {
     case Some(t: T) => t
     case Some(other) => throw new RuntimeException(s"Unexpected ${other.name}")
     case None => throw new RuntimeException(s"Not found by name $name")
@@ -36,9 +36,9 @@ case class TypeSystem (
 
 
   def save[T <: Thing](thing: T, parents: Set[String]): T = {
-    types += thing.name -> thing
-    this.parents += thing.name -> (
-      this.parents.get(thing.name) match {
+    model += thing.name -> thing
+    this.groups += thing.name -> (
+      this.groups.get(thing.name) match {
         case Some(existing) => existing ++ parents
         case None => parents
       }
@@ -55,7 +55,7 @@ case class TypeSystem (
     val symbol = sysType.typeSymbol
     val name = this.name(symbol)
 
-    types.get(name) match {
+    model.get(name) match {
       case Some(t) => t
       case None =>
         plain.collectFirst {
@@ -92,7 +92,7 @@ case class TypeSystem (
   def makeAlgebraic(symbol: Symbol, parents: Set[String]): Thing = {
     val t = symbol.asType
     val name = this.name(t)
-    types.get(name) match {
+    model.get(name) match {
       case Some(found) => found
       case None =>
         if(t.isAbstract) {

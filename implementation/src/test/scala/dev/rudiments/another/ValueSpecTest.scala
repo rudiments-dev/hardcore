@@ -7,8 +7,8 @@ import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
 class ValueSpecTest extends WordSpec with Matchers {
-  private implicit val typeSystem: TypeSystem = TypeSystem()
-  val t: Spec = typeSystem.makeFromScala[Spec, Example]
+  private implicit val domain: Domain = Domain()
+  val t: Spec = domain.makeFromScala[Spec, Example]
 
   "Type transforms all basic types to BasicTypes" in {
     t.fields should be (Map(

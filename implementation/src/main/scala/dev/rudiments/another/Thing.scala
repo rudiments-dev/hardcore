@@ -22,13 +22,13 @@ case class ID(values: Seq[Any]) extends Ref
 sealed abstract class Thing (
   val name: String
 ) extends ADT {
-  def validate(system: TypeSystem, value: Any): Any
+  def validate(system: Domain, value: Any): Any
 }
 
 case class ThingRef (
   override val name: String
 ) extends Thing(name) {
-  override def validate(system: TypeSystem, value: Any): Any = system.types.get(name) match {
+  override def validate(system: Domain, value: Any): Any = system.model.get(name) match {
     case Some(t: Thing) => t.validate(system, value)
     case None => throw new RuntimeException(s"Not found by Ref: $name")
   }
@@ -37,7 +37,7 @@ case class ThingRef (
 case class Abstract (
   override val name: String
 ) extends Thing(name) {
-  override def validate(system: TypeSystem, value: Any): Any = value match {
+  override def validate(system: Domain, value: Any): Any = value match {
     case i: Instance => system.afterParent(this, i.spec.name).validate(system, i)
     case one: The => system.afterParent(this, one.name).validate(system, one)
     case t: Thing if name == "Thing" => t
@@ -49,7 +49,7 @@ case class The (
   override val name: String
   //TODO value: Instance = Nothing
 ) extends Thing(name) {
-  override def validate(system: TypeSystem, value: Any): Any = value match {
+  override def validate(system: Domain, value: Any): Any = value match {
     case one: The if name == one.name => one
   }
 }
@@ -59,7 +59,7 @@ case class Spec (
                fields: ListMap[String, ValueSpec]
 ) extends Thing(name) {
 
-  override def validate(system: TypeSystem, value: Any): Any = value match {
+  override def validate(system: Domain, value: Any): Any = value match {
     case i: Instance =>
       if(i.spec == this) {
         fields.zip(i.values).map { case ((_, spec), v) => spec.validate(system, v) }
@@ -70,7 +70,7 @@ case class Spec (
     case other => throw new IllegalArgumentException(s"Not an Instance: $other of $name")
   }
 
-  def instantiate(system: TypeSystem, args: Any*): Instance = {
+  def instantiate(system: Domain, args: Any*): Instance = {
     Instance(
       this,
       fields.zip(args).map {
@@ -79,7 +79,7 @@ case class Spec (
     )
   }
 
-  def fromMap(system: TypeSystem, args: Map[String, Any]): Instance = {
+  def fromMap(system: Domain, args: Map[String, Any]): Instance = {
     Instance(
       this,
       fields.map {
@@ -88,7 +88,7 @@ case class Spec (
     )
   }
 
-  def fromProduct(system: TypeSystem, product: Product): Instance = {
+  def fromProduct(system: Domain, product: Product): Instance = {
     val values = fields.zip(product.productIterator.toSeq).map {
       case ((_, spec), value: Option[_]) if !spec.isRequired =>
         spec.validate(system, value.map(i => wrap(system, spec.thing, i)))
@@ -98,7 +98,7 @@ case class Spec (
     Instance(this, values)
   }
 
-  def wrap(system: TypeSystem, thing: Thing, value: Any): Any = (thing, value) match {
+  def wrap(system: Domain, thing: Thing, value: Any): Any = (thing, value) match {
     case (p: Plain, v) => wrapPlain(p, v)
 
     case (Index(of, over), m: Map[_, _]) => m.map { case (k, v) => wrap(system, of, k) -> wrap(system, over, v)}
@@ -131,7 +131,7 @@ case class Spec (
   }
 
   import scala.reflect.runtime.universe._
-  def toScala[T : TypeTag](system: TypeSystem, args: Any*): T = {
+  def toScala[T : TypeTag](system: Domain, args: Any*): T = {
     val c = Class.forName(typeOf[T].typeSymbol.asClass.fullName)
     c.getConstructors()(0).newInstance(args.map(_.asInstanceOf[Object]): _*).asInstanceOf[T]
   }
@@ -142,7 +142,7 @@ object Anything extends The("Anything")
 sealed abstract class Plain (
   override val name: String
 ) extends Thing(name) {
-  override def validate(system: TypeSystem, value: Any): Any = value
+  override def validate(system: Domain, value: Any): Any = value
 }
 
 object Plain {
@@ -168,7 +168,7 @@ object Plain {
 case class List (
   of: Thing
 ) extends Thing("List") {
-  override def validate(system: TypeSystem, value: Any): Any = value match {
+  override def validate(system: Domain, value: Any): Any = value match {
     case i: Iterable[_] => i.map(v => of.validate(system, v))
     case other => throw new IllegalArgumentException(s"$other is not Iterable")
   }
@@ -178,7 +178,7 @@ case class Index (
   of: Thing,
   over: Thing
 ) extends Thing("Index") {
-  override def validate(system: TypeSystem, value: Any): Any = value match {
+  override def validate(system: Domain, value: Any): Any = value match {
     case m: Map[_, _] => m.map(v => of.validate(system, v._1) -> over.validate(system, v._2))
     case other => throw new IllegalArgumentException(s"$other is not Map")
   }
@@ -189,7 +189,7 @@ case class ValueSpec (
   thing: Thing,
   isRequired: Boolean
 ) extends DTO {
-  def validate(system: TypeSystem, value: Any): Any = value match {
+  def validate(system: Domain, value: Any): Any = value match {
     case other if isRequired => thing.validate(system, value)
     case o: Option[_] if !isRequired => o.map(v => thing.validate(system, v))
   }

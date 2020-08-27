@@ -10,15 +10,15 @@ class ThingDecoderTest extends WordSpec with Matchers {
 
   case class Test(f : Option[Double]) extends DTO
 
-  private val typeSystem = TypeSystem()
-  typeSystem.makeFromScala[Thing, Thing]
-  typeSystem.makeFromScala[Spec, Test]
-  typeSystem.makeFromScala[Spec, AlgebraicExample]
-  val decoder = new ThingDecoder(typeSystem)
+  private val domain = Domain()
+  domain.makeFromScala[Thing, Thing]
+  domain.makeFromScala[Spec, Test]
+  domain.makeFromScala[Spec, AlgebraicExample]
+  val decoder = new ThingDecoder(domain)
 
   "decoder class with option flag" in {
     decoder.specDecoder("Test").decodeJson(Json.obj("f" -> Json.Null)) should be (Right(
-      typeSystem.find[Spec]("Test").fromProduct(typeSystem, Test(None))
+      domain.find[Spec]("Test").fromProduct(domain, Test(None))
     ))
   }
 
@@ -30,9 +30,9 @@ class ThingDecoderTest extends WordSpec with Matchers {
           "type" -> Json.fromString("B")
         )
       )) should be (Right(
-      typeSystem
+      domain
         .find[Spec]("AlgebraicExample")
-        .fromProduct(typeSystem, AlgebraicExample(B))
+        .fromProduct(domain, AlgebraicExample(B))
     ))
 
     decoder.specDecoder("AlgebraicExample")
@@ -42,14 +42,14 @@ class ThingDecoderTest extends WordSpec with Matchers {
           "s" -> Json.fromString("something algebraic")
         )
       )) should be (Right(
-      typeSystem
+      domain
         .find[Spec]("AlgebraicExample")
-        .fromProduct(typeSystem, AlgebraicExample(C("something algebraic")))
+        .fromProduct(domain, AlgebraicExample(C("something algebraic")))
     ))
   }
 
   "decode Spec" in {
-    val spec = typeSystem.find[Spec]("Spec")
+    val spec = domain.find[Spec]("Spec")
 
     val textJson: Json = Json.obj(
       "type" -> Json.fromString("Text"),
@@ -93,24 +93,24 @@ class ThingDecoderTest extends WordSpec with Matchers {
           "isRequired" -> Json.True
         )
       )
-    )) should be (Right(spec.fromProduct(typeSystem, spec)))
+    )) should be (Right(spec.fromProduct(domain, spec)))
   }
 
   "decode Abstract Thing" in {
-    val spec = typeSystem.find[Spec]("Abstract")
-    val t = typeSystem.find[Abstract]("Thing")
+    val spec = domain.find[Spec]("Abstract")
+    val t = domain.find[Abstract]("Thing")
 
     decoder.specDecoder("Abstract").decodeJson(Json.obj(
       "name" -> Json.fromString("Thing")
-    )) should be (Right(spec.fromProduct(typeSystem, t)))
+    )) should be (Right(spec.fromProduct(domain, t)))
   }
 
   "decode Plain" in {
-    val spec = typeSystem.find[Spec]("The")
-    val t = typeSystem.find[The]("Bool")
+    val spec = domain.find[Spec]("The")
+    val t = domain.find[The]("Bool")
 
     decoder.specDecoder("The").decodeJson(Json.obj(
       "name" -> Json.fromString("Bool")
-    )) should be (Right(spec.fromProduct(typeSystem, t)))
+    )) should be (Right(spec.fromProduct(domain, t)))
   }
 }

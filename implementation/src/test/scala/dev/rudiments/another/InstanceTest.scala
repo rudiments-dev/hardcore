@@ -8,53 +8,53 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class InstanceTest extends WordSpec with Matchers {
-  private implicit val typeSystem: TypeSystem = TypeSystem()
-  typeSystem.makeFromScala[Thing, Thing]
-  typeSystem.makeFromScala[Thing, Instance]
+  private implicit val domain: Domain = Domain()
+  domain.makeFromScala[Thing, Thing]
+  domain.makeFromScala[Thing, Instance]
 
   "Instance is a part of TypeSystem" in {
-    typeSystem.find[Spec]("Instance") should be (
+    domain.find[Spec]("Instance") should be (
       Spec(
         "Instance",
         ListMap(
-          "spec" -> ValueSpec(typeSystem.find[Spec]("Spec"), true),
-          "values" -> ValueSpec(List(The("Anything")), true) //TODO put Anything to typeSystem
+          "spec" -> ValueSpec(domain.find[Spec]("Spec"), true),
+          "values" -> ValueSpec(List(The("Anything")), true)
         )
       )
     )
   }
 
   "can build Instance of basic class" in {
-    typeSystem.makeFromScala[Spec, AlgebraicExample]
-    val t: Spec = typeSystem.find[Spec]("C")
-    t.instantiate(typeSystem, "some string") should be (
+    domain.makeFromScala[Spec, AlgebraicExample]
+    val t: Spec = domain.find[Spec]("C")
+    t.instantiate(domain, "some string") should be (
       Instance(t, Seq("some string"))
     )
   }
 
   "can build Instance of algebraic class" in {
-    val t: Spec = typeSystem.find[Spec]("AlgebraicExample")
+    val t: Spec = domain.find[Spec]("AlgebraicExample")
 
-    val b = typeSystem.find[The]("B")
-    t.instantiate(typeSystem, b) should be (Instance(t, Seq(b)))
+    val b = domain.find[The]("B")
+    t.instantiate(domain, b) should be (Instance(t, Seq(b)))
 
-    val c = typeSystem.find[Spec]("C").instantiate(typeSystem, "another string")
-    t.instantiate(typeSystem, c) should be (Instance(t, Seq(c)))
+    val c = domain.find[Spec]("C").instantiate(domain, "another string")
+    t.instantiate(domain, c) should be (Instance(t, Seq(c)))
   }
 
   case class SomeType(f: Boolean) extends DTO
 
   "can build Instance of a Type" in {
-    val t: Spec = typeSystem.find[Spec]("Spec")
+    val t: Spec = domain.find[Spec]("Spec")
 
-    t.fromProduct(typeSystem, typeSystem.makeFromScala[Spec, SomeType]) should be (
+    t.fromProduct(domain, domain.makeFromScala[Spec, SomeType]) should be (
       Instance(
-        typeSystem.find[Spec]("Spec"),
+        domain.find[Spec]("Spec"),
         Seq(
           "SomeType",
           ListMap(
             "f" -> Instance(
-              typeSystem.find[Spec]("ValueSpec"),
+              domain.find[Spec]("ValueSpec"),
               Seq(The("Bool"), true)
             )
           )
@@ -64,25 +64,25 @@ class InstanceTest extends WordSpec with Matchers {
   }
 
   "can build Instance of a Spec" in {
-    val spec: Spec = typeSystem.find[Spec]("Spec")
-    val valueSpec = typeSystem.find[Spec]("ValueSpec")
+    val spec: Spec = domain.find[Spec]("Spec")
+    val valueSpec = domain.find[Spec]("ValueSpec")
 
     val textInstance = Instance(
-      typeSystem.find[Spec]("Text"),
+      domain.find[Spec]("Text"),
       Seq(Instance(
-        typeSystem.find[Spec]("Big"),
+        domain.find[Spec]("Big"),
         Seq(BigDecimal(Int.MaxValue))
       ))
     )
 
-    val valueSpecInstance = spec.fromProduct(typeSystem, valueSpec)
+    val valueSpecInstance = spec.fromProduct(domain, valueSpec)
 
     val indexInstance = Instance(
-      typeSystem.find[Spec]("Index"),
+      domain.find[Spec]("Index"),
       Seq(textInstance, valueSpecInstance)
     )
 
-    spec.fromProduct(typeSystem, spec) should be (
+    spec.fromProduct(domain, spec) should be (
       Instance(
         spec,
         Seq(
@@ -107,20 +107,20 @@ class InstanceTest extends WordSpec with Matchers {
   case object SomeObject extends SomeTrait
   case class SomeAnotherType(a: String) extends SomeTrait
 
-  typeSystem.makeFromScala[Thing, SomeTrait]
+  domain.makeFromScala[Thing, SomeTrait]
 
   "can build Instance of an Abstract" in {
-    val t: Spec = typeSystem.find[Spec]("Abstract")
+    val t: Spec = domain.find[Spec]("Abstract")
 
-    t.fromProduct(typeSystem, typeSystem.find[Abstract]("SomeAbstract")) should be (
+    t.fromProduct(domain, domain.find[Abstract]("SomeAbstract")) should be (
       Instance(t, Seq("SomeAbstract"))
     )
   }
 
   "can build Instance of The" in {
-    val t: Spec = typeSystem.find[Spec]("The")
+    val t: Spec = domain.find[Spec]("The")
 
-    t.fromProduct(typeSystem, typeSystem.find[The]("SomeObject")) should be (
+    t.fromProduct(domain, domain.find[The]("SomeObject")) should be (
       Instance(t, Seq("SomeObject"))
     )
   }

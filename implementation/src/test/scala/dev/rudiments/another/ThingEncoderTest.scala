@@ -10,28 +10,28 @@ class ThingEncoderTest extends WordSpec with Matchers {
 
   case class Test(f : Option[Double]) extends DTO
 
-  private val typeSystem = TypeSystem()
-  typeSystem.makeFromScala[Thing, Thing]
-  typeSystem.makeFromScala[Spec, Test]
-  typeSystem.makeFromScala[Spec, AlgebraicExample]
-  val encoder = new ThingEncoder(typeSystem)
+  private val domain = Domain()
+  domain.makeFromScala[Thing, Thing]
+  domain.makeFromScala[Spec, Test]
+  domain.makeFromScala[Spec, AlgebraicExample]
+  val encoder = new ThingEncoder(domain)
 
   "encode class with option flag" in {
-    val value = typeSystem.find[Spec]("Test").fromProduct(typeSystem, Test(None))
+    val value = domain.find[Spec]("Test").fromProduct(domain, Test(None))
     encoder.specEncoder("Test")(value) should be (Json.obj("f" -> Json.Null))
   }
 
   "encode ADT" in {
-    val valueB = typeSystem
+    val valueB = domain
       .find[Spec]("AlgebraicExample")
-      .fromProduct(typeSystem, AlgebraicExample(B))
+      .fromProduct(domain, AlgebraicExample(B))
     encoder.specEncoder("AlgebraicExample")(valueB) should be (Json.obj(
       "a" -> Json.obj("type" -> Json.fromString("B"))
     ))
 
-    val valueC = typeSystem
+    val valueC = domain
       .find[Spec]("AlgebraicExample")
-      .fromProduct(typeSystem, AlgebraicExample(C("something algebraic")))
+      .fromProduct(domain, AlgebraicExample(C("something algebraic")))
     encoder.specEncoder("AlgebraicExample")(valueC) should be (Json.obj(
       "a" -> Json.obj(
         "type" -> Json.fromString("C"),
@@ -41,8 +41,8 @@ class ThingEncoderTest extends WordSpec with Matchers {
   }
 
   "encode Spec" in {
-    val spec = typeSystem.find[Spec]("Spec")
-    val value = spec.fromProduct(typeSystem, spec)
+    val spec = domain.find[Spec]("Spec")
+    val value = spec.fromProduct(domain, spec)
 
     val textJson: Json = Json.obj(
       "type" -> Json.fromString("Text"),
@@ -90,9 +90,9 @@ class ThingEncoderTest extends WordSpec with Matchers {
   }
 
   "encode Abstract Thing" in {
-    val spec = typeSystem.find[Spec]("Abstract")
-    val t = typeSystem.find[Abstract]("Thing")
-    val value = spec.fromProduct(typeSystem, t)
+    val spec = domain.find[Spec]("Abstract")
+    val t = domain.find[Abstract]("Thing")
+    val value = spec.fromProduct(domain, t)
 
     encoder.specEncoder("Abstract")(value) should be (Json.obj(
       "name" -> Json.fromString("Thing")
@@ -100,9 +100,9 @@ class ThingEncoderTest extends WordSpec with Matchers {
   }
 
   "encode Plain" in {
-    val spec = typeSystem.find[Spec]("The")
-    val t = typeSystem.find[The]("Bool")
-    val value = spec.fromProduct(typeSystem, t)
+    val spec = domain.find[Spec]("The")
+    val t = domain.find[The]("Bool")
+    val value = spec.fromProduct(domain, t)
 
     encoder.specEncoder("The")(value) should be (Json.obj(
       "name" -> Json.fromString("Bool")

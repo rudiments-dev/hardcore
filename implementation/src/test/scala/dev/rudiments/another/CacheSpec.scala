@@ -17,8 +17,8 @@ class CacheSpec extends WordSpec with Matchers {
     comment: Option[String] = None
   ) extends DTO
 
-  private implicit val typeSystem: TypeSystem = TypeSystem()
-  private implicit val t: Spec = typeSystem.makeFromScala[Spec, Example]
+  private implicit val domain: Domain = Domain()
+  private implicit val t: Spec = domain.makeFromScala[Spec, Example]
   private val cache: Cache = new Cache
   private val sample = Instance(t, Seq(42L, "sample", None))
   private val id: ID = ID(Seq(42L))

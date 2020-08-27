@@ -8,8 +8,8 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class AlgebraicSpec extends WordSpec with Matchers {
-  private implicit val typeSystem: TypeSystem = TypeSystem()
-  private val scalaType: Spec = typeSystem.makeFromScala[Spec, AlgebraicExample]
+  private implicit val domain: Domain = Domain()
+  private val scalaType: Spec = domain.makeFromScala[Spec, AlgebraicExample]
 
   private val typeA = Abstract("A")
   private val objectB = The("B")
@@ -21,22 +21,22 @@ class AlgebraicSpec extends WordSpec with Matchers {
   )
 
   "Can create instances with different content" in {
-    prototype.instantiate(typeSystem, objectB) should be (Instance(prototype, Seq(objectB)))
+    prototype.instantiate(domain, objectB) should be (Instance(prototype, Seq(objectB)))
 
     val c = Instance(typeC, Seq("string inside ADT:C"))
-    prototype.instantiate(typeSystem, c) should be (Instance(prototype, Seq(c)))
+    prototype.instantiate(domain, c) should be (Instance(prototype, Seq(c)))
   }
 
   "Algebraic field from Scala Type" in {
     scalaType.name should be (prototype.name)
     scalaType.fields should be (prototype.fields)
 
-    scalaType.toScala[AlgebraicExample](typeSystem, B) should be (AlgebraicExample(B))
-    scalaType.fromProduct(typeSystem, AlgebraicExample(B)) should be (Instance(prototype, Seq(objectB)))
+    scalaType.toScala[AlgebraicExample](domain, B) should be (AlgebraicExample(B))
+    scalaType.fromProduct(domain, AlgebraicExample(B)) should be (Instance(prototype, Seq(objectB)))
 
     val c = C("From scala")
-    scalaType.toScala[AlgebraicExample](typeSystem, c) should be (AlgebraicExample(c))
-    scalaType.fromProduct(typeSystem, AlgebraicExample(c)) should be (Instance(prototype, Seq(typeC.fromProduct(typeSystem, c))))
+    scalaType.toScala[AlgebraicExample](domain, c) should be (AlgebraicExample(c))
+    scalaType.fromProduct(domain, AlgebraicExample(c)) should be (Instance(prototype, Seq(typeC.fromProduct(domain, c))))
   }
 }
 

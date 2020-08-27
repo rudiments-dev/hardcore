@@ -5,7 +5,7 @@ import java.sql.{Date, Time, Timestamp}
 import enumeratum.EnumEntry
 import io.circe.{Encoder, Json, KeyEncoder}
 
-class ThingEncoder(typeSystem: TypeSystem, discriminator: String = "type") {
+class ThingEncoder(domain: Domain, discriminator: String = "type") {
 
   def encoder(thing: Thing): Encoder[_] = thing match {
     case p: Plain => plainEncoder(p)
@@ -23,12 +23,12 @@ class ThingEncoder(typeSystem: TypeSystem, discriminator: String = "type") {
       case The(name) => Json.obj(
         discriminator -> Encoder.encodeString(name)
       )
-      case e: EnumEntry => Encoder.encodeString(typeSystem.afterParent(a, e.entryName).name)
+      case e: EnumEntry => Encoder.encodeString(domain.afterParent(a, e.entryName).name)
       case other => ???
     }
   }
 
-  def specEncoder(name: String): Encoder[Instance] = specEncoder(typeSystem.find[Spec](name))
+  def specEncoder(name: String): Encoder[Instance] = specEncoder(domain.find[Spec](name))
 
   def specEncoder(spec: Spec, withDiscriminator: Boolean = false): Encoder[Instance] = new Encoder[Instance] {
     override def apply(a: Instance): Json = {
