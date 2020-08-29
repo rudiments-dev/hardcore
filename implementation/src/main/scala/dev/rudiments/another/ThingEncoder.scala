@@ -28,6 +28,17 @@ class ThingEncoder(domain: Domain, discriminator: String = "type") {
     }
   }
 
+  def abstractInstanceEncoder(name: String): Encoder[Instance] = new Encoder[Instance] {
+    val a: Abstract = domain.find[Abstract](name)
+
+    override def apply(value: Instance): Json = value match {
+      case i: Instance =>
+        domain.afterParent(a, i.spec.name)
+        specEncoder(i.spec, true)(i)
+      case other => ???
+    }
+  }
+
   def specEncoder(name: String): Encoder[Instance] = specEncoder(domain.find[Spec](name))
 
   def specEncoder(spec: Spec, withDiscriminator: Boolean = false): Encoder[Instance] = new Encoder[Instance] {

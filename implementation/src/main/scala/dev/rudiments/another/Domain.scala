@@ -30,7 +30,7 @@ case class Domain (
 
   def find[T <: Thing : ClassTag](name: String): T = model.get(name) match {
     case Some(t: T) => t
-    case Some(other) => throw new RuntimeException(s"Unexpected ${other.name}")
+    case Some(other) => throw new RuntimeException(s"Unexpected ${other.name}, not matched with $name")
     case None => throw new RuntimeException(s"Not found by name $name")
   }
 

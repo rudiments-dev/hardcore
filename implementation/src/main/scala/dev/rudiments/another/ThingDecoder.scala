@@ -29,6 +29,19 @@ class ThingDecoder(domain: Domain, discriminator: String = "type") {
     }
   }
 
+  def abstractInstanceDecoder(name: String): Decoder[Instance] = new Decoder[Instance] {
+    val a: Abstract = domain.find[Abstract](name)
+
+    override def apply(c: HCursor): Result[Instance] = {
+      c.downField(discriminator).as[String].flatMap { name =>
+        domain.afterParent(a, name) match {
+          case spec: Spec => specDecoder(spec).apply(c)
+          case other => ???
+        }
+      }
+    }
+  }
+
   def specDecoder(name: String): Decoder[Instance] = specDecoder(domain.find[Spec](name))
 
   def specDecoder(spec: Spec): Decoder[Instance] = new Decoder[Instance] {
