@@ -9,14 +9,14 @@ import dev.rudiments.another.{DomainSkill, HttpPort, ID, Instance, RootRouter, S
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-object TypeRegistry extends App with LazyLogging {
+object DomainRegistry extends App with LazyLogging {
   logger.info("Starting application")
 
   val config = ConfigFactory.load()
   val skill = new DomainSkill()
 
   private val http = new HttpPort(
-    "types",
+    "domain",
     ScalaTypes.ScalaString,
     i => ID(Seq(i.extract[String]("name"))),
     skill
