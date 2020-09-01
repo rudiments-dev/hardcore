@@ -3,7 +3,7 @@ dependencies {
     compile 'ch.qos.logback:logback-classic:1.2.3'
 }
 
-task runApp(type: JavaExec, dependsOn: classes) {
+task runDomain(type: JavaExec, dependsOn: classes) {
     classpath sourceSets.main.runtimeClasspath
     main = 'dev.rudiments.domain.registry.DomainRegistry'
     standardInput = System.in

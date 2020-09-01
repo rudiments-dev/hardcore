@@ -1,0 +1,176 @@
+openapi: "3.0.0"
+info:
+  version: "0.4"
+  title: Domain registry API
+servers:
+  - url: http://localhost:8080/api/domain
+paths:
+  /:
+    get:
+      summary: Get all Things in Domain
+      operationId: FindAll[Thing]
+      responses:
+        200:
+          description: List of All Things
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnyThing'
+    post:
+      summary: Create a Thing
+      operationId: Create[Thing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnyThing'
+      responses:
+        201:
+          description: Thing crated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnyThing'
+
+#TODO PUT + Reconcile + Commit/Committed
+
+  /{name}:
+    parameters:
+      - name: name
+        in: path
+        required: true
+        description: The name of the Thing to retrieve
+        schema:
+          type: string
+
+    get:
+      summary: Retrieve the Thing
+      operationId: Find[Thing]
+      responses:
+        200:
+          description: Get the Thing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnyThing'
+
+    put:
+      summary: Update the Thing
+      operationId: Update[Thing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnyThing'
+      responses:
+        200:
+          description: Thing updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnyThing'
+
+    delete:
+      summary: Delete the Thing
+      operationId: Delete[Thing]
+      responses:
+        200:
+          description: Thing deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnyThing'
+
+components:
+  schemas:
+    ThingRef:
+      type: object
+      properties:
+        name:
+          type: string
+          required: true
+
+    Thing:
+      allOf:
+        - $ref: '#/components/schemas/ThingRef'
+#        - type: object
+#          properties:
+#            is:
+#              type: array
+#              required: true
+#              default: []
+#              items:
+#                $ref: '#/components/schemas/ThingRef'
+
+    AnyThing:
+      oneOf:
+        - $ref: '#/components/schemas/Abstract'
+        - $ref: '#/components/schemas/Spec'
+        - $ref: '#/components/schemas/The'
+      discriminator:
+        propertyName: type
+        mapping:
+          Abstract: '#/components/schemas/Abstract'
+          Spec: '#/components/schemas/Spec'
+          The: '#/components/schemas/The'
+
+    Abstract:
+      allOf:
+        - $ref: '#/components/schemas/Thing'
+
+    Spec:
+      allOf:
+        - $ref: '#/components/schemas/Thing'
+        - type: object
+          properties:
+            fields:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/ValueSpec'
+
+    The:
+      allOf:
+        - $ref: '#/components/schemas/Thing'
+#        - type: object
+#          properties:
+#            value:
+#              $ref: '#/components/schemas/Instance'
+
+    ValueSpec:
+      type: object
+      required:
+        - type
+        - isRequired
+#        - default
+      properties:
+        type:
+          $ref: '#/components/schemas/AnyThing'
+        isRequired:
+          type: boolean
+          default: true
+#        default:
+#          $ref: '#/components/schemas/Instance'
+
+    Instance:
+      type: object
+      required:
+        - fields
+        - type
+      properties:
+        spec:
+          $ref: '#/components/schemas/Spec'
+        values:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+              - type: boolean
+              - type: array
+              - type: object
+
+

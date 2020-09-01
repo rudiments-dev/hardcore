@@ -1,0 +1,71 @@
+GET http://localhost:8765/api/domain
+Accept: application/json
+
+###
+
+GET http://localhost:8765/api/domain/SpecExample
+Accept: application/json
+
+###
+
+POST http://localhost:8765/api/domain
+Content-Type: application/json
+
+{
+  "type": "Abstract",
+  "name": "AbstractExample"
+}
+
+###
+
+POST http://localhost:8765/api/domain
+Content-Type: application/json
+
+{
+  "type": "The",
+  "name": "TheExample"
+}
+
+
+###
+# error
+
+POST http://localhost:8765/api/domain
+Content-Type: application/json
+
+{
+  "type": "Spec",
+  "name": "SpecExample",
+  "fields": {
+    "b": {
+      "thing": {
+        "type": "Bool"
+      },
+      "isRequired": true
+    }
+  }
+}
+
+###
+
+PUT http://localhost:8765/api/domain/SpecExample
+Content-Type: application/json
+
+{
+  "type": "Spec",
+  "name": "SpecExample",
+  "fields": {
+    "a": {
+      "thing": {
+        "type": "UUID"
+      },
+      "isRequired": true
+    },
+    "b": {
+      "thing": {
+        "type": "Bool"
+      },
+      "isRequired": true
+    }
+  }
+}
