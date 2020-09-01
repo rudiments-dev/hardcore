@@ -1,4 +1,4 @@
-package dev.rudiments.types.registry
+package dev.rudiments.domain.registry
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer

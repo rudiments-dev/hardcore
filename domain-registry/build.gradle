@@ -5,6 +5,6 @@ dependencies {
 
 task runApp(type: JavaExec, dependsOn: classes) {
     classpath sourceSets.main.runtimeClasspath
-    main = 'dev.rudiments.types.registry.TypeRegistry'
+    main = 'dev.rudiments.domain.registry.DomainRegistry'
     standardInput = System.in
 }
