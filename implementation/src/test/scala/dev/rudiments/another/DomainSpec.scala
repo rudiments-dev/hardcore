@@ -33,12 +33,28 @@ class DomainSpec extends WordSpec with Matchers {
 
     domain.find[Abstract]("A") should be (Abstract("A"))
     domain.find[The]("B") should be (The("B"))
-    domain.find[Spec]("C") should be (Spec("C", ListMap("f" -> ValueSpec(domain.find[Abstract]("F"), true))))
+    domain.find[Spec]("C") should be (
+      Spec(
+        "C",
+        "dev.rudiments.another.DomainSpec.A.C",
+        ListMap("f" -> ValueSpec(domain.find[Abstract]("F"), true))
+      )
+    )
 
     domain.find[Abstract]("F") should be (Abstract("F"))
-    domain.find[Spec]("E") should be (Spec("E", ListMap("s" -> ValueSpec(ScalaTypes.ScalaString, true))))
+    domain.find[Spec]("E") should be (
+      Spec(
+        "E",
+        "dev.rudiments.another.DomainSpec.F.E",
+        ListMap("s" -> ValueSpec(ScalaTypes.ScalaString, true))
+      )
+    )
     domain.find[Spec]("D") should be (
-      Spec("D", ListMap("a" -> ValueSpec(domain.find[Abstract]("A"), true)))
+      Spec(
+        "D",
+        "dev.rudiments.another.DomainSpec.F.D",
+        ListMap("a" -> ValueSpec(domain.find[Abstract]("A"), true))
+      )
     )
   }
 
@@ -63,9 +79,13 @@ class DomainSpec extends WordSpec with Matchers {
 
     domain.children("Size") should be (
       Set(
-        Spec("Big", ListMap(
-          "size"-> ValueSpec(Plain.Number(Size.NegativeInfinity, Size.PositiveInfinity, NumberFormat.Decimal), true)
-        )),
+        Spec(
+          "Big",
+          "dev.rudiments.another.Size.Big",
+          ListMap(
+            "size"-> ValueSpec(Plain.Number(Size.NegativeInfinity, Size.PositiveInfinity, NumberFormat.Decimal), true)
+          )
+        ),
         The("Infinity"),
         The("PositiveInfinity"),
         The("NegativeInfinity"),
@@ -73,15 +93,23 @@ class DomainSpec extends WordSpec with Matchers {
     )
 
     domain.find[Spec]("Text") should be (
-      Spec("Text", ListMap("maxSize" -> ValueSpec(domain.find[Abstract]("Size"), true)))
+      Spec(
+        "Text",
+        "dev.rudiments.another.Plain.Text",
+        ListMap("maxSize" -> ValueSpec(domain.find[Abstract]("Size"), true))
+      )
     )
 
     domain.find[Spec]("Number") should be (
-      Spec("Number", ListMap(
-        "min" -> ValueSpec(domain.find[Abstract]("Size"), true),
-        "max" -> ValueSpec(domain.find[Abstract]("Size"), true),
-        "format" -> ValueSpec(domain.find[Abstract]("NumberFormat"), true)
-      ))
+      Spec(
+        "Number",
+        "dev.rudiments.another.Plain.Number",
+        ListMap(
+          "min" -> ValueSpec(domain.find[Abstract]("Size"), true),
+          "max" -> ValueSpec(domain.find[Abstract]("Size"), true),
+          "format" -> ValueSpec(domain.find[Abstract]("NumberFormat"), true)
+        )
+      )
     )
   }
 
@@ -94,6 +122,7 @@ class DomainSpec extends WordSpec with Matchers {
     domain.find[Spec]("Abstract") should be (
       Spec(
         "Abstract",
+        "dev.rudiments.another.Abstract",
         ListMap(
           "name" -> ValueSpec(ScalaTypes.ScalaString, true)
         )
@@ -105,6 +134,7 @@ class DomainSpec extends WordSpec with Matchers {
     domain.find[Spec]("The") should be (
       Spec(
         "The",
+        "dev.rudiments.another.The",
         ListMap(
           "name" -> ValueSpec(ScalaTypes.ScalaString, true),
 //          "value" -> ValueSpec(typeSystem.find[Spec]("Instance"), false)
@@ -117,8 +147,10 @@ class DomainSpec extends WordSpec with Matchers {
     domain.find[Spec]("Spec") should be (
       Spec(
         "Spec",
+        "dev.rudiments.another.Spec",
         ListMap(
           "name" -> ValueSpec(ScalaTypes.ScalaString, true),
+          "fullName" -> ValueSpec(ScalaTypes.ScalaString, true),
           "fields" -> ValueSpec(Index(ScalaTypes.ScalaString, domain.find[Spec]("ValueSpec")), true)
         )
       )
@@ -129,6 +161,7 @@ class DomainSpec extends WordSpec with Matchers {
     domain.find[Spec]("ValueSpec") should be (
       Spec(
         "ValueSpec",
+        "dev.rudiments.another.ValueSpec",
         ListMap(
           "thing" -> ValueSpec(domain.find[Abstract]("Thing"), true),
           "isRequired" -> ValueSpec(Plain.Bool, true)
@@ -142,6 +175,7 @@ class DomainSpec extends WordSpec with Matchers {
     domain.find[Spec]("Instance") should be (
       Spec(
         "Instance",
+        "dev.rudiments.another.Instance",
         ListMap(
           "spec" -> ValueSpec(domain.find[Spec]("Spec"), true),
           "values" -> ValueSpec(List(The("Anything")), true) //TODO put Anything to Domain
@@ -154,6 +188,7 @@ class DomainSpec extends WordSpec with Matchers {
     domain.find[Spec]("List") should be (
       Spec(
         "List",
+        "dev.rudiments.another.List",
         ListMap(
           "of" -> ValueSpec(domain.find[Abstract]("Thing"), true)
         )
@@ -163,6 +198,7 @@ class DomainSpec extends WordSpec with Matchers {
     domain.find[Spec]("Index") should be (
       Spec(
         "Index",
+        "dev.rudiments.another.Index",
         ListMap(
           "of" -> ValueSpec(domain.find[Abstract]("Thing"), true),
           "over" -> ValueSpec(domain.find[Abstract]("Thing"), true)

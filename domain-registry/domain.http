@@ -28,7 +28,6 @@ Content-Type: application/json
 
 
 ###
-# error
 
 POST http://localhost:8765/api/domain
 Content-Type: application/json
@@ -36,6 +35,7 @@ Content-Type: application/json
 {
   "type": "Spec",
   "name": "SpecExample",
+  "fullName": "dev.rudiments.Examples.SpecExample",
   "fields": {
     "b": {
       "thing": {
@@ -54,6 +54,7 @@ Content-Type: application/json
 {
   "type": "Spec",
   "name": "SpecExample",
+  "fullName": "dev.rudiments.Examples.SpecExample",
   "fields": {
     "a": {
       "thing": {

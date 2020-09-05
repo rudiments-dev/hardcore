@@ -43,8 +43,9 @@ class DomainSkillSpec extends WordSpec with Matchers {
         ID(Seq("SampleSpec")),
         Instance(domain.spec, Seq(
           "SampleSpec",
+          "dev.rudiments.DomainSkillSpec.SampleSpec",
           ListMap(
-            "a" -> ValueSpec(Plain.Bool, true)
+            "a" -> Instance(domain.valueSpec, Seq(The("Bool"), true))
           )
         ))
       )
@@ -53,8 +54,9 @@ class DomainSkillSpec extends WordSpec with Matchers {
         ID(Seq("SampleSpec")),
         Instance(domain.spec, Seq(
           "SampleSpec",
+          "dev.rudiments.DomainSkillSpec.SampleSpec",
           ListMap(
-            "a" -> Instance(domain.valueSpec, Seq(The("Bool"), true))
+            "a" -> Instance(domain.valueSpec, Seq(domain.the.fromProduct(domain.domain, The("Bool")), true))
           )
         ))
       )
@@ -65,8 +67,9 @@ class DomainSkillSpec extends WordSpec with Matchers {
         ID(Seq("SampleSpec")),
         Instance(domain.spec, Seq(
           "SampleSpec",
+          "dev.rudiments.DomainSkillSpec.SampleSpec",
           ListMap(
-            "a" -> Instance(domain.valueSpec, Seq(The("Bool"), true))
+            "a" -> Instance(domain.valueSpec, Seq(domain.the.fromProduct(domain.domain, The("Bool")), true))
           )
         ))
       )

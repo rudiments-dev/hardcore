@@ -54,8 +54,13 @@ class ThingEncoderTest extends WordSpec with Matchers {
 
     encoder.specEncoder("Spec")(value) should be (Json.obj(
       "name" -> Json.fromString("Spec"),
+      "fullName" -> Json.fromString("dev.rudiments.another.Spec"),
       "fields" -> Json.obj(
         "name" -> Json.obj(
+          "thing" -> textJson,
+          "isRequired" -> Json.True
+        ),
+        "fullName" -> Json.obj(
           "thing" -> textJson,
           "isRequired" -> Json.True
         ),
@@ -66,6 +71,7 @@ class ThingEncoderTest extends WordSpec with Matchers {
             "over" -> Json.obj(
               "type" -> Json.fromString("Spec"),
               "name" -> Json.fromString("ValueSpec"),
+              "fullName" -> Json.fromString("dev.rudiments.another.ValueSpec"),
               "fields" -> Json.obj(
                 "thing" -> Json.obj(
                   "thing" -> Json.obj(

@@ -16,6 +16,10 @@ case class Instance(spec: Spec, values: Seq[Any]) extends Ref {
   }.getOrElse {
     throw new IllegalArgumentException(s"Field $field not found")
   }
+
+  def toScala[T]: T = {
+    spec.toScala[T](values: _*)
+  }
 }
 case class ID(values: Seq[Any]) extends Ref
 
@@ -56,6 +60,7 @@ case class The (
 
 case class Spec (
   override val name: String,
+               fullName: String,
                fields: ListMap[String, ValueSpec]
 ) extends Thing(name) {
 
@@ -130,10 +135,29 @@ case class Spec (
     case (t, v) => throw new IllegalArgumentException(s"Incompatible ${t.name} with value $v")
   }
 
-  import scala.reflect.runtime.universe._
-  def toScala[T : TypeTag](system: Domain, args: Any*): T = {
-    val c = Class.forName(typeOf[T].typeSymbol.asClass.fullName)
-    c.getConstructors()(0).newInstance(args.map(_.asInstanceOf[Object]): _*).asInstanceOf[T]
+  def toScala[T](args: Any*): T = {
+    val c = Class.forName(fullName)
+    val unwrapped = args.collect {
+      case i: Instance => i.toScala[Object]
+      case m: Map[_, _] => m.map { case (k, v) => toScalaAsObject(k) -> toScalaAsObject(v) }
+      case i: Iterable[_] => i.map(toScalaAsObject)
+      case other => other.asInstanceOf[Object]
+    }
+
+    if(fullName == "dev.rudiments.another.Spec") {
+      Spec( // nasty hack for case Map -> ListMap
+        unwrapped(0).asInstanceOf[String],
+        unwrapped(1).asInstanceOf[String],
+        ListMap(unwrapped(2).asInstanceOf[Map[String, ValueSpec]].toSeq: _*)
+      ).asInstanceOf[T]
+    } else {
+      c.getConstructors()(0).newInstance(unwrapped: _*).asInstanceOf[T]
+    }
+  }
+
+  def toScalaAsObject(v: Any): Object = v match {
+    case i: Instance => i.toScala[Object]
+    case other => other.asInstanceOf[Object]
   }
 }
 

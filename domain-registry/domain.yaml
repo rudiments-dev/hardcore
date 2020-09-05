@@ -3,7 +3,7 @@ info:
   version: "0.4"
   title: Domain registry API
 servers:
-  - url: http://localhost:8080/api/domain
+  - url: http://localhost:8765/api/domain
 paths:
   /:
     get:
@@ -126,7 +126,12 @@ components:
       allOf:
         - $ref: '#/components/schemas/Thing'
         - type: object
+          required:
+            - fullName
+            - fields
           properties:
+            fullName:
+              type: strings
             fields:
               type: object
               additionalProperties:

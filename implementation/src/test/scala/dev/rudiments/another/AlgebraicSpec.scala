@@ -13,10 +13,15 @@ class AlgebraicSpec extends WordSpec with Matchers {
 
   private val typeA = Abstract("A")
   private val objectB = The("B")
-  private val typeC = Spec("C", ListMap("s" -> ValueSpec(ScalaTypes.ScalaString, true)))
+  private val typeC = Spec(
+    "C",
+    "dev.rudiments.another.C",
+    ListMap("s" -> ValueSpec(ScalaTypes.ScalaString, true))
+  )
 
   private implicit val prototype: Spec = Spec(
     "AlgebraicExample",
+    "dev.rudiments.another.AlgebraicExample",
     ListMap("a" -> ValueSpec(typeA, true))
   )
 
@@ -31,11 +36,11 @@ class AlgebraicSpec extends WordSpec with Matchers {
     scalaType.name should be (prototype.name)
     scalaType.fields should be (prototype.fields)
 
-    scalaType.toScala[AlgebraicExample](domain, B) should be (AlgebraicExample(B))
+    scalaType.toScala[AlgebraicExample](B) should be (AlgebraicExample(B))
     scalaType.fromProduct(domain, AlgebraicExample(B)) should be (Instance(prototype, Seq(objectB)))
 
     val c = C("From scala")
-    scalaType.toScala[AlgebraicExample](domain, c) should be (AlgebraicExample(c))
+    scalaType.toScala[AlgebraicExample](c) should be (AlgebraicExample(c))
     scalaType.fromProduct(domain, AlgebraicExample(c)) should be (Instance(prototype, Seq(typeC.fromProduct(domain, c))))
   }
 }

@@ -45,18 +45,26 @@ class TypeSpec extends WordSpec with Matchers {
   }
 
   "can construct type of type" in {
-    val m = tt.toScala[Spec](domain,"FirstSyntheticType", ListMap(
-      "firstSyntheticField" -> ValueSpec(ScalaTypes.ScalaLong, isRequired = true),
-      "secondSyntheticField" -> ValueSpec(ScalaTypes.ScalaString, isRequired = false)
-    ))
+    val m = tt.toScala[Spec](
+      "FirstSyntheticType",
+      "dev.rudiments.another.TypeSpec.FirstSyntheticType",
+      ListMap(
+        "firstSyntheticField" -> ValueSpec(ScalaTypes.ScalaLong, isRequired = true),
+        "secondSyntheticField" -> ValueSpec(ScalaTypes.ScalaString, isRequired = false)
+      )
+    )
     m should be (domain.makeFromScala[Spec, FirstSyntheticType])
   }
 
   "synthetic type should be able to construct Instance with values of Type" in {
-    val m = tt.toScala[Spec](domain, "FirstSyntheticType", ListMap(
-      "firstSyntheticField" -> ValueSpec(ScalaTypes.ScalaLong, isRequired = true),
-      "secondSyntheticField" -> ValueSpec(ScalaTypes.ScalaString, isRequired = false)
-    ))
+    val m = tt.toScala[Spec](
+      "FirstSyntheticType",
+      "dev.rudiments.another.TypeSpec.FirstSyntheticType",
+      ListMap(
+        "firstSyntheticField" -> ValueSpec(ScalaTypes.ScalaLong, isRequired = true),
+        "secondSyntheticField" -> ValueSpec(ScalaTypes.ScalaString, isRequired = false)
+      )
+    )
     m.instantiate(domain, 42L, Some("Because")) should be (
       Instance(m, Seq(42L, Some("Because")))
     )

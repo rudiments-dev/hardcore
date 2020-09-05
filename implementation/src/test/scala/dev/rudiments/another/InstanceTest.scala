@@ -16,6 +16,7 @@ class InstanceTest extends WordSpec with Matchers {
     domain.find[Spec]("Instance") should be (
       Spec(
         "Instance",
+        "dev.rudiments.another.Instance",
         ListMap(
           "spec" -> ValueSpec(domain.find[Spec]("Spec"), true),
           "values" -> ValueSpec(List(The("Anything")), true)
@@ -52,6 +53,7 @@ class InstanceTest extends WordSpec with Matchers {
         domain.find[Spec]("Spec"),
         Seq(
           "SomeType",
+          "dev.rudiments.another.InstanceTest.SomeType",
           ListMap(
             "f" -> Instance(
               domain.find[Spec]("ValueSpec"),
@@ -87,8 +89,13 @@ class InstanceTest extends WordSpec with Matchers {
         spec,
         Seq(
           "Spec",
+          "dev.rudiments.another.Spec",
           ListMap(
             "name" -> Instance(
+              valueSpec,
+              Seq(textInstance, true)
+            ),
+            "fullName" -> Instance(
               valueSpec,
               Seq(textInstance, true)
             ),

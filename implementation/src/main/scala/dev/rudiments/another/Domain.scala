@@ -106,6 +106,7 @@ case class Domain (
           save(
             Spec(
               name,
+              fullName(t),
               ListMap(t.asClass.primaryConstructor.typeSignature.paramLists.head.collect {
                 case ts: TermSymbol => this.name(ts) -> fieldOf(ts)
               }: _*)),

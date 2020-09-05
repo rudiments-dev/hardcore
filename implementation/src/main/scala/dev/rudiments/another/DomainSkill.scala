@@ -23,9 +23,9 @@ class DomainSkill extends Skill[DataEvent] {
   }
 
   val thingOf: PartialFunction[Instance, Thing] = {
-    case Instance(s, v) if s == abs => abs.toScala[Abstract](domain, v: _*)
-    case Instance(s, v) if s == the => the.toScala[The](domain, v: _*)
-    case Instance(s, v) if s == spec => spec.toScala[Spec](domain, v: _*)
+    case i if i.spec == abs => i.toScala
+    case i if i.spec == the => i.toScala
+    case i if i.spec == spec => i.toScala
     case other => throw new IllegalArgumentException(s"Unexpected Instance $other")
   }
 
