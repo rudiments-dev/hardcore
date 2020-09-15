@@ -1,13 +1,16 @@
 <template>
   <div id="app">
     Vue.js / Tailwind CSS framework
+    <VueJsonPretty/>
   </div>
 </template>
 
 <script>
+import VueJsonPretty from './Card.vue'
+
   export default {
     name: 'App',
-    components: {}
+    components: {VueJsonPretty}
   }
 </script>
 
