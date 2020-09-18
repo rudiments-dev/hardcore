@@ -1,7 +1,11 @@
 <template>
   <div id="app">
-    Vue.js / Tailwind CSS framework
-    <vue-json-pretty :data=types>{{ types }}</vue-json-pretty>
+    /api/domain
+    <vue-json-pretty :collapsed-on-click-brackets="collapsedOnClickBrackets"
+                     :show-length="showLength"
+                     :data=types>
+      {{ types }}
+    </vue-json-pretty>
   </div>
 </template>
 
@@ -31,6 +35,7 @@ export default {
 <style lang="less">
 html, body {
   margin: 0;
+  margin-left: 10px;
   background-color: #f9f9f9;
 }
 .example {
