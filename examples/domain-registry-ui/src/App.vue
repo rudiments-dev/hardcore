@@ -1,21 +1,18 @@
 <template>
   <div id="app">
     /api/domain
-    <vue-json-pretty :collapsed-on-click-brackets="collapsedOnClickBrackets"
-                     :show-length="showLength"
-                     :data=types>
-      {{ types }}
-    </vue-json-pretty>
+  <type-list v-for="type in types" :type="type" :key="type" />
   </div>
 </template>
 
 <script>
-import VueJsonPretty from 'vue-json-pretty'
+
 import axios from 'axios'
+import TypeList from './components/TypeList.vue'
 
 export default {
   name: 'App',
-  components: {VueJsonPretty},
+  components: { TypeList },
   data: () => ({
     types: []
   }),
@@ -23,7 +20,7 @@ export default {
   created() {
     axios.get('http://localhost:8765/api/domain')
     .then(response => {
-      this.types = response
+      this.types = response.data
     })
     .catch(e => {
       this.errors.push(e)

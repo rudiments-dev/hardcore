@@ -10,7 +10,6 @@
 
 <script>
 import VueJsonPretty from 'vue-json-pretty'
-<vue-json-pretty :data="$store.state.catsList"
 export default {
   components: {
     VueJsonPretty
