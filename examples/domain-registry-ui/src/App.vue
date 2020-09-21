@@ -1,22 +1,48 @@
 <template>
   <div id="app">
-    /api/domain
-  <type-list v-for="type in types" :type="type" :key="type" />
+<navigation />
+    <div class="flex flex-wrap flex-grow h-screen">
+      <div class="w-full md:w-1/6 bg-blue-500 p-6 text-left text-gray-200">
+        <ul>
+          <li v-for="type in orderedTypes" :key="type.name"><a href="#" @click="setCurrentType(type.name)">{{ type.name }}</a></li>
+        </ul>
+      </div>
+      <div class="w-full md:w-5/6 p-4 text-left">
+        <type-card :type=currentType />
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 
+import _ from 'lodash'
 import axios from 'axios'
-import TypeList from './components/TypeList.vue'
+import TypeCard from './components/TypeCard.vue'
+import Navigation from './components/Navigation.vue'
 
 export default {
   name: 'App',
-  components: { TypeList },
+  components: { TypeCard, Navigation },
   data: () => ({
-    types: []
+    types: [],
+    currentType: null
   }),
+  methods: {
+    setCurrentType(typeName) {
 
+    var valObj = this.types.filter(function(elem){
+      if(elem.name == typeName) return elem;
+    });
+
+    this.currentType = valObj[0];
+    }
+  },
+  computed: {
+    orderedTypes: function() {
+      return _.orderBy(this.types, 'name')
+    }
+  },
   created() {
     axios.get('http://localhost:8765/api/domain')
     .then(response => {
@@ -32,8 +58,6 @@ export default {
 <style lang="less">
 html, body {
   margin: 0;
-  margin-left: 10px;
-  background-color: #f9f9f9;
 }
 .example {
   position: relative;

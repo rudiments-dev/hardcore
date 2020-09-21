@@ -1,13 +1,11 @@
 <template>
-  <div>
-    <li>{{ type.name }}</li>
-  </div>
+    <li>{{ typeName }}</li>
 </template>
 
 <script>
   export default {
     props: {
-      type: Object
+      typeName: String
     }
   }
 </script>
