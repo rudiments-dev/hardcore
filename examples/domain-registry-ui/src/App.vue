@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-<navigation />
+    <navigation />
     <div class="flex flex-wrap flex-grow h-screen">
       <div class="w-full md:w-1/6 bg-blue-500 p-6 text-left text-gray-200">
         <ul>
