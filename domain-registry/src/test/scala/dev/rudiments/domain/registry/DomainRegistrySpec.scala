@@ -39,10 +39,16 @@ class DomainRegistrySpec extends WordSpec with Matchers with ScalatestRouteTest 
   "get abstract Thing" in {
     Get("/domain/Thing") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(
-        skill.domain.find[Spec]("Abstract"),
-        Seq("Thing")
-      ))
+      responseAs[Instance] should be (Instance(skill.domain.find[Spec]("Abstract"), Seq(
+        "Thing", ListMap(
+          "name" -> Instance(skill.domain.find[Spec]("ValueSpec"), Seq(
+            Instance(skill.domain.find[Spec]("Text"), Seq(
+              Instance(skill.domain.find[Spec]("Big"), Seq(BigDecimal(Int.MaxValue)))
+            )),
+            true
+          ))
+        )
+      )))
     }
   }
 

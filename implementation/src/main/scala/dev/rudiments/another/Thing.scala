@@ -39,7 +39,8 @@ case class ThingRef (
 }
 
 case class Abstract (
-  override val name: String
+  override val name: String,
+               fields: ListMap[String, ValueSpec]
 ) extends Thing(name) {
   override def validate(system: Domain, value: Any): Any = value match {
     case i: Instance => system.afterParent(this, i.spec.name).validate(system, i)
@@ -149,6 +150,11 @@ case class Spec (
         unwrapped(0).asInstanceOf[String],
         unwrapped(1).asInstanceOf[String],
         ListMap(unwrapped(2).asInstanceOf[Map[String, ValueSpec]].toSeq: _*)
+      ).asInstanceOf[T]
+    } else if(fullName == "dev.rudiments.another.Abstract") {
+      Abstract( // nasty hack for case Map -> ListMap
+        unwrapped(0).asInstanceOf[String],
+        ListMap(unwrapped(1).asInstanceOf[Map[String, ValueSpec]].toSeq: _*)
       ).asInstanceOf[T]
     } else {
       c.getConstructors()(0).newInstance(unwrapped: _*).asInstanceOf[T]

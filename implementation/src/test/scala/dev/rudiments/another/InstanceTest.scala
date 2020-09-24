@@ -120,7 +120,7 @@ class InstanceTest extends WordSpec with Matchers {
     val t: Spec = domain.find[Spec]("Abstract")
 
     t.fromProduct(domain, domain.find[Abstract]("SomeAbstract")) should be (
-      Instance(t, Seq("SomeAbstract"))
+      Instance(t, Seq("SomeAbstract", ListMap.empty))
     )
   }
 

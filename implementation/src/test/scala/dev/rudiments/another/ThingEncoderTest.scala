@@ -76,7 +76,13 @@ class ThingEncoderTest extends WordSpec with Matchers {
                 "thing" -> Json.obj(
                   "thing" -> Json.obj(
                     "type" -> Json.fromString("Abstract"),
-                    "name" -> Json.fromString("Thing")
+                    "name" -> Json.fromString("Thing"),
+                    "fields" -> Json.obj(
+                      "name" -> Json.obj(
+                        "thing" -> textJson,
+                        "isRequired" -> Json.True
+                      )
+                    )
                   ),
                   "isRequired" -> Json.True
                 ),
@@ -101,7 +107,19 @@ class ThingEncoderTest extends WordSpec with Matchers {
     val value = spec.fromProduct(domain, t)
 
     encoder.specEncoder("Abstract")(value) should be (Json.obj(
-      "name" -> Json.fromString("Thing")
+      "name" -> Json.fromString("Thing"),
+      "fields" -> Json.obj(
+        "name" -> Json.obj(
+          "thing" -> Json.obj(
+            "type" -> Json.fromString("Text"),
+            "maxSize" -> Json.obj(
+              "type" -> Json.fromString("Big"),
+              "size" -> Json.fromInt(Int.MaxValue)
+            )
+          ),
+          "isRequired" -> Json.True
+        )
+      )
     ))
   }
 

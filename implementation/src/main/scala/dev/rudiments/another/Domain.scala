@@ -64,7 +64,7 @@ case class Domain (
           if (sysType <:< typeOf[EnumEntry]) {
             val ru = runtimeMirror(getClass.getClassLoader)
             val companion = ru.reflectModule(ru.staticModule(sysType.toString)).instance.asInstanceOf[enumeratum.Enum[_ <: EnumEntry]]
-            val root = Abstract(name)
+            val root = Abstract(name, fieldsOf(symbol.asType))
             val p = parents ++ Set(root.name)
             save(root, parents)
             companion.values.map(v => The(v.entryName)).foreach(t => save(t, p))
@@ -96,25 +96,25 @@ case class Domain (
       case Some(found) => found
       case None =>
         if(t.isAbstract) {
-          val root = save(Abstract(name), parents)
-          val p = parents ++ Set(root.name)
-          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s, p) }
+          val root = save(Abstract(name, fieldsOf(t)), parents)
+          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s, parents ++ Set(root.name)) }
           root
         } else if(t.isModuleClass) {
           save(The(name), parents)
         } else if(t.isClass) {
-          save(
-            Spec(
-              name,
-              fullName(t),
-              ListMap(t.asClass.primaryConstructor.typeSignature.paramLists.head.collect {
-                case ts: TermSymbol => this.name(ts) -> fieldOf(ts)
-              }: _*)),
-            parents
-          )
+          save(Spec(name, fullName(t), fieldsOf(t)), parents)
         } else {
           throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
         }
+    }
+  }
+
+  def fieldsOf(t: TypeSymbol): ListMap[String, ValueSpec] = {
+    val paramLists = t.asClass.primaryConstructor.typeSignature.paramLists
+    if(paramLists.isEmpty) {
+      ListMap.empty
+    } else {
+      ListMap(paramLists.head.collect { case ts: TermSymbol => this.name(ts) -> fieldOf(ts) }: _*)
     }
   }
 

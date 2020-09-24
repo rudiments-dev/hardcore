@@ -11,7 +11,7 @@ class AlgebraicSpec extends WordSpec with Matchers {
   private implicit val domain: Domain = Domain()
   private val scalaType: Spec = domain.makeFromScala[Spec, AlgebraicExample]
 
-  private val typeA = Abstract("A")
+  private val typeA = Abstract("A", ListMap.empty)
   private val objectB = The("B")
   private val typeC = Spec(
     "C",

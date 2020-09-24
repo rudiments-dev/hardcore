@@ -1,11 +1,11 @@
 openapi: "3.0.0"
 info:
-  version: "0.4"
+  version: "0.5"
   title: Domain registry API
 servers:
-  - url: http://localhost:8765/api/domain
+  - url: http://localhost:8765/api
 paths:
-  /:
+  /domain:
     get:
       summary: Get all Things in Domain
       operationId: FindAll[Thing]
@@ -37,7 +37,7 @@ paths:
 
 #TODO PUT + Reconcile + Commit/Committed
 
-  /{name}:
+  /domain/{name}:
     parameters:
       - name: name
         in: path
@@ -121,6 +121,14 @@ components:
     Abstract:
       allOf:
         - $ref: '#/components/schemas/Thing'
+        - type: object
+          required:
+            - fields
+          properties:
+            fields:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/ValueSpec'
 
     Spec:
       allOf:

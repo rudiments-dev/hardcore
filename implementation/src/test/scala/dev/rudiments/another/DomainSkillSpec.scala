@@ -18,12 +18,12 @@ class DomainSkillSpec extends WordSpec with Matchers {
   }
 
   "can create Abstract" in {
-    domain(Create(ID(Seq("SampleAbstract")), Instance(domain.abs, Seq("SampleAbstract")))).merge should be (
-      Created(ID(Seq("SampleAbstract")), Instance(domain.abs, Seq("SampleAbstract")))
+    domain(Create(ID(Seq("SampleAbstract")), Instance(domain.abs, Seq("SampleAbstract", ListMap.empty)))).merge should be (
+      Created(ID(Seq("SampleAbstract")), Instance(domain.abs, Seq("SampleAbstract", ListMap.empty)))
     )
 
     domain(Find(ID(Seq("SampleAbstract")))).merge should be (
-      Found(ID(Seq("SampleAbstract")), Instance(domain.abs, Seq("SampleAbstract")))
+      Found(ID(Seq("SampleAbstract")), Instance(domain.abs, Seq("SampleAbstract", ListMap.empty)))
     )
   }
 
@@ -79,27 +79,27 @@ class DomainSkillSpec extends WordSpec with Matchers {
   "update thing" in {
     domain(Update(
       ID(Seq("SampleSingleton")),
-      Instance(domain.abs, Seq("SampleSingleton"))
+      Instance(domain.abs, Seq("SampleSingleton", ListMap.empty))
     )).merge should be (Updated(
       ID(Seq("SampleSingleton")),
       Instance(domain.the, Seq("SampleSingleton")),
-      Instance(domain.abs, Seq("SampleSingleton"))
+      Instance(domain.abs, Seq("SampleSingleton", ListMap.empty))
     ))
 
     domain(Find(ID(Seq("SampleSingleton")))).merge should be (
-      Found(ID(Seq("SampleSingleton")), Instance(domain.abs, Seq("SampleSingleton")))
+      Found(ID(Seq("SampleSingleton")), Instance(domain.abs, Seq("SampleSingleton", ListMap.empty)))
     )
   }
 
   "multiple inserts makes conflict" in {
     domain(Create(ID(Seq("SampleSingleton")), Instance(domain.the, Seq("SampleSingleton")))).merge should be (
-      AlreadyExists(ID(Seq("SampleSingleton")), Instance(domain.abs, Seq("SampleSingleton")))
+      AlreadyExists(ID(Seq("SampleSingleton")), Instance(domain.abs, Seq("SampleSingleton", ListMap.empty)))
     )
   }
 
   "delete thing" in {
     domain(Delete(ID(Seq("SampleSingleton")))).merge should be (
-      Deleted(ID(Seq("SampleSingleton")), Instance(domain.abs, Seq("SampleSingleton")))
+      Deleted(ID(Seq("SampleSingleton")), Instance(domain.abs, Seq("SampleSingleton", ListMap.empty)))
     )
   }
 }

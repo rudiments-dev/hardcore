@@ -31,7 +31,7 @@ class DomainSpec extends WordSpec with Matchers {
     val f = domain.makeFromScala[Spec, SomethingF]
     f.name should be ("SomethingF")
 
-    domain.find[Abstract]("A") should be (Abstract("A"))
+    domain.find[Abstract]("A") should be (Abstract("A", ListMap.empty))
     domain.find[The]("B") should be (The("B"))
     domain.find[Spec]("C") should be (
       Spec(
@@ -41,7 +41,7 @@ class DomainSpec extends WordSpec with Matchers {
       )
     )
 
-    domain.find[Abstract]("F") should be (Abstract("F"))
+    domain.find[Abstract]("F") should be (Abstract("F", ListMap.empty))
     domain.find[Spec]("E") should be (
       Spec(
         "E",
@@ -61,7 +61,7 @@ class DomainSpec extends WordSpec with Matchers {
   "can save all Plain in Domain" in {
     domain.makeFromScala[Thing, Plain] // with all Plain descendants
 
-    domain.find[Abstract]("Plain") should be (Abstract("Plain"))
+    domain.find[Abstract]("Plain") should be (Abstract("Plain", ListMap("name" -> ValueSpec(ScalaTypes.ScalaString, true))))
 
     domain.find[The]("Bool") should be       (The("Bool"))
     domain.find[The]("Date") should be       (The("Date"))
@@ -115,7 +115,7 @@ class DomainSpec extends WordSpec with Matchers {
 
   "can save Thing in Domain" in {
     domain.makeFromScala[Thing, Thing]
-    domain.find[Abstract]("Thing") should be (Abstract("Thing"))
+    domain.find[Abstract]("Thing") should be (Abstract("Thing", ListMap("name" -> ValueSpec(ScalaTypes.ScalaString, true))))
   }
 
   "can save Abstract in Domain" in {
@@ -124,7 +124,8 @@ class DomainSpec extends WordSpec with Matchers {
         "Abstract",
         "dev.rudiments.another.Abstract",
         ListMap(
-          "name" -> ValueSpec(ScalaTypes.ScalaString, true)
+          "name" -> ValueSpec(ScalaTypes.ScalaString, true),
+          "fields" -> ValueSpec(Index(ScalaTypes.ScalaString, domain.find[Spec]("ValueSpec")), true)
         )
       )
     )
