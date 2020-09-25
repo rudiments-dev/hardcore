@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.data.ReadOnly._
-import dev.rudiments.types._
+import dev.rudiments.domain._
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -20,14 +20,14 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
   ) extends DTO
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val typeSystem: TypeSystem = new TypeSystem()
-  private implicit val t: Type = typeSystem.asType[Example]
+  private implicit val domain: Domain = Domain()
+  private implicit val t: Spec = domain.makeFromScala[Spec, Example]
   private val module = SoftModule("example", "id")
   private implicit val en: Encoder[Instance] = module.context.encoder
   private implicit val de: Decoder[Instance] = module.context.decoder
 
   private val routes = Route.seal(module.port.routes)
-  private val sample: Instance = Instance(42L, "sample")
+  private val sample: Instance = Instance(t, Seq(42L, "sample"))
 
   "Module encoder can encode" in {
     module.context.encoder.apply(sample) should be (Json.obj(
@@ -61,13 +61,13 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
   }
 
   "update item in repository" in {
-    Put("/example/42", Instance(42L, "test")) ~> routes ~> check {
+    Put("/example/42", Instance(t, Seq(42L, "test"))) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(42L, "test"))
+      responseAs[Instance] should be (Instance(t, Seq(42L, "test")))
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(42L, "test"))
+      responseAs[Instance] should be (Instance(t, Seq(42L, "test")))
     }
   }
 
@@ -88,25 +88,25 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
 
   "endure 10.000 records" in {
     (1 to 10000).foreach { i =>
-      Post("/example", Instance(i.toLong, s"$i'th element")) ~> routes ~> check {
+      Post("/example", Instance(t, Seq(i.toLong, s"$i'th element"))) ~> routes ~> check {
         response.status should be (StatusCodes.Created)
       }
     }
     module.context.adapter(Count()).merge should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(42L, "42'th element"))
+      responseAs[Instance] should be (Instance(t, Seq(42L, "42'th element")))
     }
   }
 
   "endure 190.000 batch" in {
-    Post("/example", (10001 to 200000).map(i => Instance(i.toLong, s"$i'th element"))) ~> routes ~> check {
+    Post("/example", (10001 to 200000).map(i => Instance(t, Seq(i.toLong, s"$i'th element")))) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       module.context.adapter(Count()).merge should be (Counted(200000))
     }
     Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(10042L, "10042'th element"))
+      responseAs[Instance] should be (Instance(t, Seq(10042L, "10042'th element")))
     }
   }
 

@@ -3,12 +3,11 @@ package dev.rudiments.data
 import dev.rudiments.data.CRUD.Created
 import dev.rudiments.hardcore.{Adapter, Command, Result, Success}
 import dev.rudiments.hardcore.flow.BulkMutated
-import dev.rudiments.types.ID.ID1
-import dev.rudiments.types.{ID, Instance, Type}
+import dev.rudiments.domain.{ID, Instance, Spec}
 
 import scala.collection.parallel
 
-class SoftCache(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
+class SoftCache(implicit spec: Spec) extends Adapter[DataCommand, DataEvent] {
   private implicit val content: parallel.mutable.ParMap[ID, Instance] = parallel.mutable.ParMap.empty[ID, Instance]
 
   override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
@@ -24,7 +23,7 @@ class SoftCache(implicit t: Type) extends Adapter[DataCommand, DataEvent] {
     }
   }
 
-  private val generator = () => ID1(counter)
+  private val generator = () => ID(Seq(counter))
   private var counter: Long = 1
 
   val f: DataSkill = {

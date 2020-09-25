@@ -4,8 +4,7 @@ import dev.rudiments.hardcode.sql.SQLParts.{ColumnWhereExpression, From, Select,
 import dev.rudiments.hardcode.sql.SQLPredicates.{Between, Contains, EndsWith, Equals, Greater, GreaterOrEquals, In, IsNull, Less, LessOrEquals, NotEquals, NotNull, StartsWith}
 import dev.rudiments.hardcode.sql.schema.{Column, Table}
 import dev.rudiments.hardcore.http.query.predicates.{DoubleEquals, DoubleLess, DoubleLessOrEquals, DoubleMore, DoubleMoreOrEquals, FieldPredicate, IntEquals, IntLess, IntLessOrEquals, IntMore, IntMoreOrEquals, IsDefined, IsEmpty, IsFalse, IsTrue, OptionValuePredicate, Predicate, StringContains, StringEndsWith, StringEquals, StringStartsWith}
-import dev.rudiments.types.ID.{ID0, ID1, ID2}
-import dev.rudiments.types.{ID, Type}
+import dev.rudiments.domain.{ID, Spec}
 
 package object actions {
 
@@ -103,36 +102,18 @@ package object actions {
     )
   }
 
-  def idToWhere(table: Table, t: Type): PartialFunction[ID, Where] = {
-    val fieldToColumn = table.columns.map(c => c.name -> c).toMap
-    val function: PartialFunction[ID, Set[WhereExpression]] = {
-      case _: ID0 => throw new UnsupportedOperationException("SoftID0 not supported for where expression")
-      case id: ID1 =>
-        val keys = table.pk.map(_.name)
-        Set(
+  def idToWhere(table: Table, spec: Spec): PartialFunction[ID, Where] = {
+    case id if id.values.isEmpty => throw new UnsupportedOperationException("ID without values not supported for WHERE expression")
+    case id =>
+      val keys = table.pk.map(_.name)
+      Where(
+        id.values.map { it =>
           ColumnWhereExpression(
-            fieldToColumn(keys.head),
-            Equals(id.key)
+            table.columns.map(c => c.name -> c).toMap.apply(keys.head),
+            Equals(it)
           )
-        )
-      case id: ID2 =>
-        val keys = table.pk.map(_.name)
-        Set(
-          ColumnWhereExpression(
-            fieldToColumn(keys.head),
-            Equals(id.key1)
-          ),
-          ColumnWhereExpression(
-            fieldToColumn(keys(1)),
-            Equals(id.key2)
-          )
-        )
-      case other => throw new UnsupportedOperationException(s"Not supported generation for : ${other}")
-    }
-
-    {
-      case id => Where(function(id))
-    }
+        }.toSet
+      )
   }
 
   def partToWhereExpression(table: Table): PartialFunction[Predicate[_], ColumnWhereExpression] = {

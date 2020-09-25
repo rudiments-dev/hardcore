@@ -3,7 +3,7 @@ package dev.rudiments.domain.registry
 import java.sql.{Date, Time, Timestamp}
 
 import dev.rudiments.Defaults
-import dev.rudiments.types.DTO
+import dev.rudiments.domain.DTO
 import enumeratum.{Enum, EnumEntry}
 
 import scala.collection.immutable

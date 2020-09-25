@@ -3,7 +3,7 @@ package dev.rudiments.data
 import dev.rudiments.hardcore.http.query.Query
 import dev.rudiments.hardcore.http.query.interop.InMemoryQueryExecutor
 import dev.rudiments.hardcore.flow.{AlwaysDo, BulkRead, ReadSingle}
-import dev.rudiments.types.{ID, Instance}
+import dev.rudiments.domain.{ID, Instance}
 
 import scala.collection.parallel
 

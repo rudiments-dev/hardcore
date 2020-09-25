@@ -3,7 +3,7 @@ package dev.rudiments.hardcore.flow
 import dev.rudiments.Defaults
 import dev.rudiments.data.CRUD.{Create, Created}
 import dev.rudiments.data.SoftCache
-import dev.rudiments.types.{DTO, ID, Instance, Type, TypeSystem}
+import dev.rudiments.domain._
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.junit.JUnitRunner
@@ -17,19 +17,19 @@ class ControlFlowSpec extends WordSpec with Matchers {
     name: String
   ) extends DTO
 
-  private implicit val typeSystem: TypeSystem = new TypeSystem()
-  private implicit val t: Type = typeSystem.asType[Example]
+  private implicit val domain: Domain = Domain()
+  private implicit val t: Spec = domain.makeFromScala[Spec, Example]
 
   private implicit val flow: ControlFlow = new ControlFlow()
   private val ctrl = new Controlled(new SoftCache)
 
-  private val c1 = Create(ID(1L), Instance(1L, "one"))
-  private val c2 = Create(ID(2L), Instance(2L, "two"))
-  private val c3 = Create(ID(3L), Instance(3L, "three"))
+  private val c1 = Create(ID(Seq(1L)), Instance(t, Seq(1L, "one")))
+  private val c2 = Create(ID(Seq(2L)), Instance(t, Seq(2L, "two")))
+  private val c3 = Create(ID(Seq(3L)), Instance(t, Seq(3L, "three")))
 
-  private val e1 = Created(ID(1L), Instance(1L, "one"))
-  private val e2 = Created(ID(2L), Instance(2L, "two"))
-  private val e3 = Created(ID(3L), Instance(3L, "three"))
+  private val e1 = Created(ID(Seq(1L)), Instance(t, Seq(1L, "one")))
+  private val e2 = Created(ID(Seq(2L)), Instance(t, Seq(2L, "two")))
+  private val e3 = Created(ID(Seq(3L)), Instance(t, Seq(3L, "three")))
 
   "contains no events if no executions" in {
     flow.memory should be (mutable.Queue.empty)

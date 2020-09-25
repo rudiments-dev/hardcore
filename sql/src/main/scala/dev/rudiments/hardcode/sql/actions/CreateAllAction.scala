@@ -5,20 +5,20 @@ import dev.rudiments.data.Batch.{AllCreated, CreateAll}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcode.sql.{Binding, SqlEntity, SqlValue}
 import dev.rudiments.hardcore.Result
-import dev.rudiments.types.Type
+import dev.rudiments.domain.Spec
 import scalikejdbc.{DBSession, SQL}
 
-class CreateAllAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[CreateAll, AllCreated] {
+class CreateAllAction(schema: TypedSchema, spec: Spec)(session: DBSession) extends Action[CreateAll, AllCreated] {
   override def apply(command: CreateAll): Result[AllCreated] = {
     command.batch match {
       case batch if batch.isEmpty => AllCreated(batch).toEither
       case batch =>
         implicit val s = session
-        val table = schema.tables(t)
+        val table = schema.tables(spec)
         val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
         val entities = batch.values.map { entity =>
-          SqlEntity(t.fields.keys.map { field =>
+          SqlEntity(spec.fields.keys.map { field =>
             SqlValue(fieldToColumn(field), entity.extract[Any](field))
           }.toSeq)
         }

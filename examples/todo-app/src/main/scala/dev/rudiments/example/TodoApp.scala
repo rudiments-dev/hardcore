@@ -9,15 +9,15 @@ import dev.rudiments.data.ReadOnly.{Find, Found}
 import dev.rudiments.data.{SoftApp, SoftModule}
 import dev.rudiments.hardcore.http.HttpPorts.DependencyLess
 import dev.rudiments.hardcore.{Command, Error, Event, Failure, Success}
-import dev.rudiments.types._
+import dev.rudiments.domain._
 import io.circe.Encoder
 
 object TodoApp extends App with LazyLogging {
   logger.info("Starting application")
 
   val config = ConfigFactory.load()
-  private implicit val typeSystem: TypeSystem = new TypeSystem()
-  implicit val t: Type = typeSystem.asType[Item]
+  private implicit val domain: Domain = Domain()
+  implicit val t: Spec = domain.makeFromScala[Spec, Item]
 
   import akka.http.scaladsl.server.Directives._
   import dev.rudiments.hardcore.http.CirceSupport._
@@ -72,9 +72,9 @@ object TodoApp extends App with LazyLogging {
     )),
   ))
 
-  todoItemModule.context.adapter(Create(ID(1L), Instance(1L, "TODO Item #1", false, None)))
-  todoItemModule.context.adapter(Create(ID(2L), Instance(2L, "TODO Item #2", true, None)))
-  todoItemModule.context.adapter(Create(ID(3L), Instance(3L, "TODO Item #3", false, Some("comment for #3"))))
+  todoItemModule.context.adapter(Create(ID(Seq(1L)), Instance(t, Seq(1L, "TODO Item #1", false, None))))
+  todoItemModule.context.adapter(Create(ID(Seq(2L)), Instance(t, Seq(2L, "TODO Item #2", true, None))))
+  todoItemModule.context.adapter(Create(ID(Seq(3L)), Instance(t, Seq(3L, "TODO Item #3", false, Some("comment for #3")))))
 
   new SoftApp(ConfigFactory.load(), todoItemModule).init()
 

@@ -6,22 +6,22 @@ import dev.rudiments.data.ReadOnly.Find
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcode.sql.{Binding, SqlEntity, SqlValue}
 import dev.rudiments.hardcore.Result
-import dev.rudiments.types.Type
+import dev.rudiments.domain.{Domain, Spec}
 import scalikejdbc.{DBSession, SQL}
 
-class UpdateAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[Update, Updated] {
+class UpdateAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[Update, Updated] {
   override def apply(command: Update): Result[Updated] = {
     import command.{key, value}
     implicit val s: DBSession = session
-    val table = schema.tables(t)
+    val table = schema.tables(spec)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
     for {
-      toUpdate <- new FindAction(schema, t)(session)(Find(key))
+      toUpdate <- new FindAction(schema, domain, spec)(session)(Find(key))
       _ = {
-        val (whereSQL, whereBindings) = wherePart(idToWhere(table, t)(key))
+        val (whereSQL, whereBindings) = wherePart(idToWhere(table, spec)(key))
 
-        val entity = SqlEntity(t.fields.keys.map { field =>
+        val entity = SqlEntity(spec.fields.keys.map { field =>
           SqlValue(fieldToColumn(field), value.extract[Any](field))
         }.toSeq)
 
@@ -37,7 +37,7 @@ class UpdateAction(schema: TypedSchema, t: Type)(session: DBSession) extends Act
              |""".stripMargin,
         ).bindByName((whereBindings ++ entityBindings).map(Binding.toScalaLikeSQL) :_*).execute().apply()(session)
       }
-      updated <- new FindAction(schema, t)(session)(Find(key)).transform(
+      updated <- new FindAction(schema, domain, spec)(session)(Find(key)).transform(
         f = _ => FailedToUpdate(key, toUpdate.value),
         g = found => Updated(key, toUpdate.value, found.value)
       )

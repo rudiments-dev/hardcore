@@ -7,19 +7,19 @@ import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField, Where}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcore.http.query.{PassAllQuery, PredicatesQuery}
 import dev.rudiments.hardcore.{Result, Success}
-import dev.rudiments.types.Type
+import dev.rudiments.domain.{Domain, Spec}
 import scalikejdbc.{DBSession, SQL}
 
-class QueryAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[FindAll, FoundAll] {
+class QueryAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[FindAll, FoundAll] {
   override def apply(command: FindAll): Result[FoundAll] = {
     import command.query
 
     implicit val s = session
-    val t = query.softType
+    val t = query.spec
     val table = schema.tables(t)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
-    val selectors = t.fields.keys.map { field =>
+    val selectors = spec.fields.keys.map { field =>
       SelectField(
         fieldToColumn(field), None
       )
@@ -27,7 +27,7 @@ class QueryAction(schema: TypedSchema, t: Type)(session: DBSession) extends Acti
 
     val converterFunction = partToWhereExpression(table)
     val instances = query match {
-      case PassAllQuery(softType) =>
+      case PassAllQuery(sp) =>
 
         SQL(
           s"""
@@ -35,10 +35,10 @@ class QueryAction(schema: TypedSchema, t: Type)(session: DBSession) extends Acti
              |FROM ${fromPart(From(schema, table, None))}
              |""".stripMargin
         ).map { rs =>
-          softType.constructFromMap(rs.toMap())
+          sp.fromMap(domain, rs.toMap())
         }.list().apply()
 
-      case PredicatesQuery(parts, softType) =>
+      case PredicatesQuery(parts, sp) =>
         val (whereSQL, whereBindings) = wherePart(Where(parts.map(converterFunction)))
 
         SQL(
@@ -48,7 +48,7 @@ class QueryAction(schema: TypedSchema, t: Type)(session: DBSession) extends Acti
              |WHERE $whereSQL
              |""".stripMargin
         ).bindByName(whereBindings.map(Binding.toScalaLikeSQL): _*).map { rs =>
-          softType.constructFromMap(rs.toMap())
+          sp.fromMap(domain, rs.toMap())
         }.list().apply()
     }
     Success(FoundAll(instances))

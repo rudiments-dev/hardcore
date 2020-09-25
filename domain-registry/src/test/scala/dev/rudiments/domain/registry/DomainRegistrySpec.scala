@@ -4,7 +4,9 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import dev.rudiments.another._
+import dev.rudiments.data.DataHttpPort
+import dev.rudiments.domain._
+import dev.rudiments.hardcore.http.{ThingDecoder, ThingEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -20,19 +22,19 @@ class DomainRegistrySpec extends WordSpec with Matchers with ScalatestRouteTest 
   private implicit val en: Encoder[Instance] = new ThingEncoder(skill.domain).abstractInstanceEncoder("Thing")
   private implicit val de: Decoder[Instance] = new ThingDecoder(skill.domain).abstractInstanceDecoder("Thing")
 
-  private val http = new HttpPort(
+  private val http = new DataHttpPort(
     "domain",
     ScalaTypes.ScalaString,
     i => ID(Seq(i.extract[String]("name"))),
     skill
-  )(en, de)
+  )(skill.domain.makeFromScala[Spec, SomeThing], en, de)
 
   private val routes = Route.seal(http.routes)
 
   "get all Thing in Domain" in {
     Get("/domain") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Seq[Instance]].size should be (26)
+      responseAs[Seq[Instance]].size should be (27)
     }
   }
 
@@ -59,7 +61,7 @@ class DomainRegistrySpec extends WordSpec with Matchers with ScalatestRouteTest 
         skill.domain.find[Spec]("Spec"),
         Seq(
           "The",
-          "dev.rudiments.another.The",
+          "dev.rudiments.domain.The",
           ListMap(
           "name" -> Instance(
             skill.valueSpec,

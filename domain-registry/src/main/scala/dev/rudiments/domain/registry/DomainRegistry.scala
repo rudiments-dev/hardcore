@@ -4,7 +4,9 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import dev.rudiments.another.{DomainSkill, HttpPort, ID, Instance, RootRouter, ScalaTypes, ThingDecoder, ThingEncoder}
+import dev.rudiments.data.DataHttpPort
+import dev.rudiments.domain.{DomainSkill, ID, ScalaTypes, SomeThing, Spec}
+import dev.rudiments.hardcore.http.{RootRouter, ThingDecoder, ThingEncoder}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -15,12 +17,13 @@ object DomainRegistry extends App with LazyLogging {
   val config = ConfigFactory.load()
   val skill = new DomainSkill()
 
-  private val http = new HttpPort(
+  private val http = new DataHttpPort(
     "domain",
     ScalaTypes.ScalaString,
     i => ID(Seq(i.extract[String]("name"))),
     skill
   )(
+    skill.domain.makeFromScala[Spec, SomeThing],
     new ThingEncoder(skill.domain).abstractInstanceEncoder("Thing"),
     new ThingDecoder(skill.domain).abstractInstanceDecoder("Thing")
   )
