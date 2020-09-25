@@ -1,6 +1,6 @@
 package dev.rudiments.hardcode.sql.schema
 
-import dev.rudiments.types.DTO
+import dev.rudiments.domain.DTO
 
 case class FK(from: Table, to: Table, references: Map[Column, Column]) extends DTO {
   override def toString: String = {

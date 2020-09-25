@@ -6,18 +6,17 @@ import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcore.Result
-import dev.rudiments.types.{ID, Type}
+import dev.rudiments.domain.{Domain, ID, Spec}
 import scalikejdbc.{DBSession, SQL}
 
-class FindAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[Find, Found] {
+class FindAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[Find, Found] {
   override def apply(command: Find): Result[Found] = {
     import command.key
     implicit val s = session
-    val t = key.t
-    val table = schema.tables(t)
+    val table = schema.tables(spec)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
-    val select = Select(t.fields.keys.map { field =>
+    val select = Select(spec.fields.keys.map { field =>
       SelectField(
         fieldToColumn(field), None
       )
@@ -25,7 +24,7 @@ class FindAction(schema: TypedSchema, t: Type)(session: DBSession) extends Actio
 
     val from = From(schema, table, None)
 
-    val (whereSQL, bindings) = wherePart(idToWhere(table, t)(key))
+    val (whereSQL, bindings) = wherePart(idToWhere(table, spec)(key))
 
     SQL(
       s"""
@@ -34,7 +33,7 @@ class FindAction(schema: TypedSchema, t: Type)(session: DBSession) extends Actio
          |WHERE $whereSQL
          |""".stripMargin,
     ).bindByName(bindings.map(Binding.toScalaLikeSQL) : _*).map { rs =>
-      t.constructFromMap(rs.toMap())
+      spec.fromMap(domain, rs.toMap())
     }.single().apply() match {
       case Some(value) => Found(key, value).toEither
       case None => NotFound(key).toEither

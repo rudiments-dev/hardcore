@@ -6,23 +6,23 @@ import akka.http.scaladsl.server.{Route, StandardRoute}
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.{Event, Failure, PortWithoutDependency, Result, Skill, Success}
 import dev.rudiments.hardcore.http.query.Directives
-import dev.rudiments.hardcore.http.{IDPath, InstanceEncoder, Router}
-import dev.rudiments.types.{Instance, Type, TypeSystem}
+import dev.rudiments.hardcore.http.{IDPath, Router, ThingEncoder}
+import dev.rudiments.domain.{Domain, Instance, Spec}
 import io.circe.Encoder
 
 class ReadOnlyHttpPort(
   prefix: String,
   idField: String,
   override val s: Skill[DataEvent]
-)(implicit t: Type, typeSystem: TypeSystem) extends PortWithoutDependency(s) with Router {
+)(implicit spec: Spec, domain: Domain) extends PortWithoutDependency(s) with Router {
 
-  private implicit val encoder: Encoder[Instance] = new InstanceEncoder(typeSystem)(t)
-  private val idPath = IDPath(t.fields(idField).`type`)(t)
+  private implicit val encoder: Encoder[Instance] = new ThingEncoder(domain).specEncoder(spec)
+  private val idPath = IDPath(spec.fields(idField).thing)
 
   override val routes: Route = pathPrefix(prefix) {
     get {
       pathEndOrSingleSlash {
-        Directives.query(t) { query =>
+        Directives.query(spec) { query =>
           responseWith(s(FindAll(query)))
         }
       } ~ idPath { id =>

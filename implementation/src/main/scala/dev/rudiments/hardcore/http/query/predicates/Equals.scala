@@ -1,7 +1,6 @@
 package dev.rudiments.hardcore.http.query.predicates
 
 import scala.util.matching.Regex
-import scala.reflect.runtime.universe.TypeTag
 
 private[predicates] sealed trait Equals[T] extends FieldPredicate[T]
 

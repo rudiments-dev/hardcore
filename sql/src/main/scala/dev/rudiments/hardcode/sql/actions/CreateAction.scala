@@ -6,17 +6,17 @@ import dev.rudiments.data.ReadOnly.{Find, NotFound}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcode.sql.{Binding, SqlEntity, SqlValue}
 import dev.rudiments.hardcore.Result
-import dev.rudiments.types.Type
+import dev.rudiments.domain.{Domain, Spec}
 import scalikejdbc.{DBSession, SQL}
 
 
-class CreateAction(schema: TypedSchema, t: Type)(session: DBSession) extends Action[Create, Created] {
+class CreateAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[Create, Created] {
   override def apply(command: Create): Result[Created] = {
     import command.{key, value}
-    val table = schema.tables(t)
+    val table = schema.tables(spec)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
-    val entity = SqlEntity(t.fields.keys.map { field =>
+    val entity = SqlEntity(spec.fields.keys.map { field =>
       SqlValue(fieldToColumn(field), value.extract[Any](field))
     }.toSeq)
 
@@ -24,7 +24,7 @@ class CreateAction(schema: TypedSchema, t: Type)(session: DBSession) extends Act
     val fields: Seq[String] = entity.values.map(_.column.name)
 
     for {
-      _ <- new FindAction(schema, t)(session)(Find(key)).map {
+      _ <- new FindAction(schema, domain, spec)(session)(Find(key)).map {
         found => AlreadyExists(found.key, found.value)
       }.expecting[NotFound]
       _ = {
@@ -37,7 +37,7 @@ class CreateAction(schema: TypedSchema, t: Type)(session: DBSession) extends Act
              |""".stripMargin
         ).bindByName(bindings :_*).execute().apply()(session)
       }
-      created <- new FindAction(schema, t)(session)(Find(key)).transform(
+      created <- new FindAction(schema, domain, spec)(session)(Find(key)).transform(
         _ => FailedToCreate(key, value),
         found => Created(found.key, found.value)
       )

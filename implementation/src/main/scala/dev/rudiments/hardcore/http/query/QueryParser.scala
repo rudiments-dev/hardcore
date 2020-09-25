@@ -1,37 +1,36 @@
 package dev.rudiments.hardcore.http.query
 
+import dev.rudiments.domain._
 import dev.rudiments.hardcore.http.query.predicates._
-import dev.rudiments.types._
-
 
 object QueryParser {
 
   import dev.rudiments.hardcore.http.query.predicates.TypeTransformers._
 
-  def parse(httpParams: HttpParams, softType: dev.rudiments.types.Type): Either[RuntimeException, Query] = {
+  def parse(httpParams: HttpParams, spec: dev.rudiments.domain.Spec): Either[RuntimeException, Query] = {
     if (httpParams.query.isEmpty) {
-      Right(PassAllQuery(softType))
+      Right(PassAllQuery(spec))
     } else {
-      val types: Map[String, Field] = softType.fields
+      val types: Map[String, ValueSpec] = spec.fields
 
       val predicates: Seq[Either[RuntimeException, Predicate[_]]] = httpParams.parts.map { part =>
         val tt = types(part.fieldName)
         recurs(tt, part)
       }
 
-      sequence(predicates).map(_.toSet).map(PredicatesQuery(_, softType))
+      sequence(predicates).map(_.toSet).map(PredicatesQuery(_, spec))
     }
   }
 
-  private def recurs(field: Field, part: Param):Either[RuntimeException, FieldPredicate[_]] = {
+  private def recurs(field: ValueSpec, part: Param):Either[RuntimeException, FieldPredicate[_]] = {
 
     val result: Option[FieldPredicate[_]] = if(field.isRequired) {
-      field.`type` match {
-        case of: Type =>
+      field.thing match {
+        case of: Spec =>
           val p = Param(
             part.text.replaceFirst(part.fieldName + ".", "")
           )
-          val relativeTypes: Map[String, Field] = of.fields
+          val relativeTypes: Map[String, ValueSpec] = of.fields
           recurs(relativeTypes(p.fieldName), p).toOption.flatMap(ProductFieldPredicate.create(part.text, _))
         case _ =>
           val fabrics = fieldPossiblePredicates(field)
@@ -49,8 +48,8 @@ object QueryParser {
     result.toRight(left = new RuntimeException(s"unsupported format: ${part.text}"))
   }
 
-  private def fieldPossiblePredicates(field: Field): Seq[String => Option[FieldPredicate[_]]] =
-    field.`type` match {
+  private def fieldPossiblePredicates(field: ValueSpec): Seq[String => Option[FieldPredicate[_]]] =
+    field.thing match {
       case Plain.Bool => Seq(BooleanEquals.create)
       case Plain.Text(maxSize) => Seq(
         StringStartsWith.create,

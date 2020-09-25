@@ -1,11 +1,13 @@
 package dev.rudiments.hardcore.http.query
 
+import dev.rudiments.domain.Size._
+import dev.rudiments.domain._
 import dev.rudiments.hardcore.http.query.predicates.{IntEquals, IntLess, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StringEquals, StringStartsWith}
-import dev.rudiments.types.NumberSize.{Infinity, NegativeInfinity, PositiveInfinity}
-import dev.rudiments.types.{DTO, Field, NumberFormat, Plain, Type}
 import org.scalatest.{Matchers, WordSpec}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+
+import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class QueryParserTest extends WordSpec with Matchers {
@@ -13,13 +15,32 @@ class QueryParserTest extends WordSpec with Matchers {
   case class Baz(f: Int) extends DTO
   case class Foo(a: Int, b: String, d: Option[Option[Int]], baz: Option[Baz] = Some(Baz(1))) extends DTO
 
-  val bazType: Type = Type("Baz", Map("f" -> Field("f", Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true)))
-  val fooType: Type = Type("Foo", Map(
-    "a" -> Field("a", Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true),
-    "b" -> Field("b", Plain.Text(Infinity), true),
-    "d" -> Field("d", Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), false),
-    "baz" -> Field("baz", bazType, false),
-  ))
+  val domain: Domain = Domain()
+
+  val bazType: Spec = domain.save(
+    Spec(
+      "Baz",
+      "dev.rudiments.hardcore.http.query.QueryParserTest.Baz",
+      ListMap(
+        "f" -> ValueSpec(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true)
+      )
+    ),
+    Set.empty
+  )
+
+  val fooType: Spec = domain.save(
+    Spec(
+      "Foo",
+      "dev.rudiments.hardcore.http.query.QueryParserTest.Foo",
+      ListMap(
+        "a" -> ValueSpec(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), true),
+        "b" -> ValueSpec(Plain.Text(Infinity), true),
+        "d" -> ValueSpec(Plain.Number(NegativeInfinity, PositiveInfinity, NumberFormat.Integer), false),
+        "baz" -> ValueSpec(bazType, false)
+      )
+    ),
+    Set.empty
+  )
 
   "parse equals expression" in {
     val params = HttpParams("b=eq:hi")

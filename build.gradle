@@ -15,7 +15,7 @@ buildscript {
 
 apply plugin: 'com.palantir.git-version'
 
-def base_version = '0.3-SNAPSHOT'
+def base_version = '0.4-SNAPSHOT'
 def details = versionDetails()
 ext.calculated_version = project.hasProperty("tagged-build") ? details.lastTag + "-" + base_version: base_version
 

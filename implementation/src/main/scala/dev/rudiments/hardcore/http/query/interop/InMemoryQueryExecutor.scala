@@ -3,7 +3,7 @@ package dev.rudiments.hardcore.http.query.interop
 
 import dev.rudiments.hardcore.http.query.{PassAllQuery, PredicatesQuery, Query}
 import dev.rudiments.hardcore.http.query.predicates.{DoubleEquals, DoubleLess, DoubleLessOrEquals, DoubleMore, DoubleMoreOrEquals, FieldPredicate, IntEquals, IntLess, IntLessOrEquals, IntMore, IntMoreOrEquals, IsDefined, IsEmpty, OptionValuePredicate, Predicate, ProductFieldPredicate, StringContains, StringEndsWith, StringEquals, StringStartsWith}
-import dev.rudiments.types.Instance
+import dev.rudiments.domain.Instance
 
 
 object InMemoryQueryExecutor {

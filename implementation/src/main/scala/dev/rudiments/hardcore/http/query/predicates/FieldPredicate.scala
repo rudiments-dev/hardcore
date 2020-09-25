@@ -1,6 +1,5 @@
 package dev.rudiments.hardcore.http.query.predicates
 
-import scala.reflect.runtime.universe.TypeTag
 import scala.util.matching.Regex
 
 trait Predicate[T] {}

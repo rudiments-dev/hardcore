@@ -1,0 +1,10 @@
+dependencies {
+    compile project(':implementation')
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+}
+
+task runDomain(type: JavaExec, dependsOn: classes) {
+    classpath sourceSets.main.runtimeClasspath
+    main = 'dev.rudiments.domain.registry.DomainRegistry'
+    standardInput = System.in
+}
