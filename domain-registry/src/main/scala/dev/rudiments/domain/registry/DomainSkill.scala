@@ -1,8 +1,9 @@
-package dev.rudiments.domain
+package dev.rudiments.domain.registry
 
 import dev.rudiments.data.CRUD._
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.data.DataEvent
+import dev.rudiments.domain._
 import dev.rudiments.hardcore.http.query.interop.InMemoryQueryExecutor
 import dev.rudiments.hardcore.{Command, Result, Skill}
 

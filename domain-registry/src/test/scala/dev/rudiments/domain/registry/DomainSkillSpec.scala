@@ -1,7 +1,8 @@
-package dev.rudiments.domain
+package dev.rudiments.domain.registry
 
-import dev.rudiments.data.ReadOnly._
 import dev.rudiments.data.CRUD._
+import dev.rudiments.data.ReadOnly._
+import dev.rudiments.domain.{ID, Instance, The}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}

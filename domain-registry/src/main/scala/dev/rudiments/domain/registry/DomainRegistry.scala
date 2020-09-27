@@ -5,14 +5,14 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.data.DataHttpPort
-import dev.rudiments.domain.{DomainSkill, ID, ScalaTypes, SomeThing, Spec}
+import dev.rudiments.domain.{ID, ScalaTypes, SomeThing, Spec}
 import dev.rudiments.hardcore.http.{RootRouter, ThingDecoder, ThingEncoder}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
 object DomainRegistry extends App with LazyLogging {
-  logger.info("Starting application")
+  logger.info("Configuring application")
 
   val config = ConfigFactory.load()
   val skill = new DomainSkill()
@@ -34,9 +34,10 @@ object DomainRegistry extends App with LazyLogging {
 
   val router: RootRouter = new RootRouter(config, http)
 
-  init()
+  logger.info("Starting application")
+  run()
 
-  def init(): Unit = {
+  def run(): Unit = {
     try {
       router.bind()
     } catch {
@@ -44,10 +45,10 @@ object DomainRegistry extends App with LazyLogging {
         logger.error("Error while initializing app, shutdown", e)
         actorSystem.terminate().onComplete {
           case Success(t) =>
-            logger.info("Terminated {}", t)
+            logger.info("Terminated {} after error", t, e)
             sys.exit(-1)
           case Failure(err) =>
-            logger.error("Termination failed with error", err)
+            logger.error("Termination failed with error {} after error", err, e)
             sys.exit(-2)
         }
     }
