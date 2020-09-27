@@ -61,7 +61,7 @@ case class Complicated2(
   e: Sample1,
   f: Option[Sample1],
   g: Set[Sample1],
-  h: Map[String, Sample1],
+  h: Map[String, Sample1]
 ) extends DTO
 
 case class Complicated3(

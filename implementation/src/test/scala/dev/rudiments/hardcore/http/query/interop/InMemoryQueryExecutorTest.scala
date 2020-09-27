@@ -13,12 +13,13 @@ import scala.collection.immutable.ListMap
 @RunWith(classOf[JUnitRunner])
 class InMemoryQueryExecutorTest extends WordSpec with Matchers {
 
-  private val domain: Domain = Domain()
+  private val domain: Domain = new Domain
 
   case class Baz(f: Int) extends DTO
   case class Foo(a: Int, b: String, d: Option[Int] = None, baz: Option[Baz] = None) extends DTO
 
   val bazType: Spec = domain.save(
+    "Baz",
     Spec(
       "Baz",
       "dev.rudiments.hardcore.http.query.interop.InMemoryQueryExecutorTest.Baz",
@@ -28,6 +29,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
   )
 
   val fooType: Spec = domain.save(
+    "Foo",
     Spec(
       "Foo",
       "dev.rudiments.hardcore.http.query.interop.InMemoryQueryExecutorTest.Foo",
@@ -35,7 +37,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
         "a" -> ValueSpec(ScalaInt, true),
         "b" -> ValueSpec(ScalaString, true),
         "d" -> ValueSpec(ScalaInt, false),
-        "baz" -> ValueSpec(bazType, false),
+        "baz" -> ValueSpec(bazType, false)
       )
     ),
     Set.empty
@@ -96,7 +98,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
     val result = InMemoryQueryExecutor(query)(input)
 
     result should be (Seq(
-      Foo(3, "hi", Some(1)),
+      Foo(3, "hi", Some(1))
     ).map(fooType.fromProduct(domain, _)))
   }
 
@@ -163,7 +165,7 @@ class InMemoryQueryExecutorTest extends WordSpec with Matchers {
 
     val result = InMemoryQueryExecutor(query)(input)
     result should be (Seq(
-      Foo(4, "bay", Some(1), Some(Baz(1))),
+      Foo(4, "bay", Some(1), Some(Baz(1)))
     ).map(fooType.fromProduct(domain, _)))
   }
 

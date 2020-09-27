@@ -10,14 +10,14 @@ import dev.rudiments.data.ReadOnly._
 import dev.rudiments.domain.{ID, Instance, Spec, Thing}
 import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.http.query.Directives
-import dev.rudiments.hardcore.{Failure, PortWithoutDependency, Result, Skill, Success}
+import dev.rudiments.hardcore.{Event, Message, PortWithoutDependency, Skill}
 import io.circe.{Decoder, Encoder}
 
 class DataHttpPort(
   prefix: String,
   idField: Thing,
   identify: Instance => ID,
-  override val s: Skill[DataEvent],
+  override val s: Skill,
   customRoutes: Seq[(String, Router)] = Seq.empty,
   customIdRoutes: Seq[(String, ID => Router)] = Seq.empty
 )(implicit spec: Spec, en: Encoder[Instance], de: Decoder[Instance]) extends PortWithoutDependency(s) with Router with FailFastCirceSupport {
@@ -28,7 +28,7 @@ class DataHttpPort(
       GetDirectivePort(Directives.query(spec), FindAll.apply, s, responseWith),
       PostPort((value: Instance) => Create(identify(value), value), s, responseWith),
       PostPort((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
-      PutPort((batch: Seq[Instance]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
+      PutPort((batch: Seq[Instance]) => Reconcile(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
       DeletePort(DeleteAll(), s, responseWith),
       CompositeRouter(customRoutes.map { case (p, r) => PrefixRouter(p, r) } : _*)
     ),
@@ -41,21 +41,19 @@ class DataHttpPort(
     )
   ).routes
 
-  def responseWith(event: Result[DataEvent]): StandardRoute = event match {
-    case Success(Created(_, value)) =>        complete(StatusCodes.Created, value)
-    case Success(Found(_, value)) =>          complete(StatusCodes.OK, value)
-    case Success(FoundAll(values)) =>         complete(StatusCodes.OK, values)
-    case Success(Updated(_, _, newValue)) =>  complete(StatusCodes.OK, newValue)
-    case Success(Deleted(_, _)) =>            complete(StatusCodes.NoContent)
+  def responseWith(event: Message): StandardRoute = event match {
+    case Created(_, value) =>        complete(StatusCodes.Created, value)
+    case Found(_, value) =>          complete(StatusCodes.OK, value)
+    case FoundAll(values) =>         complete(StatusCodes.OK, values)
+    case Updated(_, _, newValue) =>  complete(StatusCodes.OK, newValue)
+    case Deleted(_, _) =>            complete(StatusCodes.NoContent)
 
-    case Success(AllCreated(_)) =>            complete(StatusCodes.Created)
-    case Success(AllReplaced(_)) =>           complete(StatusCodes.Created)
-    case Success(AllDeleted()) =>             complete(StatusCodes.NoContent)
+    case Commit(_) =>                complete(StatusCodes.OK) //TODO report amount of created/updated/deleted
 
-    case Failure(NotFound(_)) =>              complete(StatusCodes.NotFound)
-    case Failure(AlreadyExists(_, _)) =>      complete(StatusCodes.Conflict)
+    case NotFound(_) =>              complete(StatusCodes.NotFound)
+    case AlreadyExists(_, _) =>      complete(StatusCodes.Conflict)
 
-    case Failure(_: Error) =>                 complete(StatusCodes.InternalServerError)
+    case _: Error =>                 complete(StatusCodes.InternalServerError)
     case _ =>                                 complete(StatusCodes.InternalServerError)
   }
 }

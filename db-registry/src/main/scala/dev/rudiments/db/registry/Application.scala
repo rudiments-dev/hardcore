@@ -18,7 +18,7 @@ object Application extends App with LazyLogging {
   implicit val actorSystem: ActorSystem = ActorSystem()
   implicit val ec: ExecutionContext = actorSystem.dispatcher
   implicit val mat: ActorMaterializer = ActorMaterializer()
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
 
   implicit val spec: Spec = domain.makeFromScala[Spec, Schema]
 

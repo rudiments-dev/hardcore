@@ -44,7 +44,7 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
   ) extends DTO
 
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
   private implicit val t: Spec = domain.makeFromScala[Spec, Example] //todo fix primary keys
   private implicit val en: Encoder[Instance] = new ThingEncoder(domain).specEncoder(t)
   private implicit val de: Decoder[Instance] = new ThingDecoder(domain).specDecoder(t)
@@ -169,7 +169,7 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
       }
     }
     using(DBSession(pool.borrow())) { session =>
-      repoFunction(session)(Count()).merge should be(Counted(100))
+      repoFunction(session)(Count()) should be(Counted(100))
     }
   }
 
@@ -195,7 +195,7 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
     Delete("/example") ~> routes ~> check {
       response.status should be(StatusCodes.NoContent)
       using(DBSession(pool.borrow())) { session =>
-        repoFunction(session)(Count()).merge should be(Counted(0))
+        repoFunction(session)(Count()) should be(Counted(0))
       }
     }
   }

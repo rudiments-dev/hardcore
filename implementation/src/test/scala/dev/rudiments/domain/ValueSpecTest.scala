@@ -7,7 +7,7 @@ import org.scalatest.{Matchers, WordSpec}
 
 @RunWith(classOf[JUnitRunner])
 class ValueSpecTest extends WordSpec with Matchers {
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
   val t: Spec = domain.makeFromScala[Spec, Example]
 
   "Type transforms all basic types to BasicTypes" in {
@@ -47,7 +47,7 @@ class ValueSpecTest extends WordSpec with Matchers {
       "optTime" ->          ValueSpec(Plain.Time,       isRequired = false),
 
       "uuid" ->     ValueSpec(Plain.UUID, isRequired = true),
-      "optUuid" ->  ValueSpec(Plain.UUID, isRequired = false),
+      "optUuid" ->  ValueSpec(Plain.UUID, isRequired = false)
     ))
   }
 

@@ -20,7 +20,7 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
   ) extends DTO
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
   private implicit val t: Spec = domain.makeFromScala[Spec, Example]
   private val module = SoftModule("example", "id")
   private implicit val en: Encoder[Instance] = module.context.encoder
@@ -92,7 +92,7 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
         response.status should be (StatusCodes.Created)
       }
     }
-    module.context.adapter(Count()).merge should be (Counted(10000))
+    module.context.adapter(Count()) should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (Instance(t, Seq(42L, "42'th element")))
@@ -101,8 +101,8 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
 
   "endure 190.000 batch" in {
     Post("/example", (10001 to 200000).map(i => Instance(t, Seq(i.toLong, s"$i'th element")))) ~> routes ~> check {
-      response.status should be (StatusCodes.Created)
-      module.context.adapter(Count()).merge should be (Counted(200000))
+      response.status should be (StatusCodes.OK)
+      module.context.adapter(Count()) should be (Counted(200000))
     }
     Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
@@ -112,8 +112,8 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
 
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
-      response.status should be (StatusCodes.NoContent)
-      module.context.adapter(Count()).merge should be (Counted(0))
+      response.status should be (StatusCodes.OK)
+      module.context.adapter(Count()) should be (Counted(0))
     }
   }
 

@@ -6,15 +6,14 @@ import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField, Where}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcore.http.query.{PassAllQuery, PredicatesQuery}
-import dev.rudiments.hardcore.{Result, Success}
 import dev.rudiments.domain.{Domain, Spec}
 import scalikejdbc.{DBSession, SQL}
 
 class QueryAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[FindAll, FoundAll] {
-  override def apply(command: FindAll): Result[FoundAll] = {
+  override def apply(command: FindAll): FoundAll = {
     import command.query
 
-    implicit val s = session
+    implicit val s: DBSession = session
     val t = query.spec
     val table = schema.tables(t)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
@@ -51,6 +50,6 @@ class QueryAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSe
           sp.fromMap(domain, rs.toMap())
         }.list().apply()
     }
-    Success(FoundAll(instances))
+    FoundAll(instances)
   }
 }

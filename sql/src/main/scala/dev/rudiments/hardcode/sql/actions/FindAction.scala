@@ -5,12 +5,12 @@ import dev.rudiments.data.ReadOnly.{Find, Found, NotFound}
 import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
-import dev.rudiments.hardcore.Result
 import dev.rudiments.domain.{Domain, ID, Spec}
+import dev.rudiments.hardcore.Message
 import scalikejdbc.{DBSession, SQL}
 
 class FindAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[Find, Found] {
-  override def apply(command: Find): Result[Found] = {
+  override def apply(command: Find): Message = {
     import command.key
     implicit val s = session
     val table = schema.tables(spec)
@@ -35,8 +35,8 @@ class FindAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSes
     ).bindByName(bindings.map(Binding.toScalaLikeSQL) : _*).map { rs =>
       spec.fromMap(domain, rs.toMap())
     }.single().apply() match {
-      case Some(value) => Found(key, value).toEither
-      case None => NotFound(key).toEither
+      case Some(value) => Found(key, value)
+      case None => NotFound(key)
     }
   }
 }

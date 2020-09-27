@@ -8,7 +8,7 @@ paths:
   /domain:
     get:
       summary: Get all Things in Domain
-      operationId: FindAll[Thing]
+      operationId: FindAll[Type]
       responses:
         200:
           description: List of All Things
@@ -17,25 +17,23 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/AnyThing'
+                  $ref: '#/components/schemas/Type'
     post:
-      summary: Create a Thing
-      operationId: Create[Thing]
+      summary: Create a Type
+      operationId: Create[Type]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AnyThing'
+              $ref: '#/components/schemas/Type'
       responses:
         201:
-          description: Thing crated
+          description: Type crated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AnyThing'
-
-#TODO PUT + Reconcile + Commit/Committed
+                $ref: '#/components/schemas/Type'
 
   /domain/{name}:
     parameters:
@@ -47,64 +45,71 @@ paths:
           type: string
 
     get:
-      summary: Retrieve the Thing
-      operationId: Find[Thing]
+      summary: Retrieve the Type
+      operationId: Find[Type]
       responses:
         200:
-          description: Get the Thing
+          description: Get the Type
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AnyThing'
+                $ref: '#/components/schemas/Type'
 
     put:
-      summary: Update the Thing
-      operationId: Update[Thing]
+      summary: Update the Type
+      operationId: Update[Type]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AnyThing'
+              $ref: '#/components/schemas/Type'
       responses:
         200:
-          description: Thing updated
+          description: Type updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AnyThing'
+                $ref: '#/components/schemas/Type'
 
     delete:
-      summary: Delete the Thing
-      operationId: Delete[Thing]
+      summary: Delete the Type
+      operationId: Delete[Type]
       responses:
         200:
           description: Thing deleted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AnyThing'
+                $ref: '#/components/schemas/Type'
 
 components:
   schemas:
-    ThingRef:
+
+    Thing:
       type: object
+      required:
+        - name
       properties:
         name:
           type: string
-          required: true
 
-    Thing:
-      allOf:
-        - $ref: '#/components/schemas/ThingRef'
-#        - type: object
-#          properties:
-#            is:
-#              type: array
-#              required: true
-#              default: []
-#              items:
-#                $ref: '#/components/schemas/ThingRef'
+    Type:
+      type: object
+      required:
+        - name
+        - thing
+        - is
+      properties:
+        name:
+          type: string
+        thing:
+          $ref: '#/components/schemas/AnyThing'
+        is:
+          type: array
+          items:
+            type: string
+
 
     AnyThing:
       oneOf:
@@ -168,22 +173,20 @@ components:
 #        default:
 #          $ref: '#/components/schemas/Instance'
 
-    Instance:
-      type: object
-      required:
-        - fields
-        - type
-      properties:
-        spec:
-          $ref: '#/components/schemas/Spec'
-        values:
-          type: array
-          items:
-            oneOf:
-              - type: string
-              - type: number
-              - type: boolean
-              - type: array
-              - type: object
-
-
+#    Instance:
+#      type: object
+#      required:
+#        - fields
+#        - type
+#      properties:
+#        spec:
+#          $ref: '#/components/schemas/Spec'
+#        values:
+#          type: array
+#          items:
+#            oneOf:
+#              - type: string
+#              - type: number
+#              - type: boolean
+#              - type: array
+#              - type: object

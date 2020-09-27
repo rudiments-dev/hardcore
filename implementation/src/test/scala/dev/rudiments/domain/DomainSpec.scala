@@ -22,7 +22,7 @@ class DomainSpec extends WordSpec with Matchers {
   case class SomethingA(a: A) extends DTO
   case class SomethingF(f: F) extends DTO
 
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
 
   "can save cross-dependent ADT into type system" in {
     val t = domain.makeFromScala[Spec, SomethingA]
@@ -73,7 +73,7 @@ class DomainSpec extends WordSpec with Matchers {
       Set(
         The("Integer"),
         The("Float"),
-        The("Decimal"),
+        The("Decimal")
       )
     )
 
@@ -88,7 +88,7 @@ class DomainSpec extends WordSpec with Matchers {
         ),
         The("Infinity"),
         The("PositiveInfinity"),
-        The("NegativeInfinity"),
+        The("NegativeInfinity")
       )
     )
 
@@ -137,7 +137,7 @@ class DomainSpec extends WordSpec with Matchers {
         "The",
         "dev.rudiments.domain.The",
         ListMap(
-          "name" -> ValueSpec(ScalaTypes.ScalaString, true),
+          "name" -> ValueSpec(ScalaTypes.ScalaString, true)
 //          "value" -> ValueSpec(typeSystem.find[Spec]("Instance"), false)
         )
       )

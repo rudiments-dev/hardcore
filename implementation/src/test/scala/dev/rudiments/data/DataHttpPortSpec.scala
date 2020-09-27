@@ -21,7 +21,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
   ) extends DTO
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
   private implicit val t: Spec = domain.makeFromScala[Spec, Example]
   private val cache: SoftCache = new SoftCache
 
@@ -101,7 +101,7 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
         response.status should be (StatusCodes.Created)
       }
     }
-    cache(Count()).merge should be (Counted(10000))
+    cache(Count()) should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (Instance(t, Seq(42L, "42'th element")))
@@ -110,8 +110,8 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
   "endure 190.000 batch" in {
     Post("/example", (10001 to 200000).map(i => Instance(t, Seq(i.toLong, s"$i'th element")))) ~> routes ~> check {
-      response.status should be (StatusCodes.Created)
-      cache(Count()).merge should be (Counted(200000))
+      response.status should be (StatusCodes.OK)
+      cache(Count()) should be (Counted(200000))
     }
     Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
@@ -121,8 +121,8 @@ class DataHttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest wi
 
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
-      response.status should be (StatusCodes.NoContent)
-      cache(Count()).merge should be (Counted(0))
+      response.status should be (StatusCodes.OK)
+      cache(Count()) should be (Counted(0))
     }
   }
 
