@@ -3,6 +3,7 @@ package dev.rudiments.domain
 import dev.rudiments.data.ReadOnly._
 import dev.rudiments.data.CRUD._
 import dev.rudiments.data.Batch._
+import dev.rudiments.hardcore.http.query.PassAllQuery
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -70,7 +71,7 @@ class CacheSpec extends WordSpec with Matchers {
 
   "endure 100.000 batch" in {
     val batch = (100001 to 200000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i'th element", None)))).toMap
-    cache(CreateAll(batch)).merge should be (AllCreated(batch))
+    cache(CreateAll(batch)).merge should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
 
     cache(Count()).merge should be (Counted(200000))
 
@@ -82,7 +83,13 @@ class CacheSpec extends WordSpec with Matchers {
 
   "endure 100.000 replace" in {
     val batch = (200001 to 300000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i item", None)))).toMap
-    cache(ReplaceAll(batch)).merge should be (AllReplaced(batch))
+    val deleting = cache(FindAll(PassAllQuery(t))).merge.asInstanceOf[FoundAll].values.map { it =>
+      val k = ID(Seq(it.extract[Long]("id")))
+      k -> Deleted(k, it)
+    }.toMap
+    cache(ReplaceAll(batch)).merge should be (Commit(
+      deleting ++ batch.map { case (k, v) => k -> Created(k, v) }
+    ))
 
     cache(Count()).merge should be (Counted(100000))
 
@@ -94,7 +101,11 @@ class CacheSpec extends WordSpec with Matchers {
 
   "clear repository" in {
     cache(Count()).merge should be (Counted(100000))
-    cache(DeleteAll()).merge should be (AllDeleted())
+    val deleting = cache(FindAll(PassAllQuery(t))).merge.asInstanceOf[FoundAll].values.map { it =>
+      val k = ID(Seq(it.extract[Long]("id")))
+      k -> Deleted(k, it)
+    }.toMap
+    cache(DeleteAll()).merge should be (Commit(deleting))
     cache(Count()).merge should be (Counted(0))
   }
 }

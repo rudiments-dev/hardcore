@@ -101,7 +101,7 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
 
   "endure 190.000 batch" in {
     Post("/example", (10001 to 200000).map(i => Instance(t, Seq(i.toLong, s"$i'th element")))) ~> routes ~> check {
-      response.status should be (StatusCodes.Created)
+      response.status should be (StatusCodes.OK)
       module.context.adapter(Count()).merge should be (Counted(200000))
     }
     Get("/example/10042") ~> routes ~> check {
@@ -112,7 +112,7 @@ class SoftModuleSpec extends WordSpec with Matchers with ScalatestRouteTest with
 
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
-      response.status should be (StatusCodes.NoContent)
+      response.status should be (StatusCodes.OK)
       module.context.adapter(Count()).merge should be (Counted(0))
     }
   }

@@ -37,7 +37,6 @@ class SoftCache(implicit spec: Spec) extends Adapter[DataCommand, DataEvent] {
       CRUD.delete,
 
       Batch.createAll,
-      Batch.createAllAuto(generator),
       Batch.replaceAll,
       Batch.deleteAll
     )

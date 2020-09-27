@@ -1,34 +1,26 @@
 package dev.rudiments.data
 
-import dev.rudiments.hardcore.flow.{BulkMutate, BulkMutated}
+import dev.rudiments.data.CRUD.{Created, Deleted, Updated}
 import dev.rudiments.domain.{ID, Instance}
+import dev.rudiments.hardcore.flow.{BulkMutate, BulkMutated}
 
 import scala.collection.parallel
 
 object Batch {
   case class CreateAll  (batch: Map[ID, Instance]) extends DataCommand with BulkMutate
+  @deprecated("Bulk operations should results with Commit")
   case class AllCreated (batch: Map[ID, Instance]) extends DataEvent with BulkMutated
 
   def createAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case CreateAll(batch) =>
       try {
-        content ++= batch //TODO fix replacing if matched ID
-        AllCreated(batch).toEither
-      } catch {
-        case _: Exception => BatchFailed().toEither
-      }
-  }
+        if((batch -- content.keys).size != batch.size) {
+          BatchFailed().toEither
+        } else {
+          content ++= batch
+          Commit(batch.map { case (id, value) => id -> Created(id, value) }).toEither
+        }
 
-
-  case class CreateAllAuto  (batch: Seq[Instance]) extends DataCommand with BulkMutate
-  case class AllAutoCreated (batch: Map[ID, Instance]) extends DataEvent with BulkMutated
-
-  def createAllAuto(generator: () => ID)(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
-    case CreateAllAuto(batch) =>
-      try {
-        val withAuto = batch.map(i => (generator(), i)).toMap
-        content ++= withAuto
-        AllAutoCreated(withAuto).toEither
       } catch {
         case _: Exception => BatchFailed().toEither
       }
@@ -36,31 +28,43 @@ object Batch {
 
 
   case class ReplaceAll (batch: Map[ID, Instance]) extends DataCommand with BulkMutate
+  @deprecated("Bulk operations should results with Commit")
   case class AllReplaced(batch: Map[ID, Instance]) extends DataEvent with BulkMutated
 
   def replaceAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case ReplaceAll(batch) =>
-      try {
-        content --= content.keysIterator
-        content ++= batch
-        AllReplaced(batch).toEither
-      } catch {
-        case e: Exception => BatchFailed().toEither
-      }
+      val commit = reconcile(content)(Reconcile(batch))
+      content --= content.keysIterator
+      content ++= batch
+      commit
   }
 
 
   case class DeleteAll() extends DataCommand with BulkMutate
+  @deprecated("Bulk operations should results with Commit")
   case class AllDeleted() extends DataEvent with BulkMutated
 
   def deleteAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case DeleteAll() =>
       try {
+        val delete = content.map { case (id, value) => id -> Deleted(id, value) }.toList.toMap
         content --= content.keysIterator
-        AllDeleted().toEither
+        Commit(delete).toEither
       } catch {
         case _: Exception => BatchFailed().toEither
       }
+  }
+
+
+  case class Reconcile(to: Map[ID, Instance]) extends DataCommand with BulkMutate
+  case class Commit(state: Map[ID, DataEvent]) extends DataEvent with BulkMutated
+
+  def reconcile(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
+    case Reconcile(to) =>
+      val create = (to -- content.keys.toList.toSet).map { case (id, value) => id -> Created(id, value) }
+      val delete = (content.toList.toMap -- to.keys).map { case (id, value) => id -> Deleted(id, value) }
+      val update = to.filterKeys(content.contains).map   { case (id, value) => id -> Updated(id, content(id), value) }
+      Commit(create ++ update ++ delete).toEither
   }
 
   case class BatchFailed() extends DataErrorEvent

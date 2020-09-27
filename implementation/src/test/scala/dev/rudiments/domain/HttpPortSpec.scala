@@ -110,7 +110,7 @@ class HttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest with F
 
   "endure 190.000 batch" in {
     Post("/example", (10001 to 200000).map(i => Instance(t, Seq(i.toLong, s"$i'th element")))) ~> routes ~> check {
-      response.status should be (StatusCodes.Created)
+      response.status should be (StatusCodes.OK)
       cache(Count()).merge should be (Counted(200000))
     }
     Get("/example/10042") ~> routes ~> check {
@@ -121,7 +121,7 @@ class HttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest with F
 
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
-      response.status should be (StatusCodes.NoContent)
+      response.status should be (StatusCodes.OK)
       cache(Count()).merge should be (Counted(0))
     }
   }
