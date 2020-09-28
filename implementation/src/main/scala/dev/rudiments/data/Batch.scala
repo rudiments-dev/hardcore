@@ -58,6 +58,7 @@ object Batch {
 
   case class Reconcile(to: Map[ID, Instance]) extends DataCommand
   case class Commit(state: Map[ID, DataEvent]) extends DataEvent
+  case class Restore(from: Commit) extends DataCommand
 
   def reconcile(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case Reconcile(to) =>
