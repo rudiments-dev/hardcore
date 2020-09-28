@@ -1,6 +1,5 @@
 package dev.rudiments.data
 
-import dev.rudiments.hardcore.flow.{ControlFlow, Controlled}
 import dev.rudiments.hardcore.{Event, Skill}
 import dev.rudiments.hardcore.http.{Router, ThingDecoder, ThingEncoder}
 import dev.rudiments.domain.{Domain, ID, Instance, Spec}
@@ -29,13 +28,10 @@ object SoftModule {
     customId: Seq[(String, ModuleContext[DataEvent] => ID => Router)] = Seq.empty
   )(implicit spec: Spec, domain: Domain): SoftModule = {
 
-    implicit val flow: ControlFlow = new ControlFlow()
-
     val context = ModuleContext[DataEvent](
       spec,
       idField,
-      flow,
-      new Controlled(new SoftCache()(spec)),
+      new SoftCache()(spec),
       prefix,
       new ThingEncoder(domain).specEncoder(spec),
       new ThingDecoder(domain).specDecoder(spec)
@@ -51,7 +47,6 @@ object SoftModule {
 case class ModuleContext[E <: Event](
   spec: Spec,
   idField: String,
-  flow: ControlFlow,
   adapter: Skill[E],
   prefix: String,
   encoder: Encoder[Instance],

@@ -2,7 +2,6 @@ package dev.rudiments.data
 
 import dev.rudiments.data.CRUD.Created
 import dev.rudiments.hardcore.{Adapter, Command, Result, Success}
-import dev.rudiments.hardcore.flow.BulkMutated
 import dev.rudiments.domain.{ID, Instance, Spec}
 
 import scala.collection.parallel
@@ -16,9 +15,7 @@ class SoftCache(implicit spec: Spec) extends Adapter[DataCommand, DataEvent] {
       case r@Success(evt: Created) =>
         counter += 1
         r
-      case r@Success(evt: BulkMutated) =>
-        counter = content.size + 1
-        r
+      //TODO case Success(c: Commit)
       case evt => evt
     }
   }
