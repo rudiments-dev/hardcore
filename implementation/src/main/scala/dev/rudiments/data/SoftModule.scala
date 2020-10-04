@@ -6,7 +6,7 @@ import dev.rudiments.domain.{Domain, ID, Instance, Spec}
 import io.circe.{Decoder, Encoder}
 
 class SoftModule (
-  val context: ModuleContext[DataEvent],
+  val context: ModuleContext[Event],
   custom: Seq[(String, Router)] = Seq.empty,
   customId: Seq[(String, ID => Router)] = Seq.empty
 ) {
@@ -24,11 +24,11 @@ object SoftModule {
   def apply[E <: Event](
     prefix: String,
     idField: String,
-    custom: Seq[(String, ModuleContext[DataEvent] => Router)] = Seq.empty,
-    customId: Seq[(String, ModuleContext[DataEvent] => ID => Router)] = Seq.empty
+    custom: Seq[(String, ModuleContext[Event] => Router)] = Seq.empty,
+    customId: Seq[(String, ModuleContext[Event] => ID => Router)] = Seq.empty
   )(implicit spec: Spec, domain: Domain): SoftModule = {
 
-    val context = ModuleContext[DataEvent](
+    val context = ModuleContext[Event](
       spec,
       idField,
       new SoftCache()(spec),

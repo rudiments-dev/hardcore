@@ -10,14 +10,14 @@ import dev.rudiments.data.ReadOnly._
 import dev.rudiments.domain.{ID, Instance, Spec, Thing}
 import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.http.query.Directives
-import dev.rudiments.hardcore.{Failure, PortWithoutDependency, Result, Skill, Success}
+import dev.rudiments.hardcore.{Event, Failure, PortWithoutDependency, Result, Skill, Success}
 import io.circe.{Decoder, Encoder}
 
 class DataHttpPort(
   prefix: String,
   idField: Thing,
   identify: Instance => ID,
-  override val s: Skill[DataEvent],
+  override val s: Skill[Event],
   customRoutes: Seq[(String, Router)] = Seq.empty,
   customIdRoutes: Seq[(String, ID => Router)] = Seq.empty
 )(implicit spec: Spec, en: Encoder[Instance], de: Decoder[Instance]) extends PortWithoutDependency(s) with Router with FailFastCirceSupport {
@@ -41,7 +41,7 @@ class DataHttpPort(
     )
   ).routes
 
-  def responseWith(event: Result[DataEvent]): StandardRoute = event match {
+  def responseWith(event: Result[Event]): StandardRoute = event match {
     case Success(Created(_, value)) =>        complete(StatusCodes.Created, value)
     case Success(Found(_, value)) =>          complete(StatusCodes.OK, value)
     case Success(FoundAll(values)) =>         complete(StatusCodes.OK, values)
