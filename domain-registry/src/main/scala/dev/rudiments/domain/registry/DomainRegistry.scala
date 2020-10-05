@@ -15,7 +15,8 @@ object DomainRegistry extends App with LazyLogging {
   logger.info("Configuring application")
 
   val config = ConfigFactory.load()
-  val skill = new DomainSkill()
+  val ctx = new DomainContext
+  val skill = new DomainSkill(ctx)
 
   private val http = new DataHttpPort(
     "domain",
@@ -23,9 +24,9 @@ object DomainRegistry extends App with LazyLogging {
     i => ID(Seq(i.extract[String]("name"))),
     skill
   )(
-    skill.domain.makeFromScala[Spec, SomeThing],
-    new ThingEncoder(skill.domain).abstractInstanceEncoder("Thing"),
-    new ThingDecoder(skill.domain).abstractInstanceDecoder("Thing")
+    skill.ctx.domain.makeFromScala[Spec, SomeThing],
+    new ThingEncoder(skill.ctx.domain).abstractInstanceEncoder("Thing"),
+    new ThingDecoder(skill.ctx.domain).abstractInstanceDecoder("Thing")
   )
 
   implicit val actorSystem: ActorSystem = ActorSystem()
