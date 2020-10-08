@@ -1,11 +1,11 @@
 package dev.rudiments.domain
 
-import dev.rudiments.data.{Batch, CRUD, DataCommand, DataEvent, DataSkill, ReadOnly}
-import dev.rudiments.hardcore.{Adapter, Command, Result}
+import dev.rudiments.data.{Batch, CRUD, DataEvent, DataSkill, ReadOnly}
+import dev.rudiments.hardcore.{Command, Result}
 
 import scala.collection.parallel
 
-class Cache extends Adapter[DataCommand, DataEvent] {
+class Cache extends DataSkill {
   private implicit val content: parallel.mutable.ParMap[ID, Instance] = parallel.mutable.ParMap.empty[ID, Instance]
 
   override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)

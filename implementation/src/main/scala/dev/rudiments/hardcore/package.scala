@@ -1,7 +1,7 @@
 package dev.rudiments
 
 import dev.rudiments.data.Action
-import dev.rudiments.domain.DTO
+import dev.rudiments.domain.{DTO, ID}
 import dev.rudiments.hardcore.Error.NoHandler
 
 import scala.language.implicitConversions
@@ -67,6 +67,12 @@ package object hardcore {
   trait Event extends Message {
     override def toEither[E <: Event]: SkillResult[Message, E] = Success(this.asInstanceOf[E])
   }
+
+  trait Memorable extends Message
+  abstract class One(val id: ID) extends Memorable
+  abstract class Bulk(val ids: Seq[ID]) extends Memorable
+  abstract class All extends Memorable //TODO Predicate(Query?) for search commands
+
   type Result[E <: Event] = SkillResult[Message, E]
   type Skill[E <: Event] = PartialFunction[Command, Result[E]]
 

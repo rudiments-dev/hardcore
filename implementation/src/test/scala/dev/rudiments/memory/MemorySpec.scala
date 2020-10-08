@@ -27,7 +27,7 @@ class MemorySpec extends WordSpec with Matchers {
 
   "no element by ID" in {
     store(Count()).merge should be (Counted(0))
-    store.state.size should be (0)
+    store.state(Count()).merge should be (Counted(0))
     store.story.size should be (0)
     store.conclusion.size should be (0)
     store(Find(id)).merge should be (NotFound(id))
@@ -38,12 +38,12 @@ class MemorySpec extends WordSpec with Matchers {
     store(Create(id, sample)).merge should be (Created(id, sample))
 
     store(Count()).merge should be (Counted(1))
-    store.state.size should be (1)
+    store.state(Count()).merge should be (Counted(1))
     store.story.size should be (1)
     store.conclusion.size should be (1)
 
     store(Find(id)).merge should be (Found(id, sample))
-    store.state(id) should be (sample)
+    store.state(Find(id)).merge should be (Found(id, sample))
     store.story.last should be (Create(id, sample) -> Created(id, sample))
     store.conclusion(id) should be (Created(id, sample))
   }
@@ -56,12 +56,12 @@ class MemorySpec extends WordSpec with Matchers {
         Instance(t, Seq(42L, "sample", Some("changes")))))
 
     store(Count()).merge should be (Counted(1))
-    store.state.size should be (1)
+    store.state(Count()).merge should be (Counted(1))
     store.story.size should be (2)
     store.conclusion.size should be (1)
 
     store(Find(id)).merge should be (Found(id, Instance(t, Seq(42L, "sample", Some("changes")))))
-    store.state(id) should be (Instance(t, Seq(42L, "sample", Some("changes"))))
+    store.state(Find(id)).merge should be (Found(id, Instance(t, Seq(42L, "sample", Some("changes")))))
     store.story.last should be (
       Update(id, Instance(t, Seq(42L, "sample", Some("changes")))) -> Updated(
         id,
@@ -83,18 +83,17 @@ class MemorySpec extends WordSpec with Matchers {
 
   "delete item from store" in {
     store(Count()).merge should be (Counted(1))
-    store.state.size should be (1)
-    store.story.size should be (2)
+    store.state(Count()).merge should be (Counted(1))
+    store.story.size should be (3)
     store.conclusion.size should be (1)
 
     store(Delete(id)).merge should be (Deleted(id, Instance(t, Seq(42L, "sample", Some("changes")))))
-    store.state.get(id) should be (None)
     store.story.last should be (Delete(id) -> Deleted(id, Instance(t, Seq(42L, "sample", Some("changes")))))
     store.conclusion(id) should be (Deleted(id, Instance(t, Seq(42L, "sample", Some("changes")))))
 
     store(Count()).merge should be (Counted(0))
-    store.state.size should be (0)
-    store.story.size should be (3)
+    store.state(Count()).merge should be (Counted(0))
+    store.story.size should be (4)
     store.conclusion.size should be (1)
 
     store(Find(id)).merge should be (NotFound(id))
@@ -106,8 +105,8 @@ class MemorySpec extends WordSpec with Matchers {
       .foreach(s => store(Create(ID(Seq(s.extract[Long]("id"))), s)))
 
     store(Count()).merge should be (Counted(100000))
-    store.state.size should be (100000)
-    store.story.size should be (100003)
+    store.state(Count()).merge should be (Counted(100000))
+    store.story.size should be (100004)
     store.conclusion.size should be (100000)
 
     val rnd = new Random().nextInt(100000).toLong
@@ -119,8 +118,8 @@ class MemorySpec extends WordSpec with Matchers {
     store(CreateAll(batch)).merge should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
 
     store(Count()).merge should be (Counted(200000))
-    store.state.size should be (200000)
-    store.story.size should be (200003)
+    store.state(Count()).merge should be (Counted(200000))
+    store.story.size should be (200004)
     store.conclusion.size should be (200000)
 
     val rnd = new Random().nextInt(200000).toLong
@@ -140,8 +139,8 @@ class MemorySpec extends WordSpec with Matchers {
     ))
 
     store(Count()).merge should be (Counted(100000))
-    store.state.size should be (100000)
-    store.story.size should be (500003)
+    store.state(Count()).merge should be (Counted(100000))
+    store.story.size should be (500004)
     store.conclusion.size should be (300000)
 
     val rnd = new Random().nextInt(100000).toLong + 200000L
@@ -158,8 +157,8 @@ class MemorySpec extends WordSpec with Matchers {
     }.toMap
     store(DeleteAll()).merge should be (Commit(deleting))
     store(Count()).merge should be (Counted(0))
-    store.state.size should be (0)
-    store.story.size should be (600003)
+    store.state(Count()).merge should be (Counted(0))
+    store.story.size should be (600004)
     store.conclusion.size should be (300000)
   }
 }

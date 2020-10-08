@@ -3,13 +3,14 @@ package dev.rudiments.data
 import dev.rudiments.data.CRUD.{Created, Deleted, Updated}
 import dev.rudiments.data.ReadOnly.Found
 import dev.rudiments.domain.{ID, Instance}
+import dev.rudiments.hardcore.{All, Bulk}
 
 import scala.collection.parallel
 
 object Batch {
-  case class CreateAll  (batch: Map[ID, Instance]) extends DataCommand
+  case class CreateAll  (batch: Map[ID, Instance]) extends Bulk(batch.keys.toSeq) with DataCommand
   @deprecated("Bulk operations should results with Commit")
-  case class AllCreated (batch: Map[ID, Instance]) extends DataEvent
+  case class AllCreated (batch: Map[ID, Instance]) extends Bulk(batch.keys.toSeq) with DataEvent
 
   def createAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case CreateAll(batch) =>
@@ -27,9 +28,9 @@ object Batch {
   }
 
 
-  case class ReplaceAll (batch: Map[ID, Instance]) extends DataCommand
+  case class ReplaceAll (batch: Map[ID, Instance]) extends Bulk(batch.keys.toSeq) with DataCommand
   @deprecated("Bulk operations should results with Commit")
-  case class AllReplaced(batch: Map[ID, Instance]) extends DataEvent
+  case class AllReplaced(batch: Map[ID, Instance]) extends Bulk(batch.keys.toSeq) with DataEvent
 
   def replaceAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case ReplaceAll(batch) =>
@@ -40,9 +41,9 @@ object Batch {
   }
 
 
-  case class DeleteAll() extends DataCommand
+  case class DeleteAll() extends All with DataCommand
   @deprecated("Bulk operations should results with Commit")
-  case class AllDeleted() extends DataEvent
+  case class AllDeleted() extends All with DataEvent
 
   def deleteAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case DeleteAll() =>
@@ -56,9 +57,9 @@ object Batch {
   }
 
 
-  case class Reconcile(to: Map[ID, Instance]) extends DataCommand
-  case class Commit(state: Map[ID, DataEvent]) extends DataEvent
-  case class Restore(from: Commit) extends DataCommand
+  case class Reconcile(to: Map[ID, Instance]) extends Bulk(to.keys.toSeq) with DataCommand
+  case class Commit(state: Map[ID, DataEvent]) extends Bulk(state.keys.toSeq) with DataEvent
+  case class Restore(from: Commit) extends Bulk(from.state.keys.toSeq) with DataCommand
 
   def reconcile(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case Reconcile(to) =>
