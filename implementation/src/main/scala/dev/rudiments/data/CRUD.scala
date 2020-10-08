@@ -25,20 +25,6 @@ object CRUD {
   }
 
 
-  case class CreateAuto(value: Instance) extends DataCommand
-  case class FailedToCreateAuto(key: ID, value: Instance) extends DataErrorEvent
-
-  def createAuto(generator: () => ID)(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
-    case CreateAuto(value) =>
-      val key = generator()
-      content.put(key, value)
-      content.get(key) match {
-        case Some(created) => Created(key, created).toEither
-        case None => FailedToCreateAuto(key, value).toEither
-      }
-  }
-
-
   case class Update(key: ID, value: Instance) extends DataCommand
   case class Updated(key: ID, oldvalue: Instance, newvalue: Instance) extends DataEvent
   case class FailedToUpdate(key: ID, value: Instance) extends DataErrorEvent

@@ -1,7 +1,6 @@
 package dev.rudiments.data
 
-import dev.rudiments.data.CRUD.Created
-import dev.rudiments.hardcore.{Adapter, Command, Result, Success}
+import dev.rudiments.hardcore.{Adapter, Command, Result}
 import dev.rudiments.domain.{ID, Instance, Spec}
 
 import scala.collection.parallel
@@ -10,18 +9,7 @@ class SoftCache(implicit spec: Spec) extends Adapter[DataCommand, DataEvent] {
   private implicit val content: parallel.mutable.ParMap[ID, Instance] = parallel.mutable.ParMap.empty[ID, Instance]
 
   override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
-  override def apply(cmd: Command): Result[DataEvent] = {
-    f(cmd) match {
-      case r@Success(evt: Created) =>
-        counter += 1
-        r
-      //TODO case Success(c: Commit)
-      case evt => evt
-    }
-  }
-
-  private val generator = () => ID(Seq(counter))
-  private var counter: Long = 1
+  override def apply(cmd: Command): Result[DataEvent] = f.apply(cmd)
 
   val f: DataSkill = {
     List(
@@ -29,7 +17,6 @@ class SoftCache(implicit spec: Spec) extends Adapter[DataCommand, DataEvent] {
       ReadOnly.findAll,
 
       CRUD.create,
-      CRUD.createAuto(generator),
       CRUD.update,
       CRUD.delete,
 
