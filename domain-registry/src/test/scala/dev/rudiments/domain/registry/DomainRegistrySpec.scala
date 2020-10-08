@@ -17,12 +17,12 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class DomainRegistrySpec extends WordSpec with Matchers with ScalatestRouteTest with FailFastCirceSupport {
-  private val module = new DomainModule
+  private val domain = new DomainModule
 
-  private implicit val en: Encoder[Instance] = new ThingEncoder(module.ctx.domain).abstractInstanceEncoder("Thing")
-  private implicit val de: Decoder[Instance] = new ThingDecoder(module.ctx.domain).abstractInstanceDecoder("Thing")
+  private implicit val en: Encoder[Instance] = new ThingEncoder(domain.ctx.domain).abstractInstanceEncoder("Thing")
+  private implicit val de: Decoder[Instance] = new ThingDecoder(domain.ctx.domain).abstractInstanceDecoder("Thing")
 
-  private val routes = Route.seal(module.http.routes)
+  private val routes = Route.seal(domain.http.routes)
 
   "get all Thing in Domain" in {
     Get("/domain") ~> routes ~> check {
@@ -34,11 +34,11 @@ class DomainRegistrySpec extends WordSpec with Matchers with ScalatestRouteTest 
   "get abstract Thing" in {
     Get("/domain/Thing") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(module.ctx.domain.find[Spec]("Abstract"), Seq(
+      responseAs[Instance] should be (Instance(domain("Abstract"), Seq(
         "Thing", ListMap(
-          "name" -> Instance(module.ctx.domain.find[Spec]("ValueSpec"), Seq(
-            Instance(module.ctx.domain.find[Spec]("Text"), Seq(
-              Instance(module.ctx.domain.find[Spec]("Big"), Seq(BigDecimal(Int.MaxValue)))
+          "name" -> Instance(domain("ValueSpec"), Seq(
+            Instance(domain("Text"), Seq(
+              Instance(domain("Big"), Seq(BigDecimal(Int.MaxValue)))
             )),
             true
           ))
@@ -51,19 +51,19 @@ class DomainRegistrySpec extends WordSpec with Matchers with ScalatestRouteTest 
     Get("/domain/The") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (Instance(
-        module.ctx.domain.find[Spec]("Spec"),
+        domain("Spec"),
         Seq(
           "The",
           "dev.rudiments.domain.The",
           ListMap(
           "name" -> Instance(
-            module.ctx.valueSpec,
+            domain.ctx.valueSpec,
             Seq(
               Instance(
-                module.ctx.domain.find[Spec]("Text"),
+                domain("Text"),
                 Seq(
                   Instance(
-                    module.ctx.domain.find[Spec]("Big"),
+                    domain("Big"),
                     Seq(Int.MaxValue)
                   )
                 )

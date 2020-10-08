@@ -10,6 +10,8 @@ class DomainModule {
   val skill = new DomainSkill(ctx)
   val memory = new Memory(skill)
 
+  def apply(name: String): Spec = ctx.domain.find[Spec](name)
+
   val http = new DataHttpPort(
     "domain",
     ScalaTypes.ScalaString,
