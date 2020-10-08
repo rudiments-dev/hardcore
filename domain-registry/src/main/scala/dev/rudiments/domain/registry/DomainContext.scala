@@ -1,17 +1,14 @@
 package dev.rudiments.domain.registry
 
 import dev.rudiments.data.CRUD.AlreadyExists
-import dev.rudiments.data.DataEvent
 import dev.rudiments.data.ReadOnly.NotFound
-import dev.rudiments.domain.{Abstract, Cache, Domain, ID, Instance, Spec, The, Thing, ValueSpec}
+import dev.rudiments.domain.{Abstract, Domain, ID, Instance, Spec, The, Thing, ValueSpec}
 import dev.rudiments.hardcore.{Command, Event, Result, Skill}
-import dev.rudiments.memory.Memory
 
 import scala.collection.immutable.ListMap
 
 class DomainContext extends Skill[Event] {
   val domain: Domain = Domain()
-  val memory: Memory[DataEvent] = new Memory(new Cache)
 
   domain.makeFromScala[Thing, Thing]
   domain.makeFromScala[Thing, Instance]

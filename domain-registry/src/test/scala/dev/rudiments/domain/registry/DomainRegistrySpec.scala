@@ -17,20 +17,12 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class DomainRegistrySpec extends WordSpec with Matchers with ScalatestRouteTest with FailFastCirceSupport {
-  private val ctx = new DomainContext
-  private val skill = new DomainSkill(ctx)
+  private val module = new DomainModule
 
-  private implicit val en: Encoder[Instance] = new ThingEncoder(skill.ctx.domain).abstractInstanceEncoder("Thing")
-  private implicit val de: Decoder[Instance] = new ThingDecoder(skill.ctx.domain).abstractInstanceDecoder("Thing")
+  private implicit val en: Encoder[Instance] = new ThingEncoder(module.ctx.domain).abstractInstanceEncoder("Thing")
+  private implicit val de: Decoder[Instance] = new ThingDecoder(module.ctx.domain).abstractInstanceDecoder("Thing")
 
-  private val http = new DataHttpPort(
-    "domain",
-    ScalaTypes.ScalaString,
-    i => ID(Seq(i.extract[String]("name"))),
-    skill
-  )(skill.ctx.domain.makeFromScala[Spec, SomeThing], en, de)
-
-  private val routes = Route.seal(http.routes)
+  private val routes = Route.seal(module.http.routes)
 
   "get all Thing in Domain" in {
     Get("/domain") ~> routes ~> check {
@@ -42,11 +34,11 @@ class DomainRegistrySpec extends WordSpec with Matchers with ScalatestRouteTest 
   "get abstract Thing" in {
     Get("/domain/Thing") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(skill.ctx.domain.find[Spec]("Abstract"), Seq(
+      responseAs[Instance] should be (Instance(module.ctx.domain.find[Spec]("Abstract"), Seq(
         "Thing", ListMap(
-          "name" -> Instance(skill.ctx.domain.find[Spec]("ValueSpec"), Seq(
-            Instance(skill.ctx.domain.find[Spec]("Text"), Seq(
-              Instance(skill.ctx.domain.find[Spec]("Big"), Seq(BigDecimal(Int.MaxValue)))
+          "name" -> Instance(module.ctx.domain.find[Spec]("ValueSpec"), Seq(
+            Instance(module.ctx.domain.find[Spec]("Text"), Seq(
+              Instance(module.ctx.domain.find[Spec]("Big"), Seq(BigDecimal(Int.MaxValue)))
             )),
             true
           ))
@@ -59,19 +51,19 @@ class DomainRegistrySpec extends WordSpec with Matchers with ScalatestRouteTest 
     Get("/domain/The") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (Instance(
-        skill.ctx.domain.find[Spec]("Spec"),
+        module.ctx.domain.find[Spec]("Spec"),
         Seq(
           "The",
           "dev.rudiments.domain.The",
           ListMap(
           "name" -> Instance(
-            skill.ctx.valueSpec,
+            module.ctx.valueSpec,
             Seq(
               Instance(
-                skill.ctx.domain.find[Spec]("Text"),
+                module.ctx.domain.find[Spec]("Text"),
                 Seq(
                   Instance(
-                    skill.ctx.domain.find[Spec]("Big"),
+                    module.ctx.domain.find[Spec]("Big"),
                     Seq(Int.MaxValue)
                   )
                 )
