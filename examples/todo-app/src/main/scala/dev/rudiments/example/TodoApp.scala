@@ -8,7 +8,7 @@ import dev.rudiments.data.CRUD.{Create, Update, Updated}
 import dev.rudiments.data.ReadOnly.{Find, Found}
 import dev.rudiments.data.{SoftApp, SoftModule}
 import dev.rudiments.hardcore.http.HttpPorts.DependencyLess
-import dev.rudiments.hardcore.{Command, Error, Event, Failure, Success}
+import dev.rudiments.hardcore.{Command, Error, Event}
 import dev.rudiments.domain._
 import io.circe.Encoder
 
@@ -21,27 +21,28 @@ object TodoApp extends App with LazyLogging {
 
   import akka.http.scaladsl.server.Directives._
   import dev.rudiments.hardcore.http.CirceSupport._
+
   private val todoItemModule = SoftModule("todo", "id", Seq.empty, Seq(
     "done" -> (ctx => id => DependencyLess.EmptyPostPort[Done, Event](
       Done(id),
       {
         case Done(id) =>
           for {
-            found <- ctx.adapter(Find(id)).expecting[Found]
+            found <- ctx.adapter(Find(id)).map { case f: Found => f }
             updated <- found.value.copy[Boolean]("done", {
               case d if !d => Right(!d)
               case d if d => Left(AlreadyDone(found.value))
-            }).map { instance => ctx.adapter(Update(id, instance)).expecting[Updated] } match {
-              case Left(value) => Failure(value)
+            }).map { instance => ctx.adapter(Update(id, instance)).map { case f: Updated => f } } match {
+              case Left(value) => Left(value)
               case Right(value) => value
             }
           } yield updated
       },
       {
-        case Success(Updated(_, _, value)) =>
+        case Right(Updated(_, _, value)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case Failure(AlreadyDone(item)) =>
+        case Left(AlreadyDone(item)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }
@@ -51,21 +52,21 @@ object TodoApp extends App with LazyLogging {
       {
         case Undone(id) =>
           for {
-            found <- ctx.adapter(Find(id)).expecting[Found]
+            found <- ctx.adapter(Find(id)).map { case f: Found => f }
             updated <- found.value.copy[Boolean]("done", {
               case d if d => Right(!d)
               case d if !d => Left(AlreadyNotDone(found.value))
-            }).map { instance => ctx.adapter(Update(id, instance)).expecting[Updated] } match {
-              case Left(value) => Failure(value)
+            }).map { instance => ctx.adapter(Update(id, instance)).map { case f: Updated => f } } match {
+              case Left(value) => Left(value)
               case Right(value) => value
             }
           } yield updated
       },
       {
-        case Success(Updated(_, _, value)) =>
+        case Right(Updated(_, _, value)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case Failure(AlreadyNotDone(item)) =>
+        case Left(AlreadyNotDone(item)) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }

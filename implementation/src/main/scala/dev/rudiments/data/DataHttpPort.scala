@@ -10,7 +10,7 @@ import dev.rudiments.data.ReadOnly._
 import dev.rudiments.domain.{ID, Instance, Spec, Thing}
 import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.http.query.Directives
-import dev.rudiments.hardcore.{Event, Failure, PortWithoutDependency, Result, Skill, Success}
+import dev.rudiments.hardcore.{Event, PortWithoutDependency, Result, Skill}
 import io.circe.{Decoder, Encoder}
 
 class DataHttpPort(
@@ -42,18 +42,18 @@ class DataHttpPort(
   ).routes
 
   def responseWith(event: Result[Event]): StandardRoute = event match {
-    case Success(Created(_, value)) =>        complete(StatusCodes.Created, value)
-    case Success(Found(_, value)) =>          complete(StatusCodes.OK, value)
-    case Success(FoundAll(values)) =>         complete(StatusCodes.OK, values)
-    case Success(Updated(_, _, newValue)) =>  complete(StatusCodes.OK, newValue)
-    case Success(Deleted(_, _)) =>            complete(StatusCodes.NoContent)
+    case Right(Created(_, value)) =>        complete(StatusCodes.Created, value)
+    case Right(Found(_, value)) =>          complete(StatusCodes.OK, value)
+    case Right(FoundAll(values)) =>         complete(StatusCodes.OK, values)
+    case Right(Updated(_, _, newValue)) =>  complete(StatusCodes.OK, newValue)
+    case Right(Deleted(_, _)) =>            complete(StatusCodes.NoContent)
 
-    case Success(Commit(_)) =>                complete(StatusCodes.OK) //TODO report amount of created/updated/deleted
+    case Right(Commit(_)) =>                complete(StatusCodes.OK) //TODO report amount of created/updated/deleted
 
-    case Failure(NotFound(_)) =>              complete(StatusCodes.NotFound)
-    case Failure(AlreadyExists(_, _)) =>      complete(StatusCodes.Conflict)
+    case Left(NotFound(_)) =>              complete(StatusCodes.NotFound)
+    case Left(AlreadyExists(_, _)) =>      complete(StatusCodes.Conflict)
 
-    case Failure(_: Error) =>                 complete(StatusCodes.InternalServerError)
+    case Left(_: Error) =>                 complete(StatusCodes.InternalServerError)
     case _ =>                                 complete(StatusCodes.InternalServerError)
   }
 }

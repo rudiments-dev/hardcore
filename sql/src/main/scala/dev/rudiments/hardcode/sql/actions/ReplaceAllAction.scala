@@ -11,7 +11,7 @@ class ReplaceAllAction(schema: TypedSchema, spec: Spec)(session: DBSession) exte
   override def apply(command: ReplaceAll): Result[AllReplaced] = {
     for {
       deleted <- new DeleteAllAction(schema, spec)(session)(DeleteAll())
-      updated <- new CreateAllAction(schema, spec)(session)(CreateAll(command.batch)).map(created => AllReplaced(created.batch))
-    } yield updated
+      created <- new CreateAllAction(schema, spec)(session)(CreateAll(command.batch))
+    } yield AllReplaced(created.batch)
   }
 }

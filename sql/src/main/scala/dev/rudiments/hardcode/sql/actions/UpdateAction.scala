@@ -9,6 +9,8 @@ import dev.rudiments.hardcore.Result
 import dev.rudiments.domain.{Domain, Spec}
 import scalikejdbc.{DBSession, SQL}
 
+import cats.syntax.either._
+
 class UpdateAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[Update, Updated] {
   override def apply(command: Update): Result[Updated] = {
     import command.{key, value}
@@ -37,9 +39,9 @@ class UpdateAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBS
              |""".stripMargin,
         ).bindByName((whereBindings ++ entityBindings).map(Binding.toScalaLikeSQL) :_*).execute().apply()(session)
       }
-      updated <- new FindAction(schema, domain, spec)(session)(Find(key)).transform(
-        f = _ => FailedToUpdate(key, toUpdate.value),
-        g = found => Updated(key, toUpdate.value, found.value)
+      updated <- new FindAction(schema, domain, spec)(session)(Find(key)).bimap(
+        _ => FailedToUpdate(key, toUpdate.value),
+        found => Updated(key, toUpdate.value, found.value)
       )
     } yield updated
   }

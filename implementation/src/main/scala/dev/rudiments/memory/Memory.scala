@@ -36,10 +36,10 @@ class Memory[E <: Event](val of: Skill[E]) extends Skill[E] {
 
   val f: Skill[E] = {
     case cmd: Command => of(cmd) match {
-      case s@Success(evt) =>
+      case s@Right(evt) =>
         memorize(cmd, evt)
         s
-      case f@Failure(evt: Event) =>
+      case f@Left(evt: Event) =>
         memorize(cmd, evt)
         f
     }

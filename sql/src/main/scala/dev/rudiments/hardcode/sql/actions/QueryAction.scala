@@ -6,7 +6,7 @@ import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField, Where}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcore.http.query.{PassAllQuery, PredicatesQuery}
-import dev.rudiments.hardcore.{Result, Success}
+import dev.rudiments.hardcore.Result
 import dev.rudiments.domain.{Domain, Spec}
 import scalikejdbc.{DBSession, SQL}
 
@@ -51,6 +51,6 @@ class QueryAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSe
           sp.fromMap(domain, rs.toMap())
         }.list().apply()
     }
-    Success(FoundAll(instances))
+    Right(FoundAll(instances))
   }
 }
