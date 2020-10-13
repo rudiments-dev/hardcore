@@ -72,5 +72,5 @@ object Batch {
       Commit(create ++ update ++ delete).toEither
   }
 
-  case class BatchFailed() extends DataErrorEvent
+  case class BatchFailed() extends DataError
 }

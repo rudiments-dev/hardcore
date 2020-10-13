@@ -5,7 +5,7 @@ import dev.rudiments.hardcore._
 package object data {
   trait DataCommand extends Command
   trait DataEvent extends Event
-  trait DataErrorEvent extends DataEvent with Error
+  trait DataError extends Error
 
   type DataSkill = Skill[DataEvent]
 }

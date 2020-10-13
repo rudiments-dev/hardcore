@@ -9,7 +9,7 @@ import scala.collection.parallel
 object ReadOnly {
   case class Find     (key: ID)                   extends DataCommand
   case class Found    (key: ID, value: Instance)  extends DataEvent
-  case class NotFound (key: ID)                   extends DataErrorEvent
+  case class NotFound (key: ID)                   extends DataError
 
   def find(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case Find(key) =>

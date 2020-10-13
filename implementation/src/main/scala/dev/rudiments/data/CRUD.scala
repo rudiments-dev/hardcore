@@ -9,8 +9,8 @@ import scala.collection.parallel
 object CRUD {
   case class Create(key: ID, value: Instance) extends One(key) with DataCommand
   case class Created(key: ID, value: Instance) extends One(key) with DataEvent
-  case class AlreadyExists(key: ID, value: Instance) extends One(key) with DataErrorEvent
-  case class FailedToCreate(key: ID, value: Instance) extends One(key) with DataErrorEvent
+  case class AlreadyExists(key: ID, value: Instance) extends One(key) with DataError
+  case class FailedToCreate(key: ID, value: Instance) extends One(key) with DataError
 
   def create(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case Create(key, value) =>
@@ -28,7 +28,7 @@ object CRUD {
 
   case class Update(key: ID, value: Instance) extends One(key) with DataCommand
   case class Updated(key: ID, oldvalue: Instance, newvalue: Instance) extends One(key) with DataEvent
-  case class FailedToUpdate(key: ID, value: Instance) extends One(key) with DataErrorEvent
+  case class FailedToUpdate(key: ID, value: Instance) extends One(key) with DataError
 
   def update(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case Update(key, value) =>
@@ -47,7 +47,7 @@ object CRUD {
 
   case class Delete(key: ID) extends One(key) with DataCommand
   case class Deleted(key: ID, value: Instance) extends One(key) with DataEvent
-  case class FailedToDelete(key: ID, value: Instance) extends One(key) with DataErrorEvent
+  case class FailedToDelete(key: ID, value: Instance) extends One(key) with DataError
 
   def delete(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
     case Delete(key) =>
