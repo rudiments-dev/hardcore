@@ -12,7 +12,7 @@ import dev.rudiments.data.ReadOnly._
 import dev.rudiments.hardcore.http.query.{Directives, Query}
 import dev.rudiments.hardcore.http._
 import dev.rudiments.domain.{ID, Instance, Spec}
-import dev.rudiments.hardcore.{Command, Port, Result, Skill}
+import dev.rudiments.hardcore.{Command, Message, Port, Skill}
 import io.circe.{Decoder, Encoder}
 import scalikejdbc.{ConnectionPool, DBSession}
 
@@ -22,7 +22,7 @@ class SQLHttpPort
   idField: String,
   identify: Instance => ID,
   connectionPool: ConnectionPool,
-  val s: DBSession => Skill[DataEvent]
+  val s: DBSession => Skill
 )(implicit spec: Spec, en: Encoder[Instance], de: Decoder[Instance]) extends Port[Command, DataEvent] with Router with FailFastCirceSupport {
   import dev.rudiments.hardcore.http.HttpPorts.WithDependencies._
 
@@ -42,21 +42,21 @@ class SQLHttpPort
     )
   ).routes
 
-  def responseWith(event: Result[DataEvent]): StandardRoute = event match {
-    case Right(Created(_, value)) =>        complete(StatusCodes.Created, value)
-    case Right(Found(_, value)) =>          complete(StatusCodes.OK, value)
-    case Right(FoundAll(values)) =>         complete(StatusCodes.OK, values)
-    case Right(Updated(_, _, newValue)) =>  complete(StatusCodes.OK, newValue)
-    case Right(Deleted(_, _)) =>            complete(StatusCodes.NoContent)
+  def responseWith(event: Message): StandardRoute = event match {
+    case Created(_, value) =>       complete(StatusCodes.Created, value)
+    case Found(_, value) =>         complete(StatusCodes.OK, value)
+    case FoundAll(values) =>        complete(StatusCodes.OK, values)
+    case Updated(_, _, newValue) => complete(StatusCodes.OK, newValue)
+    case Deleted(_, _) =>           complete(StatusCodes.NoContent)
 
-    case Right(AllCreated(_)) =>            complete(StatusCodes.Created)
-    case Right(AllReplaced(_)) =>           complete(StatusCodes.Created)
-    case Right(AllDeleted()) =>             complete(StatusCodes.NoContent)
+    case AllCreated(_) =>           complete(StatusCodes.Created)
+    case AllReplaced(_) =>          complete(StatusCodes.Created)
+    case AllDeleted() =>            complete(StatusCodes.NoContent)
 
-    case Left(NotFound(_)) =>              complete(StatusCodes.NotFound)
-    case Left(AlreadyExists(_, _)) =>      complete(StatusCodes.Conflict)
+    case NotFound(_) =>             complete(StatusCodes.NotFound)
+    case AlreadyExists(_, _) =>     complete(StatusCodes.Conflict)
 
-    case Left(_: Error) =>                 complete(StatusCodes.InternalServerError)
-    case _ =>                                 complete(StatusCodes.InternalServerError)
+    case _: Error =>                complete(StatusCodes.InternalServerError)
+    case _ =>                       complete(StatusCodes.InternalServerError)
   }
 }

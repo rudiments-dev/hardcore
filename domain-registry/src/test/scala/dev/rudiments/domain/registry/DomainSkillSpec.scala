@@ -16,25 +16,25 @@ class DomainSkillSpec extends WordSpec with Matchers {
   private val domain = new DomainSkill(ctx)
 
   "initial content of domain" in {
-    domain(Count()).merge should be (Counted(26))
+    domain(Count()) should be (Counted(26))
   }
 
   "can create Abstract" in {
-    domain(Create(ID(Seq("SampleAbstract")), Instance(domain.ctx.abs, Seq("SampleAbstract", ListMap.empty)))).merge should be (
+    domain(Create(ID(Seq("SampleAbstract")), Instance(domain.ctx.abs, Seq("SampleAbstract", ListMap.empty)))) should be (
       Created(ID(Seq("SampleAbstract")), Instance(domain.ctx.abs, Seq("SampleAbstract", ListMap.empty)))
     )
 
-    domain(Find(ID(Seq("SampleAbstract")))).merge should be (
+    domain(Find(ID(Seq("SampleAbstract")))) should be (
       Found(ID(Seq("SampleAbstract")), Instance(domain.ctx.abs, Seq("SampleAbstract", ListMap.empty)))
     )
   }
 
   "can create The" in {
-    domain(Create(ID(Seq("SampleSingleton")), Instance(domain.ctx.the, Seq("SampleSingleton")))).merge should be (
+    domain(Create(ID(Seq("SampleSingleton")), Instance(domain.ctx.the, Seq("SampleSingleton")))) should be (
       Created(ID(Seq("SampleSingleton")), Instance(domain.ctx.the, Seq("SampleSingleton")))
     )
 
-    domain(Find(ID(Seq("SampleSingleton")))).merge should be (
+    domain(Find(ID(Seq("SampleSingleton")))) should be (
       Found(ID(Seq("SampleSingleton")), Instance(domain.ctx.the, Seq("SampleSingleton")))
     )
   }
@@ -51,7 +51,7 @@ class DomainSkillSpec extends WordSpec with Matchers {
           )
         ))
       )
-    ).merge should be (
+    ) should be (
       Created(
         ID(Seq("SampleSpec")),
         Instance(domain.ctx.spec, Seq(
@@ -64,7 +64,7 @@ class DomainSkillSpec extends WordSpec with Matchers {
       )
     )
 
-    domain(Find(ID(Seq("SampleSpec")))).merge should be (
+    domain(Find(ID(Seq("SampleSpec")))) should be (
       Found(
         ID(Seq("SampleSpec")),
         Instance(domain.ctx.spec, Seq(
@@ -82,25 +82,25 @@ class DomainSkillSpec extends WordSpec with Matchers {
     domain(Update(
       ID(Seq("SampleSingleton")),
       Instance(domain.ctx.abs, Seq("SampleSingleton", ListMap.empty))
-    )).merge should be (Updated(
+    )) should be (Updated(
       ID(Seq("SampleSingleton")),
       Instance(domain.ctx.the, Seq("SampleSingleton")),
       Instance(domain.ctx.abs, Seq("SampleSingleton", ListMap.empty))
     ))
 
-    domain(Find(ID(Seq("SampleSingleton")))).merge should be (
+    domain(Find(ID(Seq("SampleSingleton")))) should be (
       Found(ID(Seq("SampleSingleton")), Instance(domain.ctx.abs, Seq("SampleSingleton", ListMap.empty)))
     )
   }
 
   "multiple inserts makes conflict" in {
-    domain(Create(ID(Seq("SampleSingleton")), Instance(domain.ctx.the, Seq("SampleSingleton")))).merge should be (
+    domain(Create(ID(Seq("SampleSingleton")), Instance(domain.ctx.the, Seq("SampleSingleton")))) should be (
       AlreadyExists(ID(Seq("SampleSingleton")), Instance(domain.ctx.abs, Seq("SampleSingleton", ListMap.empty)))
     )
   }
 
   "delete thing" in {
-    domain(Delete(ID(Seq("SampleSingleton")))).merge should be (
+    domain(Delete(ID(Seq("SampleSingleton")))) should be (
       Deleted(ID(Seq("SampleSingleton")), Instance(domain.ctx.abs, Seq("SampleSingleton", ListMap.empty)))
     )
   }

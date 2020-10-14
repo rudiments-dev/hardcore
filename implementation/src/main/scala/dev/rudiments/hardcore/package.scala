@@ -5,24 +5,27 @@ import dev.rudiments.domain.{DTO, ID}
 import dev.rudiments.hardcore.Error.NoHandler
 
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 package object hardcore {
 
-
-
-  trait Message extends DTO {
-    def toEither[E <: Event]: Either[Message, E] = Left(this)
-  }
-
   trait Command
 
-  trait Event extends Message {
-    override def toEither[E <: Event]: Either[Message, E] = Right(this.asInstanceOf[E])
+  trait Message extends DTO {
+    def toEither[E <: Event]: Either[Message, E] = this match {
+      case e: E => Right(e)
+      case e: Error => Left(e)
+      case other => Left(other)
+    }
+
+    def on[M <: Message : ClassTag](f: M => Message): Message = this match {
+      case m: M => f(m)
+      case other => other
+    }
   }
 
-  trait Error extends Message {
-    override def toEither[E <: Event]: Either[Message, E] = Left(this)
-  }
+  trait Event extends Message
+  trait Error extends Message
   object Error {
     case object NoHandler extends Error
     case object NotImplemented extends Error
@@ -34,24 +37,28 @@ package object hardcore {
   abstract class Bulk(val ids: Seq[ID]) extends Memorable
   abstract class All extends Memorable //TODO Predicate(Query?) for search commands
 
-  type Result[E <: Event] = Either[Message, E]
+  type Skill = PartialFunction[Command, Message]
 
-  type Skill[E <: Event] = PartialFunction[Command, Result[E]]
+  val noSkill: Skill = { case _ => NoHandler }
 
   object Skill {
-    def fromActions[E <: Event](actions: Action[_ <: Command, _ <: E]*): Skill[E] = {
-      new Skill[E] {
+    def fromActions(actions: Action[_ <: Command, _ <: Event]*): Skill = {
+      new Skill {
 
         val possibleCommands: Seq[Class[_]] = actions.map(_.commandType)
         override def isDefinedAt(x: Command): Boolean = possibleCommands.contains(x.getClass)
 
-        override def apply(v1: Command): Result[E] = {
+        override def apply(v1: Command): Message = {
           actions
             .find(_.commandType == v1.getClass)
             .map(_.runCommand(v1))
-            .getOrElse(Left(NoHandler))
+            .getOrElse(NoHandler)
         }
       }
+    }
+
+    def fromSkills(skills: Skill*): Skill = {
+      skills.foldRight(noSkill)((s, accum) => s.orElse(accum))
     }
   }
 

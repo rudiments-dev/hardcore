@@ -169,7 +169,7 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
       }
     }
     using(DBSession(pool.borrow())) { session =>
-      repoFunction(session)(Count()).merge should be(Counted(100))
+      repoFunction(session)(Count()) should be(Counted(100))
     }
   }
 
@@ -195,7 +195,7 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
     Delete("/example") ~> routes ~> check {
       response.status should be(StatusCodes.NoContent)
       using(DBSession(pool.borrow())) { session =>
-        repoFunction(session)(Count()).merge should be(Counted(0))
+        repoFunction(session)(Count()) should be(Counted(0))
       }
     }
   }

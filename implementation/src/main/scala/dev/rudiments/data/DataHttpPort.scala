@@ -10,14 +10,14 @@ import dev.rudiments.data.ReadOnly._
 import dev.rudiments.domain.{ID, Instance, Spec, Thing}
 import dev.rudiments.hardcore.http._
 import dev.rudiments.hardcore.http.query.Directives
-import dev.rudiments.hardcore.{Event, PortWithoutDependency, Result, Skill}
+import dev.rudiments.hardcore.{Event, Message, PortWithoutDependency, Skill}
 import io.circe.{Decoder, Encoder}
 
 class DataHttpPort(
   prefix: String,
   idField: Thing,
   identify: Instance => ID,
-  override val s: Skill[Event],
+  override val s: Skill,
   customRoutes: Seq[(String, Router)] = Seq.empty,
   customIdRoutes: Seq[(String, ID => Router)] = Seq.empty
 )(implicit spec: Spec, en: Encoder[Instance], de: Decoder[Instance]) extends PortWithoutDependency(s) with Router with FailFastCirceSupport {
@@ -41,19 +41,19 @@ class DataHttpPort(
     )
   ).routes
 
-  def responseWith(event: Result[Event]): StandardRoute = event match {
-    case Right(Created(_, value)) =>        complete(StatusCodes.Created, value)
-    case Right(Found(_, value)) =>          complete(StatusCodes.OK, value)
-    case Right(FoundAll(values)) =>         complete(StatusCodes.OK, values)
-    case Right(Updated(_, _, newValue)) =>  complete(StatusCodes.OK, newValue)
-    case Right(Deleted(_, _)) =>            complete(StatusCodes.NoContent)
+  def responseWith(event: Message): StandardRoute = event match {
+    case Created(_, value) =>        complete(StatusCodes.Created, value)
+    case Found(_, value) =>          complete(StatusCodes.OK, value)
+    case FoundAll(values) =>         complete(StatusCodes.OK, values)
+    case Updated(_, _, newValue) =>  complete(StatusCodes.OK, newValue)
+    case Deleted(_, _) =>            complete(StatusCodes.NoContent)
 
-    case Right(Commit(_)) =>                complete(StatusCodes.OK) //TODO report amount of created/updated/deleted
+    case Commit(_) =>                complete(StatusCodes.OK) //TODO report amount of created/updated/deleted
 
-    case Left(NotFound(_)) =>              complete(StatusCodes.NotFound)
-    case Left(AlreadyExists(_, _)) =>      complete(StatusCodes.Conflict)
+    case NotFound(_) =>              complete(StatusCodes.NotFound)
+    case AlreadyExists(_, _) =>      complete(StatusCodes.Conflict)
 
-    case Left(_: Error) =>                 complete(StatusCodes.InternalServerError)
+    case _: Error =>                 complete(StatusCodes.InternalServerError)
     case _ =>                                 complete(StatusCodes.InternalServerError)
   }
 }

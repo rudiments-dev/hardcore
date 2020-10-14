@@ -27,22 +27,18 @@ object TodoApp extends App with LazyLogging {
       Done(id),
       {
         case Done(id) =>
-          for {
-            found <- ctx.adapter(Find(id)).map { case f: Found => f }
-            updated <- found.value.copy[Boolean]("done", {
+          ctx.adapter(Find(id)).on[Found] { found =>
+            found.value.copy[Boolean]("done", {
               case d if !d => Right(!d)
               case d if d => Left(AlreadyDone(found.value))
-            }).map { instance => ctx.adapter(Update(id, instance)).map { case f: Updated => f } } match {
-              case Left(value) => Left(value)
-              case Right(value) => value
-            }
-          } yield updated
+            }).map(it => ctx.adapter(Update(id, it))).merge
+          }
       },
       {
-        case Right(Updated(_, _, value)) =>
+        case Updated(_, _, value) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case Left(AlreadyDone(item)) =>
+        case AlreadyDone(item) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }
@@ -50,23 +46,19 @@ object TodoApp extends App with LazyLogging {
     "undone" -> (ctx => id => DependencyLess.EmptyPostPort[Undone, Event](
       Undone(id),
       {
-        case Undone(id) =>
-          for {
-            found <- ctx.adapter(Find(id)).map { case f: Found => f }
-            updated <- found.value.copy[Boolean]("done", {
+        case Done(id) =>
+          ctx.adapter(Find(id)).on[Found] { found =>
+            found.value.copy[Boolean]("done", {
               case d if d => Right(!d)
               case d if !d => Left(AlreadyNotDone(found.value))
-            }).map { instance => ctx.adapter(Update(id, instance)).map { case f: Updated => f } } match {
-              case Left(value) => Left(value)
-              case Right(value) => value
-            }
-          } yield updated
+            }).map(it => ctx.adapter(Update(id, it))).merge
+          }
       },
       {
-        case Right(Updated(_, _, value)) =>
+        case Updated(_, _, value) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case Left(AlreadyNotDone(item)) =>
+        case AlreadyNotDone(item) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }

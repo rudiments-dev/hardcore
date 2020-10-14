@@ -2,18 +2,18 @@ package dev.rudiments.db.registry
 
 import dev.rudiments.data.SoftCache
 import dev.rudiments.hardcode.sql.schema.{FK, Table}
-import dev.rudiments.hardcore.{Command, Error, Event, Result, Service, Skill}
+import dev.rudiments.hardcore.{Command, Error, Event, Message, Service, Skill}
 import dev.rudiments.data.CRUD.Create
 import dev.rudiments.data.ReadOnly._
-import dev.rudiments.domain.{ID, Spec, Domain}
+import dev.rudiments.domain.{Domain, ID, Spec}
 
 class H2Service(adapter: H2Adapter, persistent: SoftCache) extends Service[SchemaCommand, SchemaEvent] {
   override def isDefinedAt(cmd: Command): Boolean = f.isDefinedAt(cmd)
-  override def apply(cmd: Command): Result[SchemaEvent] = f(cmd)
+  override def apply(cmd: Command): Message = f(cmd)
 
   private implicit val domain: Domain = Domain()
   private implicit val t: Spec = domain.makeFromScala[Spec, Schema]
-  val f: Skill[SchemaEvent] = {
+  val f: Skill = {
     case ReadSchema(schemaName) =>
       persistent(
         Create(
@@ -21,39 +21,39 @@ class H2Service(adapter: H2Adapter, persistent: SoftCache) extends Service[Schem
           t.fromProduct(domain, discoverSchema(schemaName))
         )
       )
-      findSchema(schemaName).toEither
+      findSchema(schemaName)
 
     case FindSchema(schemaName) =>
-      findSchema(schemaName).toEither
+      findSchema(schemaName)
   }
 
   private def discoverSchema(name: String): Schema = {
     adapter(DiscoverSchema(name)) match {
-      case Right(SchemaDiscovered(schemaName, tableNames)) =>
+      case SchemaDiscovered(schemaName, tableNames) =>
         val tables = tableNames.map(n => n -> discoverTable(n, schemaName)).toMap
         Schema(
           schemaName,
           tables.values.toSet,
           discoverReferences(schemaName, tables)
         )
-      case Left(ConnectionFailure(e)) => throw e
+      case ConnectionFailure(e) => throw e
     }
   }
 
   private def discoverTable(tableName: String, schemaName: String): Table = {
     adapter(DiscoverTable(tableName, schemaName)) match {
-      case Right(TableDiscovered(tableName, columns)) =>
+      case TableDiscovered(tableName, columns) =>
         Table(
           tableName,
           columns
         )
-      case Left(ConnectionFailure(e)) => throw e
+      case ConnectionFailure(e) => throw e
     }
   }
 
   private def discoverReferences(schemaName: String, tables: Map[String, Table]): Set[FK] = {
     adapter(DiscoverReferences(schemaName)) match {
-      case Right(ReferencesDiscovered(_, references)) =>
+      case ReferencesDiscovered(_, references) =>
         references.map { r =>
           val table = tables(r.table)
           val ref = tables(r.refTable)
@@ -65,20 +65,20 @@ class H2Service(adapter: H2Adapter, persistent: SoftCache) extends Service[Schem
             columns.zip(refColumns).toMap
           )
         }
-      case Left(ConnectionFailure(e)) => throw e
+      case ConnectionFailure(e) => throw e
     }
   }
 
   private def findSchema(schemaName: String): SchemaEvent = {
     persistent(Find(ID(schemaName))) match {
-      case Right(Found(_, value)) => SchemaFound(
+      case Found(_, value) => SchemaFound(
         Schema(
           value.extract("name"),
           value.extract("tables"),
           value.extract("references")
         )
       )
-      case Left(NotFound(_)) => SchemaNotFound(schemaName)
+      case NotFound(_) => SchemaNotFound(schemaName)
     }
   }
 }
