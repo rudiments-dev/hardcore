@@ -1,6 +1,6 @@
 package dev.rudiments.memory
 
-import dev.rudiments.data.Batch._
+import dev.rudiments.data._
 import dev.rudiments.domain.ID
 import dev.rudiments.hardcore._
 
@@ -8,22 +8,32 @@ import scala.collection.mutable
 
 class Memory[E <: Event](val of: Skill) extends Skill {
 
-  val story: mutable.ArrayBuffer[(Command, Event)] = mutable.ArrayBuffer.empty
-  val conclusion: mutable.Map[ID, Event] = mutable.Map.empty
+  val story: mutable.ArrayBuffer[(Ask, DataEvent)] = mutable.ArrayBuffer.empty
+  val conclusion: mutable.Map[ID, Reply] = mutable.Map.empty
 
-  override def isDefinedAt(cmd: Command): Boolean = f.isDefinedAt(cmd)
+  override def isDefinedAt(cmd: Ask): Boolean = f.isDefinedAt(cmd)
 
-  override def apply(cmd: Command): Message = f(cmd)
+  override def apply(cmd: Ask): Reply = f(cmd)
 
-  def memorize(cmd: Command, evt: Event): Event = evt match {
-    case o: One =>
-      conclusion.get(o.id) match {
+  def memorize(cmd: Ask, evt: DataEvent): Reply = evt match {
+    case DataEvent(id) =>
+      conclusion.get(id) match {
         case Some(existing) if existing == evt =>
           existing
         case _ =>
-          conclusion += o.id -> evt
+          conclusion += id -> evt
           story += cmd -> evt
-          conclusion(o.id)
+          conclusion(id)
+      }
+    case Moved(oldKey, _, newKey, _) =>
+      conclusion.get(oldKey) match {
+        case Some(existing) if existing == evt =>
+          existing
+        case _ =>
+          conclusion += oldKey -> evt
+          conclusion += newKey -> evt
+          story += cmd -> evt
+          conclusion(newKey)
       }
 
     case c: Commit =>
@@ -34,10 +44,12 @@ class Memory[E <: Event](val of: Skill) extends Skill {
   }
 
   val f: Skill = {
-    case cmd: Command => of(cmd) match {
-      case evt: Event => memorize(cmd, evt)
+    case cmd: Data with Command => of(cmd) match {
+      case evt: DataEvent => memorize(cmd, evt)
       case other => other
     }
+
+    case d: Data => of(d)
 
     case _ => ???
   }

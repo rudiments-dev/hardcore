@@ -10,10 +10,11 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.{Config, ConfigFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import dev.rudiments.data.ReadOnly.{Count, Counted}
+import dev.rudiments.data._
 import dev.rudiments.domain._
 import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Table, TypedSchema}
 import dev.rudiments.hardcode.sql.{SQLAdapter, SQLHttpPort}
+import dev.rudiments.hardcore.All
 import dev.rudiments.hardcore.http.{ThingDecoder, ThingEncoder}
 import io.circe.{Decoder, Encoder}
 import org.junit.runner.RunWith
@@ -169,21 +170,21 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
       }
     }
     using(DBSession(pool.borrow())) { session =>
-      repoFunction(session)(Count()) should be(Counted(100))
+      repoFunction(session)(Count(All)) should be(Counted(100))
     }
   }
 
   it should "should filter entities" in {
-    Get("/example?query=id=less:10") ~> routes ~> check {
+    Get("/example?id=lt:10") ~> routes ~> check {
       response.status should be(StatusCodes.OK)
-      responseAs[Seq[Instance]].map(_.extract[Long]("id")) should be((1 until 10))
+      responseAs[Seq[Instance]].map(_.extract[Long]("id")) should be(1 until 10)
     }
   }
 
   it should "should replace all entities" in {
     val toUpdate = Seq(exampleInstance(1L, "replaced"))
     Put("/example", toUpdate) ~> routes ~> check {
-      response.status should be(StatusCodes.Created)
+      response.status should be(StatusCodes.OK)
     }
     Get("/example") ~> routes ~> check {
       response.status should be(StatusCodes.OK)
@@ -193,9 +194,9 @@ class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
 
   it should "clear repository" in {
     Delete("/example") ~> routes ~> check {
-      response.status should be(StatusCodes.NoContent)
+      response.status should be(StatusCodes.OK)
       using(DBSession(pool.borrow())) { session =>
-        repoFunction(session)(Count()) should be(Counted(0))
+        repoFunction(session)(Count(All)) should be(Counted(0))
       }
     }
   }

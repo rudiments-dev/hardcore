@@ -1,5 +1,8 @@
 package dev.rudiments.domain
 
+import java.sql.{Date, Time, Timestamp}
+import java.util.UUID
+
 import dev.rudiments.domain.Plain.{Number, Text}
 import dev.rudiments.domain.ScalaTypes._
 import dev.rudiments.domain.Size.Big
@@ -273,6 +276,20 @@ case class ValueSpec (
   def validate(system: Domain, value: Any): Any = value match {
     case other if isRequired => thing.validate(system, value)
     case o: Option[_] if !isRequired => o.map(v => thing.validate(system, v))
+  }
+
+  def parse(from: String): Any = if(thing.isInstanceOf[Plain]) {
+    thing match {
+      case Plain.Bool => from.toBoolean
+      case Plain.Text(_) => from
+      case Plain.Number(_, _, _) => BigDecimal(from)
+      case Plain.Date => Date.valueOf(from)
+      case Plain.Time => Time.valueOf(from)
+      case Plain.Timestamp => Timestamp.valueOf(from)
+      case Plain.UUID => UUID.fromString(from)
+    }
+  } else {
+    ???
   }
 }
 

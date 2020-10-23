@@ -6,7 +6,8 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.data.DataHttpPort
-import dev.rudiments.data.ReadOnly._
+import dev.rudiments.data._
+import dev.rudiments.hardcore.All
 import dev.rudiments.hardcore.http.{ThingDecoder, ThingEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
@@ -23,7 +24,7 @@ class HttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest with F
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val domain: Domain = new Domain
   private implicit val t: Spec = domain.makeFromScala[Spec, Example]
-  private val cache: Cache = new Cache
+  private val state: State = new State
 
   private implicit val en: Encoder[Instance] = new ThingEncoder(domain).specEncoder(t)
   private implicit val de: Decoder[Instance] = new ThingDecoder(domain).specDecoder(t)
@@ -32,7 +33,7 @@ class HttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest with F
     "example",
     ScalaTypes.ScalaLong,
     i => ID(Seq(i.extract[Long]("id"))),
-    cache
+    state
   )
 
   private val routes = Route.seal(router.routes)
@@ -101,7 +102,7 @@ class HttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest with F
         response.status should be (StatusCodes.Created)
       }
     }
-    cache(Count()) should be (Counted(10000))
+    state(Count(All)) should be (Counted(10000))
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Instance] should be (Instance(t, Seq(42L, "42'th element")))
@@ -111,7 +112,7 @@ class HttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest with F
   "endure 190.000 batch" in {
     Post("/example", (10001 to 200000).map(i => Instance(t, Seq(i.toLong, s"$i'th element")))) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      cache(Count()) should be (Counted(200000))
+      state(Count(All)) should be (Counted(200000))
     }
     Get("/example/10042") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
@@ -122,7 +123,7 @@ class HttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest with F
   "clear repository" in {
     Delete("/example") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      cache(Count()) should be (Counted(0))
+      state(Count(All)) should be (Counted(0))
     }
   }
 

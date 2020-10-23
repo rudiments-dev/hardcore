@@ -1,7 +1,7 @@
 package dev.rudiments.hardcode.sql.actions
 
 import dev.rudiments.data.Action
-import dev.rudiments.data.ReadOnly.{Count, Counted}
+import dev.rudiments.data._
 import dev.rudiments.hardcode.sql.SQLParts.From
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.domain.Spec
@@ -16,7 +16,7 @@ class CountAction(schema: TypedSchema, spec: Spec)(session: DBSession) extends A
     SQL(
       s"""
          |SELECT COUNT(1) as cnt
-         |FROM ${fromPart(From(schema, table, None))}
+         |FROM ${From(schema, table).sql}
          |""".stripMargin
     ).map(rs => Counted(rs.get("cnt"))).single().apply().get
   }

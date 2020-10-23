@@ -1,7 +1,8 @@
-package dev.rudiments.data
+package dev.rudiments.domain
 
-import dev.rudiments.domain._
+import dev.rudiments.data._
 import dev.rudiments.hardcore.All
+import dev.rudiments.hardcore.http.query.PassAllQuery
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -9,7 +10,7 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.util.Random
 
 @RunWith(classOf[JUnitRunner])
-class SoftCacheSpec extends WordSpec with Matchers {
+class StateSpec extends WordSpec with Matchers {
   private case class Example(
     id: Long,
     name: String,
@@ -21,7 +22,6 @@ class SoftCacheSpec extends WordSpec with Matchers {
   private val state: State = new State
   private val sample = Instance(t, Seq(42L, "sample", None))
   private val id: ID = ID(Seq(42L))
-  private val newID: ID = ID(Seq(24L))
 
   "no element by ID" in {
     state(Count(All)) should be (Counted(0))
@@ -45,33 +45,16 @@ class SoftCacheSpec extends WordSpec with Matchers {
     state(Find(id)) should be (Found(id, Instance(t, Seq(42L, "sample", Some("changes")))))
   }
 
-  "move item in repository" in {
-    state(Move(
-      id,
-      newID,
-      Instance(t, Seq(24L, "sample", Some("changes")))
-    )) should be (
-      Moved(
-        id,
-        Instance(t, Seq(42L, "sample", Some("changes"))),
-        newID,
-        Instance(t, Seq(24L, "sample", Some("changes"))),
-      ))
-    state(Count(All)) should be (Counted(1))
-    state(Find(newID)) should be (Found(newID, Instance(t, Seq(24L, "sample", Some("changes")))))
-  }
-
   "multiple inserts with same ID causes exception" in {
-
     state(Count(All)) should be (Counted(1))
-    state(Create(newID, sample)) should be (AlreadyExists(newID, Instance(t, Seq(24L, "sample", Some("changes")))))
+    state(Create(id, sample)) should be (AlreadyExists(id, Instance(t, Seq(42L, "sample", Some("changes")))))
   }
 
   "delete item from repository" in {
     state(Count(All)) should be (Counted(1))
-    state(Delete(newID)) should be (Deleted(newID, Instance(t, Seq(24L, "sample", Some("changes")))))
+    state(Delete(id)) should be (Deleted(id, Instance(t, Seq(42L, "sample", Some("changes")))))
     state(Count(All)) should be (Counted(0))
-    state(Find(newID)) should be (NotFound(newID))
+    state(Find(id)) should be (NotFound(id))
   }
 
   "endure 100.000 records" in {
@@ -86,7 +69,7 @@ class SoftCacheSpec extends WordSpec with Matchers {
   }
 
   "endure 100.000 batch" in {
-    val batch = (100001 to 200000).map(i => ID(Seq(i.toLong)) -> Instance(t, Seq(i.toLong, s"$i'th element", None))).toMap
+    val batch = (100001 to 200000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i'th element", None)))).toMap
     state(CreateAll(batch)) should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
 
     state(Count(All)) should be (Counted(200000))

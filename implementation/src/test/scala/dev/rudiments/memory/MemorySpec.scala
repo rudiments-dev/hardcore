@@ -1,10 +1,9 @@
 package dev.rudiments.memory
 
-import dev.rudiments.data.ReadOnly._
-import dev.rudiments.data.CRUD._
-import dev.rudiments.data.Batch._
+import dev.rudiments.data._
 import dev.rudiments.data.DataEvent
-import dev.rudiments.domain.{Cache, DTO, Domain, ID, Instance, Spec}
+import dev.rudiments.domain.{DTO, Domain, ID, Instance, Spec}
+import dev.rudiments.hardcore.All
 import dev.rudiments.hardcore.http.query.PassAllQuery
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -22,24 +21,26 @@ class MemorySpec extends WordSpec with Matchers {
 
   private implicit val domain: Domain = new Domain
   private implicit val t: Spec = domain.makeFromScala[Spec, Example]
-  private val store: Memory[DataEvent] = new Memory(new Cache)
+  private val store: Memory[DataEvent] = new Memory(new State)
   private val sample = Instance(t, Seq(42L, "sample", None))
   private val id: ID = ID(Seq(42L))
+  private val newId: ID = ID(Seq(24L))
+  private val newSample = Instance(t, Seq(24L, "sample", Some("changes")))
 
   "no element by ID" in {
-    store(Count()) should be (Counted(0))
-    store.of(Count()) should be (Counted(0))
+    store(Count(All)) should be (Counted(0))
+    store.of(Count(All)) should be (Counted(0))
     store.story.size should be (0)
     store.conclusion.size should be (0)
     store(Find(id)) should be (NotFound(id))
   }
 
   "put item into store" in {
-    store(Count()) should be (Counted(0))
+    store(Count(All)) should be (Counted(0))
     store(Create(id, sample)) should be (Created(id, sample))
 
-    store(Count()) should be (Counted(1))
-    store.of(Count()) should be (Counted(1))
+    store(Count(All)) should be (Counted(1))
+    store.of(Count(All)) should be (Counted(1))
     store.story.size should be (1)
     store.conclusion.size should be (1)
 
@@ -56,8 +57,8 @@ class MemorySpec extends WordSpec with Matchers {
         Instance(t, Seq(42L, "sample", None)),
         Instance(t, Seq(42L, "sample", Some("changes")))))
 
-    store(Count()) should be (Counted(1))
-    store.of(Count()) should be (Counted(1))
+    store(Count(All)) should be (Counted(1))
+    store.of(Count(All)) should be (Counted(1))
     store.story.size should be (2)
     store.conclusion.size should be (1)
 
@@ -77,27 +78,60 @@ class MemorySpec extends WordSpec with Matchers {
     ))
   }
 
+  "move item in store" in {
+    store(Move(id, newId, newSample)) should be (
+      Moved(
+        id,
+        Instance(t, Seq(42L, "sample", Some("changes"))),
+        newId,
+        newSample
+      )
+    )
+
+    store(Count(All)) should be (Counted(1))
+    store.of(Count(All)) should be (Counted(1))
+    store.story.size should be (3)
+    store.conclusion.size should be (2)
+
+    store(Find(newId)) should be (Found(newId, newSample))
+    store.of(Find(newId)) should be (Found(newId, newSample))
+    store.story.last should be (
+      Move(id, newId, newSample) -> Moved(
+        id,
+        Instance(t, Seq(42L, "sample", Some("changes"))),
+        newId,
+        newSample
+      )
+    )
+    store.conclusion(newId) should be (Moved(
+      id,
+      Instance(t, Seq(42L, "sample", Some("changes"))),
+      newId,
+      newSample
+    ))
+  }
+
   "multiple inserts with same ID causes exception" in {
-    store(Count()) should be (Counted(1))
-    store(Create(id, sample)) should be (AlreadyExists(id, Instance(t, Seq(42L, "sample", Some("changes")))))
+    store(Count(All)) should be (Counted(1))
+    store(Create(newId, sample)) should be (AlreadyExists(newId, newSample))
   }
 
   "delete item from store" in {
-    store(Count()) should be (Counted(1))
-    store.of(Count()) should be (Counted(1))
-    store.story.size should be (2)
-    store.conclusion.size should be (1)
-
-    store(Delete(id)) should be (Deleted(id, Instance(t, Seq(42L, "sample", Some("changes")))))
-    store.story.last should be (Delete(id) -> Deleted(id, Instance(t, Seq(42L, "sample", Some("changes")))))
-    store.conclusion(id) should be (Deleted(id, Instance(t, Seq(42L, "sample", Some("changes")))))
-
-    store(Count()) should be (Counted(0))
-    store.of(Count()) should be (Counted(0))
+    store(Count(All)) should be (Counted(1))
+    store.of(Count(All)) should be (Counted(1))
     store.story.size should be (3)
-    store.conclusion.size should be (1)
+    store.conclusion.size should be (2)
 
-    store(Find(id)) should be (NotFound(id))
+    store(Delete(newId)) should be (Deleted(newId, newSample))
+    store.story.last should be (Delete(newId) -> Deleted(newId, newSample))
+    store.conclusion(newId) should be (Deleted(newId, newSample))
+
+    store(Count(All)) should be (Counted(0))
+    store.of(Count(All)) should be (Counted(0))
+    store.story.size should be (4)
+    store.conclusion.size should be (2)
+
+    store(Find(newId)) should be (NotFound(newId))
   }
 
   "endure 100.000 records" in {
@@ -105,9 +139,9 @@ class MemorySpec extends WordSpec with Matchers {
       .map(i => Instance(t, Seq(i.toLong, s"$i'th element", None)))
       .foreach(s => store(Create(ID(Seq(s.extract[Long]("id"))), s)))
 
-    store(Count()) should be (Counted(100000))
-    store.of(Count()) should be (Counted(100000))
-    store.story.size should be (100003)
+    store(Count(All)) should be (Counted(100000))
+    store.of(Count(All)) should be (Counted(100000))
+    store.story.size should be (100004)
     store.conclusion.size should be (100000)
 
     val rnd = new Random().nextInt(100000).toLong
@@ -118,9 +152,9 @@ class MemorySpec extends WordSpec with Matchers {
     val batch = (100001 to 200000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i'th element", None)))).toMap
     store(CreateAll(batch)) should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
 
-    store(Count()) should be (Counted(200000))
-    store.of(Count()) should be (Counted(200000))
-    store.story.size should be (200003)
+    store(Count(All)) should be (Counted(200000))
+    store.of(Count(All)) should be (Counted(200000))
+    store.story.size should be (200004)
     store.conclusion.size should be (200000)
 
     val rnd = new Random().nextInt(200000).toLong
@@ -131,7 +165,7 @@ class MemorySpec extends WordSpec with Matchers {
 
   "endure 100.000 replace" in {
     val batch = (200001 to 300000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i item", None)))).toMap
-    val deleting = store(FindAll(PassAllQuery(t))).asInstanceOf[FoundAll].values.map { it =>
+    val deleting = store(FindAll(All)).asInstanceOf[FoundAll].values.map { it =>
       val k = ID(Seq(it.extract[Long]("id")))
       k -> Deleted(k, it)
     }.toMap
@@ -139,9 +173,9 @@ class MemorySpec extends WordSpec with Matchers {
       deleting ++ batch.map { case (k, v) => k -> Created(k, v) }
     ))
 
-    store(Count()) should be (Counted(100000))
-    store.of(Count()) should be (Counted(100000))
-    store.story.size should be (500003)
+    store(Count(All)) should be (Counted(100000))
+    store.of(Count(All)) should be (Counted(100000))
+    store.story.size should be (500004)
     store.conclusion.size should be (300000)
 
     val rnd = new Random().nextInt(100000).toLong + 200000L
@@ -151,15 +185,15 @@ class MemorySpec extends WordSpec with Matchers {
   }
 
   "clear repository" in {
-    store(Count()) should be (Counted(100000))
-    val deleting = store(FindAll(PassAllQuery(t))).asInstanceOf[FoundAll].values.map { it =>
+    store(Count(All)) should be (Counted(100000))
+    val deleting = store(FindAll(All)).asInstanceOf[FoundAll].values.map { it =>
       val k = ID(Seq(it.extract[Long]("id")))
       k -> Deleted(k, it)
     }.toMap
-    store(DeleteAll()) should be (Commit(deleting))
-    store(Count()) should be (Counted(0))
-    store.of(Count()) should be (Counted(0))
-    store.story.size should be (600003)
+    store(DeleteUsing(All)) should be (Commit(deleting))
+    store(Count(All)) should be (Counted(0))
+    store.of(Count(All)) should be (Counted(0))
+    store.story.size should be (600004)
     store.conclusion.size should be (300000)
   }
 }

@@ -1,10 +1,8 @@
 package dev.rudiments.domain
 
-import dev.rudiments.data.CRUD._
-import dev.rudiments.data.ReadOnly._
+import dev.rudiments.data._
 import dev.rudiments.domain.ScalaTypes.plain
-import dev.rudiments.hardcore
-import dev.rudiments.hardcore.{Command, Skill}
+import dev.rudiments.hardcore.{Ask, Query, Reply, Skill}
 import enumeratum.EnumEntry
 
 import scala.collection.immutable.ListMap
@@ -15,7 +13,7 @@ class Domain extends Skill {
   private val model: mutable.Map[String, Thing] = mutable.Map.empty
   private val groups: mutable.Map[String, Set[String]] = mutable.Map.empty
 
-  val state: Cache = new Cache
+  val state: State = new State
 
   makeFromScala[Thing, Thing]
   makeFromScala[Thing, Instance]
@@ -28,9 +26,7 @@ class Domain extends Skill {
   val valueSpec: Spec = find[Spec]("ValueSpec")
 
   val skill: Skill = {
-    case q: Count => state(q)
-    case q: FindAll => state(q)
-    case q: Find => state(q)
+    case q: Query => state(q)
 
     case c@Create(ID(Seq(name: String)), _) =>
       state(c).flatMap[Created] { created =>
@@ -45,8 +41,8 @@ class Domain extends Skill {
 
     case c@Update(ID(Seq(name: String)), _) =>
       state(c).flatMap[Updated] { updated =>
-        if(updated.newvalue.spec == t) {
-          val value = updated.newvalue.toScala[Type]
+        if(updated.newValue.spec == t) {
+          val value = updated.newValue.toScala[Type]
           model.put(name, value.thing)
           groups.put(name, value.is.toSet)
           updated
@@ -70,8 +66,8 @@ class Domain extends Skill {
   }.foreach(skill.apply)
 
 
-  override def apply(v1: Command): hardcore.Message = skill.apply(v1)
-  override def isDefinedAt(x: Command): Boolean = skill.isDefinedAt(x)
+  override def apply(v1: Ask): Reply = skill.apply(v1)
+  override def isDefinedAt(x: Ask): Boolean = skill.isDefinedAt(x)
 
   def afterParent(a: Abstract, name: String): Thing = {
     model.get(name) match {
@@ -109,8 +105,7 @@ class Domain extends Skill {
     thing
   }
 
-  import scala.reflect.runtime.universe._
-  import scala.reflect.runtime.universe.{Type => SysType}
+  import scala.reflect.runtime.universe.{Type => SysType, _}
 
   def makeFromScala[T <: Thing, A : TypeTag]: T = make(typeOf[A], Set.empty).asInstanceOf[T]
 

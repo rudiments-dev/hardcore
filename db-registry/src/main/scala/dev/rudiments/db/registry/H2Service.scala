@@ -1,21 +1,19 @@
 package dev.rudiments.db.registry
 
-import dev.rudiments.data.SoftCache
-import dev.rudiments.hardcode.sql.schema.{FK, Table}
-import dev.rudiments.hardcore.{Command, Error, Event, Message, Service, Skill}
-import dev.rudiments.data.CRUD.Create
-import dev.rudiments.data.ReadOnly._
+import dev.rudiments.data._
 import dev.rudiments.domain.{Domain, ID, Spec}
+import dev.rudiments.hardcode.sql.schema.{FK, Table}
+import dev.rudiments.hardcore.{Ask, Command, Error, Event, Reply, Service, Skill}
 
-class H2Service(adapter: H2Adapter, persistent: SoftCache) extends Service[SchemaCommand, SchemaEvent] {
-  override def isDefinedAt(cmd: Command): Boolean = f.isDefinedAt(cmd)
-  override def apply(cmd: Command): Message = f(cmd)
+class H2Service(adapter: H2Adapter, state: State) extends Service[SchemaCommand, SchemaEvent] {
+  override def isDefinedAt(cmd: Ask): Boolean = f.isDefinedAt(cmd)
+  override def apply(cmd: Ask): Reply = f(cmd)
 
   private implicit val domain: Domain = new Domain
   private implicit val t: Spec = domain.makeFromScala[Spec, Schema]
   val f: Skill = {
     case ReadSchema(schemaName) =>
-      persistent(
+      state(
         Create(
           ID(schemaName),
           t.fromProduct(domain, discoverSchema(schemaName))
@@ -70,7 +68,7 @@ class H2Service(adapter: H2Adapter, persistent: SoftCache) extends Service[Schem
   }
 
   private def findSchema(schemaName: String): SchemaEvent = {
-    persistent(Find(ID(schemaName))) match {
+    state(Find(ID(schemaName))) match {
       case Found(_, value) => SchemaFound(
         Schema(
           value.extract("name"),

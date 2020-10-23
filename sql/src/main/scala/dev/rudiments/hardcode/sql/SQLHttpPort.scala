@@ -5,14 +5,12 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.complete
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import dev.rudiments.data.Batch._
-import dev.rudiments.data.CRUD._
+import dev.rudiments.data._
 import dev.rudiments.data.DataEvent
-import dev.rudiments.data.ReadOnly._
-import dev.rudiments.hardcore.http.query.{Directives, Query}
+import dev.rudiments.hardcore.http.query.Directives
 import dev.rudiments.hardcore.http._
 import dev.rudiments.domain.{ID, Instance, Spec}
-import dev.rudiments.hardcore.{Command, Message, Port, Skill}
+import dev.rudiments.hardcore.{All, Command, Message, Port, Predicate, Skill}
 import io.circe.{Decoder, Encoder}
 import scalikejdbc.{ConnectionPool, DBSession}
 
@@ -28,11 +26,11 @@ class SQLHttpPort
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
-      GetDirectivePort[Query, FindAll, DataEvent, DBSession](Directives.query(spec), FindAll.apply, s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
+      GetDirectivePort[Predicate, FindAll, DataEvent, DBSession](Directives.typedPredicate(spec), FindAll.apply, s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
       PostPort[Create, Instance, DataEvent, DBSession]((value: Instance) => Create(identify(value), value), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
       PostPort[CreateAll, Seq[Instance], DataEvent, DBSession]((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
       PutPort[ReplaceAll, Seq[Instance], DataEvent, DBSession]((batch: Seq[Instance]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
-      DeletePort[DeleteAll, DataEvent, DBSession](DeleteAll(),  s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
+      DeletePort[DeleteUsing, DataEvent, DBSession](DeleteUsing(All),  s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
     ),
     IDRouter(
       IDPath(spec.fields(idField).thing),
@@ -49,9 +47,7 @@ class SQLHttpPort
     case Updated(_, _, newValue) => complete(StatusCodes.OK, newValue)
     case Deleted(_, _) =>           complete(StatusCodes.NoContent)
 
-    case AllCreated(_) =>           complete(StatusCodes.Created)
-    case AllReplaced(_) =>          complete(StatusCodes.Created)
-    case AllDeleted() =>            complete(StatusCodes.NoContent)
+    case Commit(_) =>               complete(StatusCodes.OK)
 
     case NotFound(_) =>             complete(StatusCodes.NotFound)
     case AlreadyExists(_, _) =>     complete(StatusCodes.Conflict)
