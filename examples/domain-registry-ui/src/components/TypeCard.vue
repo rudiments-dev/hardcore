@@ -4,14 +4,21 @@
     <div class="w-full md:w-5/6">
     <table class="table-auto">
       <thead>
-      <tr><th class="border px-4 py-2 bg-gray-600 text-white" colspan="3">{{type.name}}</th></tr>
-      <tr><th class="border px-4 py-2">Name</th><th class="border px-4 py-2">Thing</th><th class="border px-4 py-2">isRequired</th></tr>
-
-
+        <tr>
+          <th class="border px-4 py-2 bg-gray-600 text-white" colspan="3">
+            {{type.name}}
+          </th>
+        </tr>
+        <tr>
+          <th class="border px-4 py-2">Name</th><th class="border px-4 py-2">
+            Thing
+          </th>
+          <th class="border px-4 py-2">
+            isRequired
+          </th>
+        </tr>
       </thead>
       <tbody>
-
-
         <tr v-for="(value, name) in type.fields" :key="name">
           <td class="border px-4 py-2">{{name}}</td>
           <td class="border px-4 py-2">{{value.thing.type}}</td>
@@ -21,7 +28,6 @@
     </table>
     </div>
     <div class="w-full md:w-1/3">
-      <h3 class="text-1xl font-bold leading-7 text-gray-900 sm:text-xl sm:leading-9 sm:truncate">JSON Representation</h3>
       <vue-json-pretty
         :deep=4
         :showLine=true
