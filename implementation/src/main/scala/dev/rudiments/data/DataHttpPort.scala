@@ -23,11 +23,11 @@ class DataHttpPort(
 
   override val routes: Route = PrefixRouter(prefix,
     CompositeRouter(
-      GetPort(FindAll(All), s, responseWith),
+      GetDirectivePort(Directives.typedPredicate(spec), FindAll.apply, s, responseWith),
       PostPort((value: Instance) => Create(identify(value), value), s, responseWith),
       PostPort((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
       PutPort((batch: Seq[Instance]) => Reconcile(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
-      DeletePort(DeleteUsing(All), s, responseWith),
+      DeleteDirectivePort(Directives.typedPredicate(spec), DeleteUsing.apply, s, responseWith),
       CompositeRouter(customRoutes.map { case (p, r) => PrefixRouter(p, r) } : _*)
     ),
     IDRouter(

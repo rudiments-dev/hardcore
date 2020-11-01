@@ -2,7 +2,6 @@ package dev.rudiments.hardcode.sql.actions
 
 import dev.rudiments.data.Action
 import dev.rudiments.data._
-import dev.rudiments.hardcode.sql.Binding
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField, Where}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.domain.{Domain, Spec}

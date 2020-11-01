@@ -111,6 +111,21 @@ object HttpPorts {
       }
     }
 
+    case class DeleteDirectivePort[T, C <: Ask, E <: Reply]
+    (
+      directive: Directive1[T],
+      command: T => C,
+      override val s: Skill,
+      result: Message => StandardRoute
+    ) extends PortWithoutDependency(s) with Router {
+
+      override val routes: Route = delete {
+        directive { t =>
+          ActionPort(command(t), s, result).routes
+        }
+      }
+    }
+
   }
 
   object WithDependencies {

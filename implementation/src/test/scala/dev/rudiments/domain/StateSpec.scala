@@ -1,8 +1,7 @@
 package dev.rudiments.domain
 
 import dev.rudiments.data._
-import dev.rudiments.hardcore.All
-import dev.rudiments.hardcore.http.query.PassAllQuery
+import dev.rudiments.hardcore.{All, Equals, FieldExpression, Less, LessOrEquals, More, MoreOrEquals, ParameterExpression, TypedPredicate}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -66,6 +65,50 @@ class StateSpec extends WordSpec with Matchers {
 
     val rnd = new Random().nextInt(100000).toLong
     state(Find(ID(Seq(rnd)))) should be (Found(ID(Seq(rnd)), Instance(t, Seq(rnd, s"$rnd'th element", None))))
+  }
+
+  "find equals value" in {
+    state(
+      FindAll(
+        TypedPredicate(t, Seq(Equals(FieldExpression("name"), ParameterExpression("13666'th element"))))
+      )
+    ) should be (FoundAll(Seq(
+      Instance(t, Seq(13666L, s"13666'th element", None))
+    )))
+  }
+
+  "find more than value" in {
+    state(FindAll(
+        TypedPredicate(t, Seq(More(FieldExpression("id"), ParameterExpression(99999L))))
+    )) should be (FoundAll(Seq(
+      Instance(t, Seq(100000L, s"100000'th element", None))
+    )))
+  }
+
+  "find more or equals than value" in {
+    state(FindAll(
+      TypedPredicate(t, Seq(MoreOrEquals(FieldExpression("id"), ParameterExpression(99999L))))
+    )) should be (FoundAll(Seq(
+      Instance(t, Seq(99999L, s"99999'th element", None)),
+      Instance(t, Seq(100000L, s"100000'th element", None))
+    )))
+  }
+
+  "find less than value" in {
+    state(FindAll(
+      TypedPredicate(t, Seq(Less(FieldExpression("id"), ParameterExpression(2L))))
+    )) should be (FoundAll(Seq(
+      Instance(t, Seq(1L, s"1'th element", None))
+    )))
+  }
+
+  "find less or equals than value" in {
+    state(FindAll(
+      TypedPredicate(t, Seq(LessOrEquals(FieldExpression("id"), ParameterExpression(2L))))
+    )) should be (FoundAll(Seq(
+      Instance(t, Seq(2L, s"2'th element", None)),
+      Instance(t, Seq(1L, s"1'th element", None))
+    )))
   }
 
   "endure 100.000 batch" in {

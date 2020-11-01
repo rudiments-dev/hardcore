@@ -6,17 +6,19 @@ import akka.http.scaladsl.server.Directives._
 import dev.rudiments.hardcore.{All, Equals, FieldExpression, Less, LessOrEquals, More, MoreOrEquals, ParameterExpression, Predicate, TypedPredicate}
 
 object Directives {
-
-  def query(spec: Spec): Directive1[Query] = parameter("query".?).map(Query.apply(_, spec))
-
   def typedPredicate(spec: Spec): Directive1[Predicate] = parameterMultiMap.map {
     params =>
-      TypedPredicate(
-        spec,
-        params.flatMap {
-          case (param, values) => parseParam(spec, param, values.toSet)
-        }.toSeq
-      ).asInstanceOf[Predicate]
+      if(params.isEmpty) {
+        All
+      } else {
+        TypedPredicate(
+          spec,
+          params.flatMap {
+            case (param, values) => parseParam(spec, param, values.toSet)
+          }.toSeq
+        ).asInstanceOf[Predicate]
+      }
+
   }
 
   def parseParam(spec: Spec, param: String, values: Set[String]): Set[Predicate] = {
