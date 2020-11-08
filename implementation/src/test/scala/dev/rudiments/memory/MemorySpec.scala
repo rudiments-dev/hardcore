@@ -21,7 +21,7 @@ class MemorySpec extends WordSpec with Matchers {
 
   private implicit val domain: Domain = new Domain
   private implicit val t: Spec = domain.makeFromScala[Spec, Example]
-  private val store: Memory[DataEvent] = new Memory(new State)
+  private val store: Memory = new Memory(new State)
   private val sample = Instance(t, Seq(42L, "sample", None))
   private val id: ID = ID(Seq(42L))
   private val newId: ID = ID(Seq(24L))

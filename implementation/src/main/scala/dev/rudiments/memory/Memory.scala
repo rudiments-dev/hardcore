@@ -6,16 +6,16 @@ import dev.rudiments.hardcore._
 
 import scala.collection.mutable
 
-class Memory[E <: Event](val of: Skill) extends Skill {
+class Memory(val of: Skill) extends Skill {
 
   val story: mutable.ArrayBuffer[(Ask, DataEvent)] = mutable.ArrayBuffer.empty
-  val conclusion: mutable.Map[ID, Reply] = mutable.Map.empty
+  val conclusion: mutable.Map[ID, DataEvent] = mutable.Map.empty
 
   override def isDefinedAt(cmd: Ask): Boolean = f.isDefinedAt(cmd)
 
   override def apply(cmd: Ask): Reply = f(cmd)
 
-  def memorize(cmd: Ask, evt: DataEvent): Reply = evt match {
+  def memorize(cmd: Ask, evt: DataEvent): DataEvent = evt match {
     case DataEvent(id) =>
       conclusion.get(id) match {
         case Some(existing) if existing == evt =>
