@@ -2,15 +2,15 @@ package dev.rudiments.db.registry
 
 import com.typesafe.config.Config
 import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes}
-import dev.rudiments.hardcore.{Adapter, Command, Event, Message, Skill}
+import dev.rudiments.hardcore.{Adapter, Ask, Command, Event, Message, Reply, Skill}
 import scalikejdbc._
 
 class H2Adapter(config: Config) extends Adapter[H2Command, H2Event]{
 
   val schemaName: String = initConnectionPool(config)
 
-  override def isDefinedAt(cmd: Command): Boolean = f.isDefinedAt(cmd)
-  override def apply(cmd: Command): Message = f(cmd)
+  override def isDefinedAt(cmd: Ask): Boolean = f.isDefinedAt(cmd)
+  override def apply(cmd: Ask): Reply = f(cmd)
   val f: Skill = {
     case CheckConnection =>
       try {

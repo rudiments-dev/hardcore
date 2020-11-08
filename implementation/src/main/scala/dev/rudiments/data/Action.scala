@@ -1,16 +1,16 @@
 package dev.rudiments.data
 
-import dev.rudiments.hardcore.{Command, Event, Message}
+import dev.rudiments.hardcore.{Ask, Reply}
 
 import scala.reflect.ClassTag
 
-abstract class Action[C <: Command : ClassTag, E <: Event] {
+abstract class Action[C <: Ask : ClassTag, E <: Reply] {
 
   val commandType: Class[_] = implicitly[ClassTag[C]].runtimeClass
-  def apply(command: C): Message
+  def apply(command: C): Reply
 
-  def runCommand(command: Command): Message = {
-    apply(command.asInstanceOf[C])
+  def runCommand(ask: Ask): Reply = {
+    apply(ask.asInstanceOf[C])
   }
   
 }

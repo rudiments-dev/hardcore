@@ -1,6 +1,6 @@
 package dev.rudiments.data
 
-import dev.rudiments.hardcore.{Event, Skill}
+import dev.rudiments.hardcore.Skill
 import dev.rudiments.hardcore.http.{Router, ThingDecoder, ThingEncoder}
 import dev.rudiments.domain.{Domain, ID, Instance, Spec}
 import io.circe.{Decoder, Encoder}
@@ -31,7 +31,7 @@ object SoftModule {
     val context = ModuleContext(
       spec,
       idField,
-      new SoftCache()(spec),
+      new State,
       prefix,
       new ThingEncoder(domain).specEncoder(spec),
       new ThingDecoder(domain).specDecoder(spec)

@@ -1,7 +1,7 @@
-package dev.rudiments.data
+package dev.rudiments.domain
 
-import dev.rudiments.domain._
-import dev.rudiments.hardcore.All
+import dev.rudiments.data._
+import dev.rudiments.hardcore.{All, Equals, FieldExpression, Less, LessOrEquals, More, MoreOrEquals, ParameterExpression, TypedPredicate}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -9,7 +9,7 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.util.Random
 
 @RunWith(classOf[JUnitRunner])
-class SoftCacheSpec extends WordSpec with Matchers {
+class StateSpec extends WordSpec with Matchers {
   private case class Example(
     id: Long,
     name: String,
@@ -21,7 +21,6 @@ class SoftCacheSpec extends WordSpec with Matchers {
   private val state: State = new State
   private val sample = Instance(t, Seq(42L, "sample", None))
   private val id: ID = ID(Seq(42L))
-  private val newID: ID = ID(Seq(24L))
 
   "no element by ID" in {
     state(Count(All)) should be (Counted(0))
@@ -45,33 +44,16 @@ class SoftCacheSpec extends WordSpec with Matchers {
     state(Find(id)) should be (Found(id, Instance(t, Seq(42L, "sample", Some("changes")))))
   }
 
-  "move item in repository" in {
-    state(Move(
-      id,
-      newID,
-      Instance(t, Seq(24L, "sample", Some("changes")))
-    )) should be (
-      Moved(
-        id,
-        Instance(t, Seq(42L, "sample", Some("changes"))),
-        newID,
-        Instance(t, Seq(24L, "sample", Some("changes"))),
-      ))
-    state(Count(All)) should be (Counted(1))
-    state(Find(newID)) should be (Found(newID, Instance(t, Seq(24L, "sample", Some("changes")))))
-  }
-
   "multiple inserts with same ID causes exception" in {
-
     state(Count(All)) should be (Counted(1))
-    state(Create(newID, sample)) should be (AlreadyExists(newID, Instance(t, Seq(24L, "sample", Some("changes")))))
+    state(Create(id, sample)) should be (AlreadyExists(id, Instance(t, Seq(42L, "sample", Some("changes")))))
   }
 
   "delete item from repository" in {
     state(Count(All)) should be (Counted(1))
-    state(Delete(newID)) should be (Deleted(newID, Instance(t, Seq(24L, "sample", Some("changes")))))
+    state(Delete(id)) should be (Deleted(id, Instance(t, Seq(42L, "sample", Some("changes")))))
     state(Count(All)) should be (Counted(0))
-    state(Find(newID)) should be (NotFound(newID))
+    state(Find(id)) should be (NotFound(id))
   }
 
   "endure 100.000 records" in {
@@ -85,8 +67,52 @@ class SoftCacheSpec extends WordSpec with Matchers {
     state(Find(ID(Seq(rnd)))) should be (Found(ID(Seq(rnd)), Instance(t, Seq(rnd, s"$rnd'th element", None))))
   }
 
+  "find equals value" in {
+    state(
+      FindAll(
+        TypedPredicate(t, Seq(Equals(FieldExpression("name"), ParameterExpression("13666'th element"))))
+      )
+    ) should be (FoundAll(Seq(
+      Instance(t, Seq(13666L, s"13666'th element", None))
+    )))
+  }
+
+  "find more than value" in {
+    state(FindAll(
+        TypedPredicate(t, Seq(More(FieldExpression("id"), ParameterExpression(99999L))))
+    )) should be (FoundAll(Seq(
+      Instance(t, Seq(100000L, s"100000'th element", None))
+    )))
+  }
+
+  "find more or equals than value" in {
+    state(FindAll(
+      TypedPredicate(t, Seq(MoreOrEquals(FieldExpression("id"), ParameterExpression(99999L))))
+    )) should be (FoundAll(Seq(
+      Instance(t, Seq(99999L, s"99999'th element", None)),
+      Instance(t, Seq(100000L, s"100000'th element", None))
+    )))
+  }
+
+  "find less than value" in {
+    state(FindAll(
+      TypedPredicate(t, Seq(Less(FieldExpression("id"), ParameterExpression(2L))))
+    )) should be (FoundAll(Seq(
+      Instance(t, Seq(1L, s"1'th element", None))
+    )))
+  }
+
+  "find less or equals than value" in {
+    state(FindAll(
+      TypedPredicate(t, Seq(LessOrEquals(FieldExpression("id"), ParameterExpression(2L))))
+    )) should be (FoundAll(Seq(
+      Instance(t, Seq(2L, s"2'th element", None)),
+      Instance(t, Seq(1L, s"1'th element", None))
+    )))
+  }
+
   "endure 100.000 batch" in {
-    val batch = (100001 to 200000).map(i => ID(Seq(i.toLong)) -> Instance(t, Seq(i.toLong, s"$i'th element", None))).toMap
+    val batch = (100001 to 200000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i'th element", None)))).toMap
     state(CreateAll(batch)) should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
 
     state(Count(All)) should be (Counted(200000))

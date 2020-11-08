@@ -1,9 +1,12 @@
 package dev.rudiments.domain
 
+import java.sql.{Date, Time, Timestamp}
+import java.util.UUID
+
 import dev.rudiments.domain.Plain.{Number, Text}
 import dev.rudiments.domain.ScalaTypes._
 import dev.rudiments.domain.Size.Big
-import dev.rudiments.hardcore.Error
+import dev.rudiments.hardcore._
 import enumeratum.EnumEntry
 
 import scala.collection.immutable.ListMap
@@ -32,6 +35,21 @@ case class Instance(spec: Spec, values: Seq[Any]) extends Ref {
         case None => Left(FieldNotFound(fieldName))
       }
     case other => ???
+  }
+
+  def matches(p: Predicate): Boolean = p match {
+    case All => true
+
+    case TypedPredicate(s, _) if spec != s => false //TODO inheritance, but requires Domain
+    case TypedPredicate(s, w) if spec == s => w.forall(this.matches)
+
+    case Equals(FieldExpression(f), ParameterExpression(value)) => this.extract[Any](f) == value
+    case More(FieldExpression(f), ParameterExpression(value)) => this.extract[Comparable[Any]](f).compareTo(value) > 0
+    case MoreOrEquals(FieldExpression(f), ParameterExpression(value)) => this.extract[Comparable[Any]](f).compareTo(value) >= 0
+    case Less(FieldExpression(f), ParameterExpression(value)) => this.extract[Comparable[Any]](f).compareTo(value) < 0
+    case LessOrEquals(FieldExpression(f), ParameterExpression(value)) => this.extract[Comparable[Any]](f).compareTo(value) <= 0
+
+    case _ => ???
   }
 
   def toScala[T]: T = {
@@ -273,6 +291,20 @@ case class ValueSpec (
   def validate(system: Domain, value: Any): Any = value match {
     case other if isRequired => thing.validate(system, value)
     case o: Option[_] if !isRequired => o.map(v => thing.validate(system, v))
+  }
+
+  def parse(from: String): Any = if(thing.isInstanceOf[Plain]) {
+    thing match {
+      case Plain.Bool => from.toBoolean
+      case Plain.Text(_) => from
+      case Plain.Number(_, _, _) => BigDecimal(from)
+      case Plain.Date => Date.valueOf(from)
+      case Plain.Time => Time.valueOf(from)
+      case Plain.Timestamp => Timestamp.valueOf(from)
+      case Plain.UUID => UUID.fromString(from)
+    }
+  } else {
+    ???
   }
 }
 

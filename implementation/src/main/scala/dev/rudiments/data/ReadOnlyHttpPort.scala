@@ -3,11 +3,11 @@ package dev.rudiments.data
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
-import dev.rudiments.data.ReadOnly._
-import dev.rudiments.hardcore.{Event, Message, PortWithoutDependency, Skill}
+import dev.rudiments.domain.{Domain, Instance, Spec}
+import dev.rudiments.hardcore.All
 import dev.rudiments.hardcore.http.query.Directives
 import dev.rudiments.hardcore.http.{IDPath, Router, ThingEncoder}
-import dev.rudiments.domain.{Domain, Instance, Spec}
+import dev.rudiments.hardcore.{Message, PortWithoutDependency, Skill}
 import io.circe.Encoder
 
 class ReadOnlyHttpPort(
@@ -22,8 +22,8 @@ class ReadOnlyHttpPort(
   override val routes: Route = pathPrefix(prefix) {
     get {
       pathEndOrSingleSlash {
-        Directives.query(spec) { query =>
-          responseWith(s(FindAll(query)))
+        Directives.typedPredicate(spec) { predicate =>
+          responseWith(s(FindAll(predicate)))
         }
       } ~ idPath { id =>
         pathEndOrSingleSlash {

@@ -1,9 +1,8 @@
 package dev.rudiments.domain.registry
 
-import dev.rudiments.data.CRUD._
-import dev.rudiments.data.ReadOnly._
+import dev.rudiments.data._
 import dev.rudiments.domain.{Domain, ID, Instance, The}
-import dev.rudiments.hardcore.http.query.PassAllQuery
+import dev.rudiments.hardcore.All
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -16,8 +15,8 @@ class DomainSkillSpec extends WordSpec with Matchers {
   private val domain = new Domain
 
   "initial content of domain" in {
-    domain(Count()) should be (Counted(27))
-    val found = domain(FindAll(PassAllQuery(domain.t)))
+    domain(Count(All)) should be (Counted(27))
+    val found = domain(FindAll(All))
     found.flatMap[FoundAll] { f =>
       f
     }
