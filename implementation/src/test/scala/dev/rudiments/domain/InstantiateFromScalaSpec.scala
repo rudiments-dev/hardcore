@@ -2,11 +2,12 @@ package dev.rudiments.domain
 
 import dev.rudiments.hardcore.data.MyEnum
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class InstantiateFromScalaSpec extends WordSpec with Matchers {
+class InstantiateFromScalaSpec extends AnyWordSpec with Matchers {
   private implicit val domain: Domain = Domain()
   private val s1: Spec = domain.makeFromScala[Spec, Sample1]
   private val c1: Spec = domain.makeFromScala[Spec, Complicated1]

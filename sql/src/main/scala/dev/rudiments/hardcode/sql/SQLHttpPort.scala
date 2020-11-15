@@ -30,8 +30,8 @@ class SQLHttpPort
     CompositeRouter(
       GetDirectivePort[Query, FindAll, DataEvent, DBSession](Directives.query(spec), FindAll.apply, s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
       PostPort[Create, Instance, DataEvent, DBSession]((value: Instance) => Create(identify(value), value), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
-      PostPort[CreateAll, Seq[Instance], DataEvent, DBSession]((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
-      PutPort[ReplaceAll, Seq[Instance], DataEvent, DBSession]((batch: Seq[Instance]) => ReplaceAll(batch.groupBy(identify).mapValues(_.head)), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
+      PostPort[CreateAll, Seq[Instance], DataEvent, DBSession]((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).view.mapValues(_.head).toMap), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
+      PutPort[ReplaceAll, Seq[Instance], DataEvent, DBSession]((batch: Seq[Instance]) => ReplaceAll(batch.groupBy(identify).view.mapValues(_.head).toMap), s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
       DeletePort[DeleteAll, DataEvent, DBSession](DeleteAll(),  s, () => DBSession(connectionPool.borrow()), session => session.close(), responseWith),
     ),
     IDRouter(
