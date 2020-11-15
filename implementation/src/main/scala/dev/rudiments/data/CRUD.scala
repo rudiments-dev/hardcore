@@ -4,7 +4,7 @@ import dev.rudiments.data.ReadOnly.NotFound
 import dev.rudiments.hardcore.flow.{Mutated, Mutates, SideEffect}
 import dev.rudiments.domain.{ID, Instance}
 
-import scala.collection.parallel
+import scala.collection.concurrent
 
 object CRUD {
   case class Create(key: ID, value: Instance) extends DataCommand with Mutates
@@ -12,7 +12,7 @@ object CRUD {
   case class AlreadyExists(key: ID, value: Instance) extends DataErrorEvent
   case class FailedToCreate(key: ID, value: Instance) extends DataErrorEvent
 
-  def create(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
+  def create(implicit content: concurrent.Map[ID, Instance]): DataSkill = {
     case Create(key, value) =>
       content.get(key) match {
         case None =>
@@ -29,7 +29,7 @@ object CRUD {
   case class CreateAuto(value: Instance) extends DataCommand with SideEffect
   case class FailedToCreateAuto(key: ID, value: Instance) extends DataErrorEvent
 
-  def createAuto(generator: () => ID)(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
+  def createAuto(generator: () => ID)(implicit content: concurrent.Map[ID, Instance]): DataSkill = {
     case CreateAuto(value) =>
       val key = generator()
       content.put(key, value)
@@ -44,7 +44,7 @@ object CRUD {
   case class Updated(key: ID, oldvalue: Instance, newvalue: Instance) extends DataEvent with Mutated
   case class FailedToUpdate(key: ID, value: Instance) extends DataErrorEvent
 
-  def update(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
+  def update(implicit content: concurrent.Map[ID, Instance]): DataSkill = {
     case Update(key, value) =>
       content.get(key) match {
         case Some(found) =>
@@ -63,7 +63,7 @@ object CRUD {
   case class Deleted(key: ID, value: Instance) extends DataEvent with Mutated
   case class FailedToDelete(key: ID, value: Instance) extends DataErrorEvent
 
-  def delete(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
+  def delete(implicit content: concurrent.Map[ID, Instance]): DataSkill = {
     case Delete(key) =>
       content.get(key) match {
         case Some(found) =>

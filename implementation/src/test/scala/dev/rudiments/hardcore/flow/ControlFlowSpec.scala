@@ -5,13 +5,14 @@ import dev.rudiments.data.CRUD.{Create, Created}
 import dev.rudiments.data.SoftCache
 import dev.rudiments.domain._
 import org.junit.runner.RunWith
-import org.scalatest.{Matchers, WordSpec}
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.collection.mutable
 
 @RunWith(classOf[JUnitRunner])
-class ControlFlowSpec extends WordSpec with Matchers {
+class ControlFlowSpec extends AnyWordSpec with Matchers {
   private case class Example(
     id: Long = Defaults.long,
     name: String

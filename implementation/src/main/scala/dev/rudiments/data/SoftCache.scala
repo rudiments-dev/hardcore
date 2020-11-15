@@ -5,10 +5,10 @@ import dev.rudiments.hardcore.{Adapter, Command, Result, Success}
 import dev.rudiments.hardcore.flow.BulkMutated
 import dev.rudiments.domain.{ID, Instance, Spec}
 
-import scala.collection.parallel
+import scala.collection.concurrent
 
 class SoftCache(implicit spec: Spec) extends Adapter[DataCommand, DataEvent] {
-  private implicit val content: parallel.mutable.ParMap[ID, Instance] = parallel.mutable.ParMap.empty[ID, Instance]
+  private implicit val content: concurrent.Map[ID, Instance] = concurrent.TrieMap.empty[ID, Instance]
 
   override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
   override def apply(cmd: Command): Result[DataEvent] = {

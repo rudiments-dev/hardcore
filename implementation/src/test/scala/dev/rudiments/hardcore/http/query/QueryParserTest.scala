@@ -3,14 +3,15 @@ package dev.rudiments.hardcore.http.query
 import dev.rudiments.domain.Size._
 import dev.rudiments.domain._
 import dev.rudiments.hardcore.http.query.predicates.{IntEquals, IntLess, IsDefined, IsEmpty, OptionValuePredicate, ProductFieldPredicate, StringEquals, StringStartsWith}
-import org.scalatest.{Matchers, WordSpec}
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
-class QueryParserTest extends WordSpec with Matchers {
+class QueryParserTest extends AnyWordSpec with Matchers {
 
   case class Baz(f: Int) extends DTO
   case class Foo(a: Int, b: String, d: Option[Option[Int]], baz: Option[Baz] = Some(Baz(1))) extends DTO

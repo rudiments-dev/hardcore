@@ -35,7 +35,7 @@ class ControlFlow {
     case (cmd, evt) if (cmd == command) => evt
   }.lastOption
 
-  def asMap: Map[Command, Seq[Message]] = memory.groupBy(_._1).mapValues(i => i.map(_._2))
+  def asMap: Map[Command, Seq[Message]] = memory.groupBy(_._1).view.mapValues(i => i.map(_._2).toSeq).toMap
 
   def waitFor(pf: MessageProcessor): Future[Message] = {
     val p = Promise[Message]()

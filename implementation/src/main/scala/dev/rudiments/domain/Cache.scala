@@ -3,10 +3,10 @@ package dev.rudiments.domain
 import dev.rudiments.data.{Batch, CRUD, DataCommand, DataEvent, DataSkill, ReadOnly}
 import dev.rudiments.hardcore.{Adapter, Command, Result}
 
-import scala.collection.parallel
+import scala.collection.concurrent
 
 class Cache extends Adapter[DataCommand, DataEvent] {
-  private implicit val content: parallel.mutable.ParMap[ID, Instance] = parallel.mutable.ParMap.empty[ID, Instance]
+  private implicit val content: concurrent.Map[ID, Instance] = concurrent.TrieMap.empty[ID, Instance]
 
   override def isDefinedAt(x: Command): Boolean = f.isDefinedAt(x)
   override def apply(cmd: Command): Result[DataEvent] = {

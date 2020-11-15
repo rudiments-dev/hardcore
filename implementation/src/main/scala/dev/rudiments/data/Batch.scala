@@ -3,13 +3,13 @@ package dev.rudiments.data
 import dev.rudiments.hardcore.flow.{BulkMutate, BulkMutated}
 import dev.rudiments.domain.{ID, Instance}
 
-import scala.collection.parallel
+import scala.collection.concurrent
 
 object Batch {
   case class CreateAll  (batch: Map[ID, Instance]) extends DataCommand with BulkMutate
   case class AllCreated (batch: Map[ID, Instance]) extends DataEvent with BulkMutated
 
-  def createAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
+  def createAll(implicit content: concurrent.Map[ID, Instance]): DataSkill = {
     case CreateAll(batch) =>
       try {
         content ++= batch //TODO fix replacing if matched ID
@@ -23,7 +23,7 @@ object Batch {
   case class CreateAllAuto  (batch: Seq[Instance]) extends DataCommand with BulkMutate
   case class AllAutoCreated (batch: Map[ID, Instance]) extends DataEvent with BulkMutated
 
-  def createAllAuto(generator: () => ID)(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
+  def createAllAuto(generator: () => ID)(implicit content: concurrent.Map[ID, Instance]): DataSkill = {
     case CreateAllAuto(batch) =>
       try {
         val withAuto = batch.map(i => (generator(), i)).toMap
@@ -38,7 +38,7 @@ object Batch {
   case class ReplaceAll (batch: Map[ID, Instance]) extends DataCommand with BulkMutate
   case class AllReplaced(batch: Map[ID, Instance]) extends DataEvent with BulkMutated
 
-  def replaceAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
+  def replaceAll(implicit content: concurrent.Map[ID, Instance]): DataSkill = {
     case ReplaceAll(batch) =>
       try {
         content --= content.keysIterator
@@ -53,7 +53,7 @@ object Batch {
   case class DeleteAll() extends DataCommand with BulkMutate
   case class AllDeleted() extends DataEvent with BulkMutated
 
-  def deleteAll(implicit content: parallel.mutable.ParMap[ID, Instance]): DataSkill = {
+  def deleteAll(implicit content: concurrent.Map[ID, Instance]): DataSkill = {
     case DeleteAll() =>
       try {
         content --= content.keysIterator
