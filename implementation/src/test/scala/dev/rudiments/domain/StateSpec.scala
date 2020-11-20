@@ -73,42 +73,42 @@ class StateSpec extends AnyWordSpec with Matchers {
       FindAll(
         TypedPredicate(t, Seq(Equals(FieldExpression("name"), ParameterExpression("13666'th element"))))
       )
-    ) should be (FoundAll(Seq(
-      Instance(t, Seq(13666L, s"13666'th element", None))
+    ) should be (FoundAll(Map(
+      ID(Seq(13666L)) -> Instance(t, Seq(13666L, s"13666'th element", None))
     )))
   }
 
   "find more than value" in {
     state(FindAll(
         TypedPredicate(t, Seq(More(FieldExpression("id"), ParameterExpression(99999L))))
-    )) should be (FoundAll(Seq(
-      Instance(t, Seq(100000L, s"100000'th element", None))
+    )) should be (FoundAll(Map(
+      ID(Seq(100000L)) -> Instance(t, Seq(100000L, s"100000'th element", None))
     )))
   }
 
   "find more or equals than value" in {
     state(FindAll(
       TypedPredicate(t, Seq(MoreOrEquals(FieldExpression("id"), ParameterExpression(99999L))))
-    )) should be (FoundAll(Seq(
-      Instance(t, Seq(100000L, s"100000'th element", None)),
-      Instance(t, Seq(99999L, s"99999'th element", None))
+    )) should be (FoundAll(Map(
+      ID(Seq(99999L)) -> Instance(t, Seq(99999L, s"99999'th element", None)),
+      ID(Seq(100000L)) -> Instance(t, Seq(100000L, s"100000'th element", None))
     )))
   }
 
   "find less than value" in {
     state(FindAll(
       TypedPredicate(t, Seq(Less(FieldExpression("id"), ParameterExpression(2L))))
-    )) should be (FoundAll(Seq(
-      Instance(t, Seq(1L, s"1'th element", None))
+    )) should be (FoundAll(Map(
+      ID(Seq(1L)) -> Instance(t, Seq(1L, s"1'th element", None))
     )))
   }
 
   "find less or equals than value" in {
     state(FindAll(
       TypedPredicate(t, Seq(LessOrEquals(FieldExpression("id"), ParameterExpression(2L))))
-    )) should be (FoundAll(Seq(
-      Instance(t, Seq(2L, s"2'th element", None)),
-      Instance(t, Seq(1L, s"1'th element", None))
+    )) should be (FoundAll(Map(
+      ID(Seq(2L)) -> Instance(t, Seq(2L, s"2'th element", None)),
+      ID(Seq(1L)) -> Instance(t, Seq(1L, s"1'th element", None))
     )))
   }
 
@@ -126,7 +126,7 @@ class StateSpec extends AnyWordSpec with Matchers {
 
   "endure 100.000 replace" in {
     val batch = (200001 to 300000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i item", None)))).toMap
-    val deleting = state(FindAll(All)).asInstanceOf[FoundAll].values.map { it =>
+    val deleting = state(FindAll(All)).asInstanceOf[FoundAll].content.values.map { it =>
       val k = ID(Seq(it.extract[Long]("id")))
       k -> Deleted(k, it)
     }.toMap
@@ -144,7 +144,7 @@ class StateSpec extends AnyWordSpec with Matchers {
 
   "clear repository" in {
     state(Count(All)) should be (Counted(100000))
-    val deleting = state(FindAll(All)).asInstanceOf[FoundAll].values.map { it =>
+    val deleting = state(FindAll(All)).asInstanceOf[FoundAll].content.values.map { it =>
       val k = ID(Seq(it.extract[Long]("id")))
       k -> Deleted(k, it)
     }.toMap

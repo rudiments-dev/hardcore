@@ -17,8 +17,8 @@ final class State extends Skill {
         case Some(value) => Found(key, value)
         case None => NotFound(key)
       }
-    case FindAll(All) => FoundAll(content.values.toSeq)
-    case FindAll(p) => FoundAll(content.values.filter { _.matches(p) }.toSeq)
+    case FindAll(All) => FoundAll(content.toMap)
+    case FindAll(p) => FoundAll(content.filter { it => it._2.matches(p) }.toMap)
 
     case Create(key, value) =>
       content.get(key) match {

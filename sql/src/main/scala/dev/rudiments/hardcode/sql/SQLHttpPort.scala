@@ -43,7 +43,7 @@ class SQLHttpPort
   def responseWith(event: Message): StandardRoute = event match {
     case Created(_, value) =>       complete(StatusCodes.Created, value)
     case Found(_, value) =>         complete(StatusCodes.OK, value)
-    case FoundAll(values) =>        complete(StatusCodes.OK, values)
+    case FoundAll(content) =>        complete(StatusCodes.OK, content.values)
     case Updated(_, _, newValue) => complete(StatusCodes.OK, newValue)
     case Deleted(_, _) =>           complete(StatusCodes.NoContent)
 

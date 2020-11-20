@@ -4,7 +4,7 @@ import dev.rudiments.data.Action
 import dev.rudiments.data._
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField, Where}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
-import dev.rudiments.domain.{Domain, Spec}
+import dev.rudiments.domain.{Domain, ID, Spec}
 import dev.rudiments.hardcore.{All, TypedPredicate}
 import scalikejdbc.{DBSession, SQL}
 
@@ -53,6 +53,10 @@ class QueryAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSe
         }
 
     }
-    FoundAll(instances)
+    FoundAll(
+      instances.zipWithIndex.map{
+        case (i, id) => ID(Seq(id)) -> i
+      }.toMap
+    )
   }
 }

@@ -28,7 +28,7 @@ package object data {
 
   case class Counted (total: Long) extends Report with Data
   case class Found (key: ID, value: Instance) extends Report with Data
-  case class FoundAll (values: Seq[Instance]) extends Report with Data
+  case class FoundAll (content: Map[ID, Instance]) extends Report with Data
 
   sealed abstract class DataEvent(val id: ID*) extends Event with Data
   object DataEvent {

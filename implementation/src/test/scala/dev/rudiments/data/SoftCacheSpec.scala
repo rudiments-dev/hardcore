@@ -100,7 +100,7 @@ class SoftCacheSpec extends AnyWordSpec with Matchers {
 
   "endure 100.000 replace" in {
     val batch = (200001 to 300000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i item", None)))).toMap
-    val deleting = state(FindAll(All)).asInstanceOf[FoundAll].values.map { it =>
+    val deleting = state(FindAll(All)).asInstanceOf[FoundAll].content.values.map { it =>
       val k = ID(Seq(it.extract[Long]("id")))
       k -> Deleted(k, it)
     }.toMap
@@ -118,7 +118,7 @@ class SoftCacheSpec extends AnyWordSpec with Matchers {
 
   "clear repository" in {
     state(Count(All)) should be (Counted(100000))
-    val deleting = state(FindAll(All)).asInstanceOf[FoundAll].values.map { it =>
+    val deleting = state(FindAll(All)).asInstanceOf[FoundAll].content.values.map { it =>
       val k = ID(Seq(it.extract[Long]("id")))
       k -> Deleted(k, it)
     }.toMap

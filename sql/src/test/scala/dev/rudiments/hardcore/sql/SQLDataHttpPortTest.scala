@@ -24,6 +24,7 @@ import org.scalatestplus.junit.JUnitRunner
 import scalikejdbc.{DBSession, _}
 
 import scala.collection.JavaConverters._
+import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
 class SQLDataHttpPortTest extends AnyFlatSpec with Matchers with ScalatestRouteTest
@@ -175,14 +176,14 @@ class SQLDataHttpPortTest extends AnyFlatSpec with Matchers with ScalatestRouteT
     }
   }
 
-  it should "should filter entities" in {
+  it should "filter entities" in {
     Get("/example?id=lt:10") ~> routes ~> check {
       response.status should be(StatusCodes.OK)
-      responseAs[Seq[Instance]].map(_.extract[Long]("id")) should be(1 until 10)
+      responseAs[Seq[Instance]].map(_.extract[Long]("id")).toSet should be(1 until 10 toSet)
     }
   }
 
-  it should "should replace all entities" in {
+  it should "replace all entities" in {
     val toUpdate = Seq(exampleInstance(1L, "replaced"))
     Put("/example", toUpdate) ~> routes ~> check {
       response.status should be(StatusCodes.OK)
