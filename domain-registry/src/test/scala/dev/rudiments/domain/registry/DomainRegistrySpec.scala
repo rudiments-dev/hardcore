@@ -4,9 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import dev.rudiments.data.DataHttpPort
 import dev.rudiments.domain._
-import dev.rudiments.hardcore.http.{ThingDecoder, ThingEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -18,19 +16,12 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class DomainRegistrySpec extends AnyWordSpec with Matchers with ScalatestRouteTest with FailFastCirceSupport {
-  private val skill = new DomainSkill()
+  private val domain = new DomainModule
 
-  private implicit val en: Encoder[Instance] = new ThingEncoder(skill.domain).abstractInstanceEncoder("Thing")
-  private implicit val de: Decoder[Instance] = new ThingDecoder(skill.domain).abstractInstanceDecoder("Thing")
+  private implicit val en: Encoder[Instance] = domain.encoder
+  private implicit val de: Decoder[Instance] = domain.decoder
 
-  private val http = new DataHttpPort(
-    "domain",
-    ScalaTypes.ScalaString,
-    i => ID(Seq(i.extract[String]("name"))),
-    skill
-  )(skill.domain.makeFromScala[Spec, SomeThing], en, de)
-
-  private val routes = Route.seal(http.routes)
+  private val routes = Route.seal(domain.http.routes)
 
   "get all Thing in Domain" in {
     Get("/domain") ~> routes ~> check {
@@ -42,67 +33,124 @@ class DomainRegistrySpec extends AnyWordSpec with Matchers with ScalatestRouteTe
   "get abstract Thing" in {
     Get("/domain/Thing") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(skill.domain.find[Spec]("Abstract"), Seq(
-        "Thing", ListMap(
-          "name" -> Instance(skill.domain.find[Spec]("ValueSpec"), Seq(
-            Instance(skill.domain.find[Spec]("Text"), Seq(
-              Instance(skill.domain.find[Spec]("Big"), Seq(BigDecimal(Int.MaxValue)))
-            )),
-            true
-          ))
+      responseAs[Instance] should be (
+        Instance(domain("Type"),
+          Seq(
+            "Thing",
+            Abstract("Thing", ListMap("name" -> ValueSpec(ScalaTypes.ScalaString, true))),
+            Seq.empty
+          )
         )
-      )))
+      )
     }
   }
 
   "get The" in {
     Get("/domain/The") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Instance] should be (Instance(
-        skill.domain.find[Spec]("Spec"),
-        Seq(
-          "The",
-          "dev.rudiments.domain.The",
-          ListMap(
-          "name" -> Instance(
-            skill.valueSpec,
-            Seq(
-              Instance(
-                skill.domain.find[Spec]("Text"),
-                Seq(
-                  Instance(
-                    skill.domain.find[Spec]("Big"),
-                    Seq(Int.MaxValue)
+      responseAs[Instance] should be (
+        Instance(domain("Type"),
+          Seq(
+            "The",
+            Instance(domain("Spec"),
+              Seq(
+                "The",
+                "dev.rudiments.domain.The",
+                ListMap(
+                  "name" -> Instance(
+                    domain.skill.valueSpec,
+                    Seq(
+                      Instance(
+                        domain("Text"),
+                        Seq(
+                          Instance(
+                            domain("Big"),
+                            Seq(Int.MaxValue)
+                          )
+                        )
+                      ),
+                      true
+                    )
                   )
-                )
-              ),
-              true
-            )
+                ))
+            ),
+            Seq("Thing")
           )
-        ))
-      ))
+        )
+      )
     }
   }
 
   "get Spec" in {
     Get("/domain/Spec") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-//      responseAs[Json] should be (Too big to make any sense)
+      responseAs[Instance] should be (
+        Instance(domain("Type"),
+          Seq(
+            "Spec",
+            Instance(domain("Spec"),
+              Seq(
+                "Spec",
+                "dev.rudiments.domain.Spec",
+                ListMap(
+                  "name" -> Instance(domain.skill.valueSpec,
+                    Seq(Instance(domain("Text"), Seq(Instance(domain("Big"), Seq(Int.MaxValue)))), true)
+                  ),
+                  "fullName" -> Instance(domain.skill.valueSpec,
+                    Seq(Instance(domain("Text"), Seq(Instance(domain("Big"), Seq(Int.MaxValue)))), true)
+                  ),
+                  "fields" -> Instance(domain.skill.valueSpec,
+                    Seq(
+                      Instance(domain("Index"),
+                        Seq(
+                          Instance(domain("Text"), Seq(Instance(domain("Big"), Seq(Int.MaxValue)))),
+                          Instance(domain("Spec"),
+                            Seq(
+                              "ValueSpec",
+                              "dev.rudiments.domain.ValueSpec",
+                              ListMap(
+                                "thing" -> Instance(domain("ValueSpec"),
+                                  Seq(Abstract("Thing", ListMap("name" -> ValueSpec(ScalaTypes.ScalaString, true))), true)
+                                ),
+                                "isRequired" -> Instance(domain("ValueSpec"),
+                                  Seq(
+                                    The("Bool"),
+                                    true
+                                  )
+                                )
+                              )
+                            ))
+                        )
+                      ),
+                      true
+                    )
+                  )
+                ))
+            ),
+            Seq("Thing")
+          )
+        )
+      )
     }
   }
 
   "create SampleSpec" in {
     val content = Json.obj(
-      "type" -> Json.fromString("Spec"),
       "name" -> Json.fromString("SpecExample"),
-      "fullName" -> Json.fromString("dev.rudiments.domain.registry.DomainRegistrySpec.SpecExample"),
-      "fields" -> Json.obj(
-        "b" -> Json.obj(
-          "thing" -> Json.obj("type" -> Json.fromString("Bool")),
-          "isRequired" -> Json.True
+      "thing" -> Json.obj(
+        "type" -> Json.fromString("Spec"),
+        "name" -> Json.fromString("SpecExample"),
+        "fullName" -> Json.fromString("dev.rudiments.domain.registry.DomainRegistrySpec.SpecExample"),
+        "fields" -> Json.obj(
+          "b" -> Json.obj(
+            "thing" -> Json.obj("type" -> Json.fromString("Bool")),
+            "isRequired" -> Json.True
+          )
         )
-      )
+      ),
+      "is" -> Json.arr()
     )
+
     Post("/domain", content) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
     }

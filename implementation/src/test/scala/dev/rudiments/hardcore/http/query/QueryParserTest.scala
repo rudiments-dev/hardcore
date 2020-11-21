@@ -16,9 +16,10 @@ class QueryParserTest extends AnyWordSpec with Matchers {
   case class Baz(f: Int) extends DTO
   case class Foo(a: Int, b: String, d: Option[Option[Int]], baz: Option[Baz] = Some(Baz(1))) extends DTO
 
-  val domain: Domain = Domain()
+  val domain: Domain = new Domain
 
   val bazType: Spec = domain.save(
+    "Baz",
     Spec(
       "Baz",
       "dev.rudiments.hardcore.http.query.QueryParserTest.Baz",
@@ -30,6 +31,7 @@ class QueryParserTest extends AnyWordSpec with Matchers {
   )
 
   val fooType: Spec = domain.save(
+    "Foo",
     Spec(
       "Foo",
       "dev.rudiments.hardcore.http.query.QueryParserTest.Foo",

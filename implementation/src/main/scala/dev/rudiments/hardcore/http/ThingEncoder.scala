@@ -21,10 +21,9 @@ class ThingEncoder(domain: Domain, discriminator: String = "type") {
   def abstractEncoder(a: Abstract): Encoder[_] = new Encoder[Any] {
     override def apply(value: Any): Json = value match {
       case i: Instance => specEncoder(i.spec, true)(i)
-      case The(name) => Json.obj(
-        discriminator -> Encoder.encodeString(name)
-      )
+      case The(name) => Json.obj(discriminator -> Encoder.encodeString(name))
       case e: EnumEntry => Encoder.encodeString(domain.afterParent(a, e.entryName).name)
+      case av: Abstract => specEncoder(domain.abs, true)(domain.abs.fromProduct(domain, av)) // ???
       case other => ???
     }
   }

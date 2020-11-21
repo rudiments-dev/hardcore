@@ -9,7 +9,7 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class AlgebraicSpec extends AnyWordSpec with Matchers {
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
   private val scalaType: Spec = domain.makeFromScala[Spec, AlgebraicExample]
 
   private val typeA = Abstract("A", ListMap.empty)

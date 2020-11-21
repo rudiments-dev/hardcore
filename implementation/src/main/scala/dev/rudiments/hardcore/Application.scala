@@ -2,26 +2,26 @@ package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.http.HttpPorts
 
-trait Port[C <: Command, E <: Event]
-abstract class PortWithResource[C <: Command, E <: Event, Resource]
+trait Port[C <: Ask, E <: Reply]
+abstract class PortWithResource[C <: Ask, E <: Reply, Resource]
 (
-  val s: Resource => Skill[E],
+  val s: Resource => Skill,
   val acquireResource: () => Resource,
   val close: Resource => Unit
 ) extends Port[C, E] {
-  def safeExecute(command: Command): Result[E] = {
+  def safeExecute(command: Ask): Reply = {
     val resource = acquireResource()
     val result = s(resource)(command)
     close(resource)
     result
   }
 }
-abstract class PortWithoutDependency[C <: Command, E <: Event](val s: Skill[E]) extends Port[C, E] {
+abstract class PortWithoutDependency[C <: Ask, E <: Reply](val s: Skill) extends Port[C, E] {
   val ports: HttpPorts.DependencyLess.type = dev.rudiments.hardcore.http.HttpPorts.DependencyLess
 }
 
-trait Service[C <: Command, E <: Event] extends Skill[E] {}
+trait Service[C <: Ask, E <: Reply] extends Skill {}
 
-trait Adapter[C <: Command, E <: Event] extends Skill[E] {}
+trait Adapter[C <: Ask, E <: Reply] extends Skill {}
 
 trait Application {}

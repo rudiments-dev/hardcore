@@ -8,7 +8,7 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class InstantiateFromScalaSpec extends AnyWordSpec with Matchers {
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
   private val s1: Spec = domain.makeFromScala[Spec, Sample1]
   private val c1: Spec = domain.makeFromScala[Spec, Complicated1]
   private val c2: Spec = domain.makeFromScala[Spec, Complicated2]

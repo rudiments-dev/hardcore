@@ -1,17 +1,16 @@
 package dev.rudiments.hardcode.sql.actions
 
 import dev.rudiments.data.Action
-import dev.rudiments.data.Batch.{AllCreated, CreateAll}
+import dev.rudiments.data._
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcode.sql.{Binding, SqlEntity, SqlValue}
-import dev.rudiments.hardcore.Result
 import dev.rudiments.domain.Spec
 import scalikejdbc.{DBSession, SQL}
 
-class CreateAllAction(schema: TypedSchema, spec: Spec)(session: DBSession) extends Action[CreateAll, AllCreated] {
-  override def apply(command: CreateAll): Result[AllCreated] = {
+class CreateAllAction(schema: TypedSchema, spec: Spec)(session: DBSession) extends Action[CreateAll, Commit] {
+  override def apply(command: CreateAll): Commit = {
     command.batch match {
-      case batch if batch.isEmpty => AllCreated(batch).toEither
+      case batch if batch.isEmpty => Commit(Map.empty)
       case batch =>
         implicit val s = session
         val table = schema.tables(spec)
@@ -24,9 +23,7 @@ class CreateAllAction(schema: TypedSchema, spec: Spec)(session: DBSession) exten
         }
         val bindings: Seq[Seq[(Symbol, Any)]] = entities.map(_.values
           .map { case SqlValue(column, value) => Binding(column.name, value) }
-          .map {
-            Binding.toScalaLikeSQL
-          }
+          .map(_.toScalike)
         ).toSeq
 
         SQL(
@@ -36,7 +33,7 @@ class CreateAllAction(schema: TypedSchema, spec: Spec)(session: DBSession) exten
              |""".stripMargin
         ).batchByName(bindings: _*).apply()
 
-        AllCreated(batch).toEither
+        Commit(Map.empty)
     }
   }
 }

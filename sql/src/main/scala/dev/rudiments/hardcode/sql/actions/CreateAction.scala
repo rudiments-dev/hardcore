@@ -1,17 +1,15 @@
 package dev.rudiments.hardcode.sql.actions
 
 import dev.rudiments.data.Action
-import dev.rudiments.data.CRUD.{AlreadyExists, Create, Created, FailedToCreate}
-import dev.rudiments.data.ReadOnly.{Find, NotFound}
+import dev.rudiments.data._
 import dev.rudiments.hardcode.sql.schema.TypedSchema
 import dev.rudiments.hardcode.sql.{Binding, SqlEntity, SqlValue}
-import dev.rudiments.hardcore.Result
 import dev.rudiments.domain.{Domain, Spec}
+import dev.rudiments.hardcore.{Message, Reply}
 import scalikejdbc.{DBSession, SQL}
 
-
 class CreateAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[Create, Created] {
-  override def apply(command: Create): Result[Created] = {
+  override def apply(command: Create): Reply = {
     import command.{key, value}
     val table = schema.tables(spec)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
@@ -23,12 +21,10 @@ class CreateAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBS
 
     val fields: Seq[String] = entity.values.map(_.column.name)
 
-    for {
-      _ <- new FindAction(schema, domain, spec)(session)(Find(key)).map {
-        found => AlreadyExists(found.key, found.value)
-      }.expecting[NotFound]
-      _ = {
-        val bindings = entity.values.map { case SqlValue(column, value) => Binding(column.name, value) }.map(Binding.toScalaLikeSQL)
+    new FindAction(schema, domain, spec)(session)(Find(key)) match {
+      case found: Found => AlreadyExists(found.key, found.value)
+      case _: NotFound =>
+        val bindings = entity.values.map { case SqlValue(column, value) => Binding(column.name, value) }.map(_.toScalike)
 
         SQL(
           s"""
@@ -36,11 +32,11 @@ class CreateAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBS
              |VALUES (${fields.map(field => s"{$field}").mkString(", ")})
              |""".stripMargin
         ).bindByName(bindings :_*).execute().apply()(session)
-      }
-      created <- new FindAction(schema, domain, spec)(session)(Find(key)).transform(
-        _ => FailedToCreate(key, value),
-        found => Created(found.key, found.value)
-      )
-    } yield created
+
+        new FindAction(schema, domain, spec)(session)(Find(key)) match {
+          case found: Found => Created(found.key, found.value)
+          case _ => FailedToCreate(key, value)
+        }
+    }
   }
 }

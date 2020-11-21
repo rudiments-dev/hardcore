@@ -1,7 +1,12 @@
 package dev.rudiments.domain
 
+import java.sql.{Date, Time, Timestamp}
+import java.util.UUID
+
+import dev.rudiments.domain.Plain.{Number, Text}
 import dev.rudiments.domain.ScalaTypes._
-import dev.rudiments.hardcore.Error
+import dev.rudiments.domain.Size.Big
+import dev.rudiments.hardcore._
 import enumeratum.EnumEntry
 
 import scala.collection.immutable.ListMap
@@ -12,6 +17,8 @@ trait ADT extends Product
 
 sealed trait Ref extends ADT
 case class Instance(spec: Spec, values: Seq[Any]) extends Ref {
+  override def toString: String = "[" + spec.name + values.mkString(":", ",", "]")
+
   def extract[T : ClassTag](field: String): T = spec.fields.zip(values).collectFirst {
     case ((n, _), v: T) if n == field => v
   }.getOrElse {
@@ -30,11 +37,28 @@ case class Instance(spec: Spec, values: Seq[Any]) extends Ref {
     case other => ???
   }
 
+  def matches(p: Predicate): Boolean = p match {
+    case All => true
+
+    case TypedPredicate(s, _) if spec != s => false //TODO inheritance, but requires Domain
+    case TypedPredicate(s, w) if spec == s => w.forall(this.matches)
+
+    case Equals(FieldExpression(f), ParameterExpression(value)) => this.extract[Any](f) == value
+    case More(FieldExpression(f), ParameterExpression(value)) => this.extract[Comparable[Any]](f).compareTo(value) > 0
+    case MoreOrEquals(FieldExpression(f), ParameterExpression(value)) => this.extract[Comparable[Any]](f).compareTo(value) >= 0
+    case Less(FieldExpression(f), ParameterExpression(value)) => this.extract[Comparable[Any]](f).compareTo(value) < 0
+    case LessOrEquals(FieldExpression(f), ParameterExpression(value)) => this.extract[Comparable[Any]](f).compareTo(value) <= 0
+
+    case _ => ???
+  }
+
   def toScala[T]: T = {
     spec.toScala[T](values: _*)
   }
 }
-case class ID(values: Seq[Any]) extends Ref
+case class ID(values: Seq[Any]) extends Ref {
+  override def toString: String = values.mkString("#", "/", "")
+}
 
 sealed abstract class Thing (
   val name: String
@@ -45,10 +69,7 @@ sealed abstract class Thing (
 case class ThingRef (
   override val name: String
 ) extends Thing(name) {
-  override def validate(system: Domain, value: Any): Any = system.model.get(name) match {
-    case Some(t: Thing) => t.validate(system, value)
-    case None => throw new RuntimeException(s"Not found by Ref: $name")
-  }
+  override def validate(system: Domain, value: Any): Any = ???
 }
 
 case class Abstract (
@@ -131,6 +152,7 @@ case class Spec (
         case spec: Spec if spec == i.spec => i
         case other => throw new IllegalArgumentException(s"Incompatible $i: ADT with thing $other")
       }
+    case (a: Abstract, adt: ADT) if a == adt => adt // ??? look at DomainRegistrySpec
     case (a: Abstract, adt: ADT) =>
       system.afterParent(a, adt.productPrefix) match {
         case spec: Spec => spec.fromProduct(system, adt)
@@ -150,27 +172,61 @@ case class Spec (
   }
 
   def toScala[T](args: Any*): T = {
-    val c = Class.forName(fullName)
     val unwrapped = args.collect {
+      case the@The(name) => name match {
+        case "Bool" => Plain.Bool
+        case "Date" => Plain.Date
+        case "Time" => Plain.Time
+        case "Timestamp" => Plain.Timestamp
+        case "UUID" => Plain.UUID
+
+        case "Infinity" => Size.Infinity
+        case "PositiveInfinity" => Size.PositiveInfinity
+        case "NegativeInfinity" => Size.NegativeInfinity
+
+        case "Integer" => NumberFormat.Integer
+        case "Decimal" => NumberFormat.Decimal
+        case "Float" => NumberFormat.Float
+
+        case other => the
+      }
+
       case i: Instance => i.toScala[Object]
       case m: Map[_, _] => m.map { case (k, v) => toScalaAsObject(k) -> toScalaAsObject(v) }
       case i: Iterable[_] => i.map(toScalaAsObject)
       case other => other.asInstanceOf[Object]
     }
 
-    if(fullName == "dev.rudiments.domain.Spec") {
-      Spec( // nasty hack for case Map -> ListMap
-        unwrapped(0).asInstanceOf[String],
-        unwrapped(1).asInstanceOf[String],
-        ListMap(unwrapped(2).asInstanceOf[Map[String, ValueSpec]].toSeq: _*)
-      ).asInstanceOf[T]
-    } else if(fullName == "dev.rudiments.domain.Abstract") {
-      Abstract( // nasty hack for case Map -> ListMap
-        unwrapped(0).asInstanceOf[String],
-        ListMap(unwrapped(1).asInstanceOf[Map[String, ValueSpec]].toSeq: _*)
-      ).asInstanceOf[T]
-    } else {
-      c.getConstructors()(0).newInstance(unwrapped: _*).asInstanceOf[T]
+    fullName match {
+      case "dev.rudiments.domain.Spec" =>
+        Spec( // nasty hack for case Map -> ListMap
+          unwrapped(0).asInstanceOf[String],
+          unwrapped(1).asInstanceOf[String],
+          ListMap(unwrapped(2).asInstanceOf[Map[String, ValueSpec]].toSeq: _*)
+        ).asInstanceOf[T]
+
+      case "dev.rudiments.domain.Abstract" =>
+        Abstract( // nasty hack for case Map -> ListMap
+          unwrapped(0).asInstanceOf[String],
+          ListMap(unwrapped(1).asInstanceOf[Map[String, ValueSpec]].toSeq: _*)
+        ).asInstanceOf[T]
+
+
+      case "dev.rudiments.domain.Size.Big" =>
+        Big(unwrapped(0).asInstanceOf[BigDecimal]).asInstanceOf[T]
+
+      case "dev.rudiments.domain.Plain.Text" =>
+        Text(unwrapped(0).asInstanceOf[Size]).asInstanceOf[T]
+
+      case "dev.rudiments.domain.Plain.Number" =>
+        Number(
+          unwrapped(0).asInstanceOf[Size],
+          unwrapped(1).asInstanceOf[Size],
+          unwrapped(2).asInstanceOf[NumberFormat]
+        ).asInstanceOf[T]
+
+      case _ =>
+        Class.forName(fullName).getConstructors()(0).newInstance(unwrapped: _*).asInstanceOf[T]
     }
   }
 
@@ -236,12 +292,26 @@ case class ValueSpec (
     case other if isRequired => thing.validate(system, value)
     case o: Option[_] if !isRequired => o.map(v => thing.validate(system, v))
   }
+
+  def parse(from: String): Any = if(thing.isInstanceOf[Plain]) {
+    thing match {
+      case Plain.Bool => from.toBoolean
+      case Plain.Text(_) => from
+      case Plain.Number(_, _, _) => BigDecimal(from)
+      case Plain.Date => Date.valueOf(from)
+      case Plain.Time => Time.valueOf(from)
+      case Plain.Timestamp => Timestamp.valueOf(from)
+      case Plain.UUID => UUID.fromString(from)
+    }
+  } else {
+    ???
+  }
 }
 
-case class SomeThing (
+case class Type (
   name: String,
   thing: Thing,
-  is: Set[String]
+  is: Seq[String]
 ) extends DTO
 
 sealed trait Size extends ADT

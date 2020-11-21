@@ -9,7 +9,7 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class TypeSpec extends AnyWordSpec with Matchers {
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
   val t: Spec = domain.makeFromScala[Spec, Sample1]
 
   "can construct soft instance" in {

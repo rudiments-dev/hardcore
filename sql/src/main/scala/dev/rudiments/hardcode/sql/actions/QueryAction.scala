@@ -1,56 +1,58 @@
 package dev.rudiments.hardcode.sql.actions
 
 import dev.rudiments.data.Action
-import dev.rudiments.data.ReadOnly.{FindAll, FoundAll}
-import dev.rudiments.hardcode.sql.Binding
+import dev.rudiments.data._
 import dev.rudiments.hardcode.sql.SQLParts.{From, Select, SelectField, Where}
 import dev.rudiments.hardcode.sql.schema.TypedSchema
-import dev.rudiments.hardcore.http.query.{PassAllQuery, PredicatesQuery}
-import dev.rudiments.hardcore.{Result, Success}
 import dev.rudiments.domain.{Domain, Spec}
+import dev.rudiments.hardcore.{All, TypedPredicate}
 import scalikejdbc.{DBSession, SQL}
 
 class QueryAction(schema: TypedSchema, domain: Domain, spec: Spec)(session: DBSession) extends Action[FindAll, FoundAll] {
-  override def apply(command: FindAll): Result[FoundAll] = {
-    import command.query
+  override def apply(command: FindAll): FoundAll = {
 
-    implicit val s = session
-    val t = query.spec
+    implicit val s: DBSession = session
+    val t = spec
     val table = schema.tables(t)
     val fieldToColumn = table.columns.map(c => c.name -> c).toMap
 
     val selectors = spec.fields.keys.map { field =>
-      SelectField(
-        fieldToColumn(field), None
-      )
+      SelectField(fieldToColumn(field))
     }.toSeq
 
     val converterFunction = partToWhereExpression(table)
-    val instances = query match {
-      case PassAllQuery(sp) =>
-
-        SQL(
-          s"""
-             |SELECT ${selectPart(Select(selectors))}
-             |FROM ${fromPart(From(schema, table, None))}
-             |""".stripMargin
+    val instances = command.predicate match {
+      case All =>
+        SQL(s"""
+               |SELECT ${Select(selectors).sql}
+               |FROM ${From(schema, table).sql}
+               |""".stripMargin
         ).map { rs =>
-          sp.fromMap(domain, rs.toMap())
+          spec.fromMap(domain, rs.toMap())
         }.list().apply()
 
-      case PredicatesQuery(parts, sp) =>
-        val (whereSQL, whereBindings) = wherePart(Where(parts.map(converterFunction)))
+      case TypedPredicate(spec, parts) =>
+        val where = wherePart(Where(parts.map(converterFunction).toSet))
+        if(where.sql.trim.nonEmpty) {
+          SQL(s"""
+                 |SELECT ${Select(selectors).sql}
+                 |FROM ${From(schema, table).sql}
+                 |WHERE ${where.sql}
+                 |""".stripMargin
+          ).bindByName(where.bindings.map(_.toScalike): _*).map { rs =>
+            spec.fromMap(domain, rs.toMap())
+          }.list().apply()
+        } else {
+          SQL(s"""
+                 |SELECT ${Select(selectors).sql}
+                 |FROM ${From(schema, table).sql}
+                 |""".stripMargin
+          ).map { rs =>
+            spec.fromMap(domain, rs.toMap())
+          }.list().apply()
+        }
 
-        SQL(
-          s"""
-             |SELECT ${selectPart(Select(selectors))}
-             |FROM ${fromPart(From(schema, table, None))}
-             |WHERE $whereSQL
-             |""".stripMargin
-        ).bindByName(whereBindings.map(Binding.toScalaLikeSQL): _*).map { rs =>
-          sp.fromMap(domain, rs.toMap())
-        }.list().apply()
     }
-    Success(FoundAll(instances))
+    FoundAll(instances)
   }
 }

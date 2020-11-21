@@ -4,14 +4,44 @@ import dev.rudiments.hardcode.sql.schema.{Column, TypedSchema, Table}
 
 object SQLParts {
 
-  case class From(schema: TypedSchema, table: Table, as: Option[String])
+  case class From(schema: TypedSchema, table: Table) {
+    def sql: String = s"${schema.name}.${table.name}"
+  }
 
-  case class SelectField(column: Column, as: Option[String])
-  case class Select(selects: Seq[SelectField])
-  case class Where(expressions: Set[WhereExpression])
+  case class SelectField(column: Column) {
+    def sql: String = column.name
+  }
+  case class Select(selects: Seq[SelectField]) {
+    def sql: String = selects.map { _.column.name }.mkString(", ")
+  }
+  case class Where(expressions: Set[ColumnPredicate])
 
-  sealed trait WhereExpression
-  case class ColumnWhereExpression(column: Column, predicate: SQLPredicate) extends WhereExpression
+  case class ColumnPredicate(column: Column, predicate: SQLPredicate)
+}
 
+case class SqlPart(sql: String, bindings: Seq[Binding] = Seq.empty) {
+  def +(another: SqlPart): SqlPart = {
+    SqlPart(
+      sql + another.sql,
+      bindings ++ another.bindings
+    )
+  }
 
+  def ++(another: SqlPart*): SqlPart = {
+    SqlPart(
+      sql + another.map(_.sql).mkString,
+      another.foldLeft(bindings)((acc, part) => acc ++ part.bindings)
+    )
+  }
+
+  def and(another: SqlPart): SqlPart = {
+    SqlPart(
+      sql + " AND " + another.sql,
+      bindings ++ another.bindings
+    )
+  }
+}
+
+case class Binding(key: String, value: Any) {
+  def toScalike: (Symbol, Any) = Symbol(key) -> value
 }

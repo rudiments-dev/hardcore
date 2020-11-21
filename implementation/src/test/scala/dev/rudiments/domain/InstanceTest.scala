@@ -9,7 +9,7 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class InstanceTest extends AnyWordSpec with Matchers {
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
   domain.makeFromScala[Thing, Thing]
   domain.makeFromScala[Thing, Instance]
 

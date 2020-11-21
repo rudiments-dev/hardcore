@@ -12,7 +12,7 @@ class ThingEncoderTest extends AnyWordSpec with Matchers {
 
   case class Test(f : Option[Double]) extends DTO
 
-  private val domain = Domain()
+  private val domain = new Domain
   domain.makeFromScala[Thing, Thing]
   domain.makeFromScala[Spec, Test]
   domain.makeFromScala[Spec, AlgebraicExample]

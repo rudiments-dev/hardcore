@@ -1,16 +1,74 @@
 package dev.rudiments.domain
 
+import dev.rudiments.data._
 import dev.rudiments.domain.ScalaTypes.plain
+import dev.rudiments.hardcore.{Ask, Query, Reply, Skill}
 import enumeratum.EnumEntry
 
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-case class Domain (
-  model: mutable.Map[String, Thing] = mutable.Map.empty,
-  groups: mutable.Map[String, Set[String]] = mutable.Map.empty
-) extends DTO {
+class Domain extends Skill {
+  private val model: mutable.Map[String, Thing] = mutable.Map.empty
+  private val groups: mutable.Map[String, Set[String]] = mutable.Map.empty
+
+  val state: State = new State
+
+  makeFromScala[Thing, Thing]
+  makeFromScala[Thing, Instance]
+  makeFromScala[Thing, Type]
+
+  val spec: Spec = find[Spec]("Spec")
+  val the: Spec = find[Spec]("The")
+  val abs: Spec = find[Spec]("Abstract")
+  val t: Spec = find[Spec]("Type")
+  val valueSpec: Spec = find[Spec]("ValueSpec")
+
+  val skill: Skill = {
+    case q: Query => state(q)
+
+    case c@Create(ID(Seq(name: String)), _) =>
+      state(c).flatMap[Created] { created =>
+        if(created.value.spec == t) {
+          val value = created.value.toScala[Type]
+          save(name, value.thing, value.is.toSet)
+          created
+        } else {
+          FailedToCreate(c.key, c.value)
+        }
+      }
+
+    case c@Update(ID(Seq(name: String)), _) =>
+      state(c).flatMap[Updated] { updated =>
+        if(updated.newValue.spec == t) {
+          val value = updated.newValue.toScala[Type]
+          model.put(name, value.thing)
+          groups.put(name, value.is.toSet)
+          updated
+        } else {
+          FailedToUpdate(c.key, c.value)
+        }
+      }
+
+    case c@Delete(ID(Seq(name: String))) =>
+      state(c).also[Deleted] { _ =>
+        model -= name
+        groups -= name
+      }
+  }
+
+  model.map { case (k, v) =>
+    Create(
+      ID(Seq(k)),
+      t.fromProduct(this, Type(k, v, groups(k).toSeq))
+    )
+  }.foreach(skill.apply)
+
+
+  override def apply(v1: Ask): Reply = skill.apply(v1)
+  override def isDefinedAt(x: Ask): Boolean = skill.isDefinedAt(x)
+
   def afterParent(a: Abstract, name: String): Thing = {
     model.get(name) match {
       case Some(spec: Spec) if groups(spec.name).contains(a.name) => spec
@@ -35,19 +93,19 @@ case class Domain (
   }
 
 
-  def save[T <: Thing](thing: T, parents: Set[String]): T = {
-    model += thing.name -> thing
-    this.groups += thing.name -> (
+  def save[T <: Thing](name: String, thing: T, parents: Set[String]): T = {
+    assert(name == thing.name, "incoming name should be same with thing.name")
+    model += name -> thing
+    this.groups += name -> (
       this.groups.get(thing.name) match {
         case Some(existing) => existing ++ parents
         case None => parents
       }
-      )
+    )
     thing
   }
 
-  import scala.reflect.runtime.universe._
-  import scala.reflect.runtime.universe.{Type => SysType}
+  import scala.reflect.runtime.universe.{Type => SysType, _}
 
   def makeFromScala[T <: Thing, A : TypeTag]: T = make(typeOf[A], Set.empty).asInstanceOf[T]
 
@@ -55,19 +113,19 @@ case class Domain (
     val symbol = sysType.typeSymbol
     val name = this.name(symbol)
 
-    model.get(name) match {
-      case Some(t) => t
-      case None =>
-        plain.collectFirst {
-          case (k, v) if sysType =:= k => v
-        }.getOrElse {
+    plain.collectFirst {
+      case (k, v) if sysType =:= k => v
+    }.getOrElse {
+      model.get(name) match {
+        case Some(t) => t
+        case None =>
           if (sysType <:< typeOf[EnumEntry]) {
             val ru = runtimeMirror(getClass.getClassLoader)
             val companion = ru.reflectModule(ru.staticModule(sysType.toString)).instance.asInstanceOf[enumeratum.Enum[_ <: EnumEntry]]
             val root = Abstract(name, fieldsOf(symbol.asType))
             val p = parents ++ Set(root.name)
-            save(root, parents)
-            companion.values.map(v => The(v.entryName)).foreach(t => save(t, p))
+            save(name, root, parents)
+            companion.values.foreach { v => save(v.entryName, The(v.entryName), p) }
             root
           } else if (sysType <:< typeOf[Map[_, _]]) {
             Index(make(sysType.typeArgs.head, Set.empty), make(sysType.typeArgs.last, Set.empty))
@@ -85,7 +143,7 @@ case class Domain (
           } else {
             throw new IllegalArgumentException(s"Scala type not supported: $name")
           }
-        }
+      }
     }
   }
 
@@ -96,13 +154,13 @@ case class Domain (
       case Some(found) => found
       case None =>
         if(t.isAbstract) {
-          val root = save(Abstract(name, fieldsOf(t)), parents)
+          val root = save(name, Abstract(name, fieldsOf(t)), parents)
           t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s, parents ++ Set(root.name)) }
           root
         } else if(t.isModuleClass) {
-          save(The(name), parents)
+          save(name, The(name), parents)
         } else if(t.isClass) {
-          save(Spec(name, fullName(t), fieldsOf(t)), parents)
+          save(name, Spec(name, fullName(t), fieldsOf(t)), parents)
         } else {
           throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
         }

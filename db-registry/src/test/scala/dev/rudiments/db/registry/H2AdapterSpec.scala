@@ -23,7 +23,7 @@ class H2AdapterSpec extends AnyWordSpec with Matchers {
   val adapter: H2Adapter = new H2Adapter(config)
 
   "should connect on correct credentials" in {
-    adapter(CheckConnection).merge should be (ConnectionOk)
+    adapter(CheckConnection) should be (ConnectionOk)
     adapter.schemaName should be ("hello")
   }
 
@@ -63,19 +63,19 @@ class H2AdapterSpec extends AnyWordSpec with Matchers {
 
     sql"ALTER TABLE example ADD CONSTRAINT ref_1 FOREIGN KEY (bigint_column) REFERENCES sample (id)".execute().apply()
 
-    adapter(DiscoverSchema("hello")).merge should be (SchemaDiscovered("hello", Set("SAMPLE", "EXAMPLE")))
+    adapter(DiscoverSchema("hello")) should be (SchemaDiscovered("hello", Set("SAMPLE", "EXAMPLE")))
   }
 
   "should discover table by name and schema" in {
-    adapter(DiscoverTable("sample", "hello")).merge should be (
+    adapter(DiscoverTable("sample", "hello")) should be (
       TableDiscovered("sample", Seq(
         Column("ID", ColumnTypes.BIGINT, false, true, true),
         Column("NAME", ColumnTypes.VARCHAR(255), false, false, false),
-        Column("COMMENT", ColumnTypes.CLOB(2147483647, N), true, false, false),
+        Column("COMMENT", ColumnTypes.CLOB(2147483647, N), true, false, false)
       ))
     )
 
-    adapter(DiscoverTable("example", "hello")).merge should be (
+    adapter(DiscoverTable("example", "hello")) should be (
       TableDiscovered("example", Seq(
         Column("ID",                ColumnTypes.BIGINT,               false, true,  true),
         Column("INT_COLUMN",        ColumnTypes.INT,                  true,  false, false),
@@ -102,7 +102,7 @@ class H2AdapterSpec extends AnyWordSpec with Matchers {
   }
 
   "should discover references of schema" in {
-    adapter(DiscoverReferences("HELLO")).merge should be (
+    adapter(DiscoverReferences("HELLO")) should be (
       ReferencesDiscovered(
         "HELLO",
         Set(

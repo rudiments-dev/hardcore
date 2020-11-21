@@ -12,8 +12,13 @@ POST http://localhost:8765/api/domain
 Content-Type: application/json
 
 {
-  "type": "Abstract",
-  "name": "AbstractExample"
+  "name": "AbstractExample",
+  "thing": {
+    "type": "Abstract",
+    "name": "AbstractExample",
+    "fields": {}
+  },
+  "is": []
 }
 
 ###
@@ -22,8 +27,12 @@ POST http://localhost:8765/api/domain
 Content-Type: application/json
 
 {
-  "type": "The",
-  "name": "TheExample"
+  "name": "TheExample",
+  "thing": {
+    "type": "The",
+    "name": "TheExample"
+  },
+  "is": []
 }
 
 
@@ -33,17 +42,21 @@ POST http://localhost:8765/api/domain
 Content-Type: application/json
 
 {
-  "type": "Spec",
   "name": "SpecExample",
-  "fullName": "dev.rudiments.Examples.SpecExample",
-  "fields": {
-    "b": {
-      "thing": {
-        "type": "Bool"
-      },
-      "isRequired": true
+  "thing": {
+    "type": "Spec",
+    "name": "SpecExample",
+    "fullName": "dev.rudiments.Examples.SpecExample",
+    "fields": {
+      "b": {
+        "thing": {
+          "type": "Bool"
+        },
+        "isRequired": true
+      }
     }
-  }
+  },
+  "is": []
 }
 
 ###
@@ -52,21 +65,25 @@ PUT http://localhost:8765/api/domain/SpecExample
 Content-Type: application/json
 
 {
-  "type": "Spec",
   "name": "SpecExample",
-  "fullName": "dev.rudiments.Examples.SpecExample",
-  "fields": {
-    "a": {
-      "thing": {
-        "type": "UUID"
+  "thing": {
+    "type": "Spec",
+    "name": "SpecExample",
+    "fullName": "dev.rudiments.Examples.SpecExample",
+    "fields": {
+      "a": {
+        "thing": {
+          "type": "UUID"
+        },
+        "isRequired": true
       },
-      "isRequired": true
-    },
-    "b": {
-      "thing": {
-        "type": "Bool"
-      },
-      "isRequired": true
+      "b": {
+        "thing": {
+          "type": "Bool"
+        },
+        "isRequired": true
+      }
     }
-  }
+  },
+  "is": []
 }

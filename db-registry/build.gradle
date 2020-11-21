@@ -14,6 +14,6 @@ task runH2(type: JavaExec, dependsOn: classes) {
 
 task runApp(type: JavaExec, dependsOn: classes) {
     classpath sourceSets.main.runtimeClasspath
-    main = 'dev.rudiments.db.registry.Application'
+    main = 'dev.rudiments.db.registry.DBRegistry'
     standardInput = System.in
 }

@@ -4,11 +4,10 @@ import akka.http.scaladsl.model.StatusCodes
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.Defaults
-import dev.rudiments.data.CRUD.{Create, Update, Updated}
-import dev.rudiments.data.ReadOnly.{Find, Found}
+import dev.rudiments.data._
 import dev.rudiments.data.{SoftApp, SoftModule}
 import dev.rudiments.hardcore.http.HttpPorts.DependencyLess
-import dev.rudiments.hardcore.{Command, Error, Event, Failure, Success}
+import dev.rudiments.hardcore.{Command, Error, Event}
 import dev.rudiments.domain._
 import io.circe.Encoder
 
@@ -16,32 +15,29 @@ object TodoApp extends App with LazyLogging {
   logger.info("Starting application")
 
   val config = ConfigFactory.load()
-  private implicit val domain: Domain = Domain()
+  private implicit val domain: Domain = new Domain
   implicit val t: Spec = domain.makeFromScala[Spec, Item]
 
   import akka.http.scaladsl.server.Directives._
   import dev.rudiments.hardcore.http.CirceSupport._
+
   private val todoItemModule = SoftModule("todo", "id", Seq.empty, Seq(
     "done" -> (ctx => id => DependencyLess.EmptyPostPort[Done, Event](
       Done(id),
       {
         case Done(id) =>
-          for {
-            found <- ctx.adapter(Find(id)).expecting[Found]
-            updated <- found.value.copy[Boolean]("done", {
+          ctx.adapter(Find(id)).flatMap[Found] { found =>
+            found.value.copy[Boolean]("done", {
               case d if !d => Right(!d)
               case d if d => Left(AlreadyDone(found.value))
-            }).map { instance => ctx.adapter(Update(id, instance)).expecting[Updated] } match {
-              case Left(value) => Failure(value)
-              case Right(value) => value
-            }
-          } yield updated
+            }).map(it => ctx.adapter(Update(id, it))).merge
+          }
       },
       {
-        case Success(Updated(_, _, value)) =>
+        case Updated(_, _, value) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case Failure(AlreadyDone(item)) =>
+        case AlreadyDone(item) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }
@@ -49,23 +45,19 @@ object TodoApp extends App with LazyLogging {
     "undone" -> (ctx => id => DependencyLess.EmptyPostPort[Undone, Event](
       Undone(id),
       {
-        case Undone(id) =>
-          for {
-            found <- ctx.adapter(Find(id)).expecting[Found]
-            updated <- found.value.copy[Boolean]("done", {
+        case Done(id) =>
+          ctx.adapter(Find(id)).flatMap[Found] { found =>
+            found.value.copy[Boolean]("done", {
               case d if d => Right(!d)
               case d if !d => Left(AlreadyNotDone(found.value))
-            }).map { instance => ctx.adapter(Update(id, instance)).expecting[Updated] } match {
-              case Left(value) => Failure(value)
-              case Right(value) => value
-            }
-          } yield updated
+            }).map(it => ctx.adapter(Update(id, it))).merge
+          }
       },
       {
-        case Success(Updated(_, _, value)) =>
+        case Updated(_, _, value) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.OK, value)
-        case Failure(AlreadyNotDone(item)) =>
+        case AlreadyNotDone(item) =>
           implicit val en: Encoder[Instance] = ctx.encoder
           complete(StatusCodes.Conflict, item)
       }

@@ -7,7 +7,7 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class ScalaStrictValidSpec extends AnyWordSpec with Matchers {
-  val domain: Domain = Domain()
+  val domain: Domain = new Domain
 
   "ScalaStrictValid return Right if arg type compatible" in {
     ScalaStrictValid[String](domain, "1") should be ("1")

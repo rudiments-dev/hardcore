@@ -1,14 +1,13 @@
 package dev.rudiments.hardcode.sql.actions
 
 import dev.rudiments.data.Action
-import dev.rudiments.data.Batch.{AllDeleted, DeleteAll}
+import dev.rudiments.data._
 import dev.rudiments.hardcode.sql.schema.TypedSchema
-import dev.rudiments.hardcore.Result
 import dev.rudiments.domain.Spec
 import scalikejdbc.{DBSession, SQL}
 
-class DeleteAllAction(schema: TypedSchema, spec: Spec)(session: DBSession) extends Action[DeleteAll, AllDeleted] {
-  override def apply(command: DeleteAll): Result[AllDeleted] = {
+class DeleteAllAction(schema: TypedSchema, spec: Spec)(session: DBSession) extends Action[DeleteUsing, Commit] {
+  override def apply(command: DeleteUsing): Commit = {
     val table = schema.tables(spec)
 
     SQL(
@@ -17,6 +16,6 @@ class DeleteAllAction(schema: TypedSchema, spec: Spec)(session: DBSession) exten
         """.stripMargin
     ).execute().apply()(session)
 
-    AllDeleted().toEither
+    Commit(Map.empty)
   }
 }

@@ -22,6 +22,8 @@ class ThingDecoder(domain: Domain, discriminator: String = "type") {
     override def apply(c: HCursor): Result[Any] = {
       c.downField(discriminator).as[String].flatMap { name =>
         domain.afterParent(a, name) match {
+          case spec: Spec if spec.fullName == "dev.rudiments.domain.Abstract" =>
+            specDecoder(spec).apply(c).map(_.toScala[Abstract]) // ???
           case spec: Spec => specDecoder(spec).apply(c)
           case one: The => Right(one)
           case other => ???
