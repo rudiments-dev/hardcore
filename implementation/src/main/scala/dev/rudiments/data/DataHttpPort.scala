@@ -25,8 +25,8 @@ class DataHttpPort(
     CompositeRouter(
       GetDirectivePort(Directives.typedPredicate(spec), FindAll.apply, s, responseWith),
       PostPort((value: Instance) => Create(identify(value), value), s, responseWith),
-      PostPort((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
-      PutPort((batch: Seq[Instance]) => Reconcile(batch.groupBy(identify).mapValues(_.head)), s, responseWith),
+      PostPort((batch: Seq[Instance]) => CreateAll(batch.groupBy(identify).view.mapValues(_.head).toMap), s, responseWith),
+      PutPort((batch: Seq[Instance]) => ReplaceAll(batch.groupBy(identify).view.mapValues(_.head).toMap), s, responseWith),
       DeleteDirectivePort(Directives.typedPredicate(spec), DeleteUsing.apply, s, responseWith),
       CompositeRouter(customRoutes.map { case (p, r) => PrefixRouter(p, r) } : _*)
     ),

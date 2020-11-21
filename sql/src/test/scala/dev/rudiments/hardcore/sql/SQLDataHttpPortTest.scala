@@ -18,14 +18,15 @@ import dev.rudiments.hardcore.All
 import dev.rudiments.hardcore.http.{ThingDecoder, ThingEncoder}
 import io.circe.{Decoder, Encoder}
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatestplus.junit.JUnitRunner
 import scalikejdbc.{DBSession, _}
 
 import scala.collection.JavaConverters._
 
 @RunWith(classOf[JUnitRunner])
-class SQLDataHttpPortTest extends FlatSpec with Matchers with ScalatestRouteTest
+class SQLDataHttpPortTest extends AnyFlatSpec with Matchers with ScalatestRouteTest
   with FailFastCirceSupport with ForAllTestContainer {
 
 

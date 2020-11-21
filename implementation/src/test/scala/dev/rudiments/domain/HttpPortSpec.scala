@@ -11,11 +11,12 @@ import dev.rudiments.hardcore.All
 import dev.rudiments.hardcore.http.{ThingDecoder, ThingEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class HttpPortSpec extends WordSpec with Matchers with ScalatestRouteTest with FailFastCirceSupport {
+class HttpPortSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with FailFastCirceSupport {
   private case class Example(
     id: Long,
     name: String

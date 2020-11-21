@@ -4,14 +4,15 @@ import com.typesafe.config.{Config, ConfigFactory}
 import dev.rudiments.hardcode.sql.schema.SizeMultipliers.N
 import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes}
 import org.junit.runner.RunWith
-import org.scalatest.{Matchers, WordSpec}
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 import scalikejdbc._
 
 import collection.JavaConverters._
 
 @RunWith(classOf[JUnitRunner])
-class H2AdapterSpec extends WordSpec with Matchers {
+class H2AdapterSpec extends AnyWordSpec with Matchers {
   val config: Config = ConfigFactory.parseMap(Map(
     "driver" -> "org.h2.Driver",
     "url" -> "jdbc:h2:mem:hello",

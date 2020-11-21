@@ -2,11 +2,12 @@ package dev.rudiments.domain
 
 import dev.rudiments.domain.ScalaTypes._
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class ValueSpecTest extends WordSpec with Matchers {
+class ValueSpecTest extends AnyWordSpec with Matchers {
   private implicit val domain: Domain = new Domain
   val t: Spec = domain.makeFromScala[Spec, Example]
 

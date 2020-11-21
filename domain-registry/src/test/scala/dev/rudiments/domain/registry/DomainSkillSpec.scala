@@ -4,14 +4,15 @@ import dev.rudiments.data._
 import dev.rudiments.domain.{Domain, ID, Instance, The}
 import dev.rudiments.hardcore.All
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.collection.immutable.ListMap
 
 
 @RunWith(classOf[JUnitRunner])
-class DomainSkillSpec extends WordSpec with Matchers {
+class DomainSkillSpec extends AnyWordSpec with Matchers {
   private val domain = new Domain
 
   "initial content of domain" in {

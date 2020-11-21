@@ -1,11 +1,12 @@
 package dev.rudiments.domain
 
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class ScalaStrictValidSpec extends WordSpec with Matchers {
+class ScalaStrictValidSpec extends AnyWordSpec with Matchers {
   val domain: Domain = new Domain
 
   "ScalaStrictValid return Right if arg type compatible" in {

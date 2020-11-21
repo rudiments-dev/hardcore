@@ -1,13 +1,14 @@
 package dev.rudiments.domain
 
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
-class InstanceTest extends WordSpec with Matchers {
+class InstanceTest extends AnyWordSpec with Matchers {
   private implicit val domain: Domain = new Domain
   domain.makeFromScala[Thing, Thing]
   domain.makeFromScala[Thing, Instance]

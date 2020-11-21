@@ -3,11 +3,12 @@ package dev.rudiments.hardcore.http
 import dev.rudiments.domain._
 import io.circe.Json
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class ThingDecoderTest extends WordSpec with Matchers {
+class ThingDecoderTest extends AnyWordSpec with Matchers {
 
   case class Test(f : Option[Double]) extends DTO
 

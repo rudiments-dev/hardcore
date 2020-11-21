@@ -1,18 +1,17 @@
 package dev.rudiments.memory
 
 import dev.rudiments.data._
-import dev.rudiments.data.DataEvent
-import dev.rudiments.domain.{DTO, Domain, ID, Instance, Spec}
+import dev.rudiments.domain._
 import dev.rudiments.hardcore.All
-import dev.rudiments.hardcore.http.query.PassAllQuery
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.util.Random
 
 @RunWith(classOf[JUnitRunner])
-class MemorySpec extends WordSpec with Matchers {
+class MemorySpec extends AnyWordSpec with Matchers {
   private case class Example(
     id: Long,
     name: String,

@@ -1,13 +1,14 @@
 package dev.rudiments.domain
 
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
-class DomainSpec extends WordSpec with Matchers {
+class DomainSpec extends AnyWordSpec with Matchers {
 
   sealed trait A extends ADT {
     case object B extends A

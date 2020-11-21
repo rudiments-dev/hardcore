@@ -3,13 +3,14 @@ package dev.rudiments.domain
 import dev.rudiments.data._
 import dev.rudiments.hardcore.{All, Equals, FieldExpression, Less, LessOrEquals, More, MoreOrEquals, ParameterExpression, TypedPredicate}
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.util.Random
 
 @RunWith(classOf[JUnitRunner])
-class StateSpec extends WordSpec with Matchers {
+class StateSpec extends AnyWordSpec with Matchers {
   private case class Example(
     id: Long,
     name: String,
@@ -89,8 +90,8 @@ class StateSpec extends WordSpec with Matchers {
     state(FindAll(
       TypedPredicate(t, Seq(MoreOrEquals(FieldExpression("id"), ParameterExpression(99999L))))
     )) should be (FoundAll(Seq(
-      Instance(t, Seq(99999L, s"99999'th element", None)),
-      Instance(t, Seq(100000L, s"100000'th element", None))
+      Instance(t, Seq(100000L, s"100000'th element", None)),
+      Instance(t, Seq(99999L, s"99999'th element", None))
     )))
   }
 

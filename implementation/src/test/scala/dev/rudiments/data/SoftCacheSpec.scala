@@ -3,13 +3,14 @@ package dev.rudiments.data
 import dev.rudiments.domain._
 import dev.rudiments.hardcore.All
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.util.Random
 
 @RunWith(classOf[JUnitRunner])
-class SoftCacheSpec extends WordSpec with Matchers {
+class SoftCacheSpec extends AnyWordSpec with Matchers {
   private case class Example(
     id: Long,
     name: String,
