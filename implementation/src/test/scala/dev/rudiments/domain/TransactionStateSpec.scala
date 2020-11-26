@@ -118,43 +118,43 @@ class TransactionStateSpec extends AnyWordSpec with Matchers {
     )))
   }
 
-//  "endure 100.000 batch" in {
-//    val batch = (100001 to 200000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i'th element", None)))).toMap
-//    transactional(CreateAll(batch)) should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
-//
-//    transactional(Count(All)) should be (Counted(200000))
-//
-//    val rnd = new Random().nextInt(200000).toLong
-//    transactional(Find(ID(Seq(rnd)))) should be (Found(
-//      ID(Seq(rnd)),
-//      Instance(t, Seq(rnd, s"$rnd'th element", None))))
-//  }
-//
-//  "endure 100.000 replace" in {
-//    val batch = (200001 to 300000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i item", None)))).toMap
-//    val deleting = transactional(FindAll(All)).asInstanceOf[FoundAll].values.map { it =>
-//      val k = ID(Seq(it.extract[Long]("id")))
-//      k -> Deleted(k, it)
-//    }.toMap
-//    transactional(ReplaceAll(batch)) should be (Commit(
-//      deleting ++ batch.map { case (k, v) => k -> Created(k, v) }
-//    ))
-//
-//    transactional(Count(All)) should be (Counted(100000))
-//
-//    val rnd = new Random().nextInt(100000).toLong + 200000L
-//    transactional(Find(ID(Seq(rnd)))) should be (Found(
-//      ID(Seq(rnd)),
-//      Instance(t, Seq(rnd, s"$rnd item", None))))
-//  }
-//
-//  "clear repository" in {
-//    transactional(Count(All)) should be (Counted(100000))
-//    val deleting = transactional(FindAll(All)).asInstanceOf[FoundAll].content.map { it =>
-//      val k = ID(Seq(it.extract[Long]("id")))
-//      k -> Deleted(k, it)
-//    }.toMap
-//    transactional(DeleteUsing(All)) should be (Commit(deleting))
-//    transactional(Count(All)) should be (Counted(0))
-//  }
+  "endure 100.000 batch" in {
+    val batch = (100001 to 200000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i'th element", None)))).toMap
+    transactional(CreateAll(batch)) should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
+
+    transactional(Count(All)) should be (Counted(200000))
+
+    val rnd = new Random().nextInt(200000).toLong
+    transactional(Find(ID(Seq(rnd)))) should be (Found(
+      ID(Seq(rnd)),
+      Instance(t, Seq(rnd, s"$rnd'th element", None))))
+  }
+
+  "endure 100.000 replace" in {
+    val batch = (200001 to 300000).map(i => (ID(Seq(i.toLong)), Instance(t, Seq(i.toLong, s"$i item", None)))).toMap
+    val deleting = transactional(FindAll(All)).asInstanceOf[FoundAll].content.values.map { it =>
+      val k = ID(Seq(it.extract[Long]("id")))
+      k -> Deleted(k, it)
+    }.toMap
+    transactional(ReplaceAll(batch)) should be (Commit(
+      deleting ++ batch.map { case (k, v) => k -> Created(k, v) }
+    ))
+
+    transactional(Count(All)) should be (Counted(100000))
+
+    val rnd = new Random().nextInt(100000).toLong + 200000L
+    transactional(Find(ID(Seq(rnd)))) should be (Found(
+      ID(Seq(rnd)),
+      Instance(t, Seq(rnd, s"$rnd item", None))))
+  }
+
+  "clear repository" in {
+    transactional(Count(All)) should be (Counted(100000))
+    val deleting = transactional(FindAll(All)).asInstanceOf[FoundAll].content.values.map { it =>
+      val k = ID(Seq(it.extract[Long]("id")))
+      k -> Deleted(k, it)
+    }.toMap
+    transactional(DeleteUsing(All)) should be (Commit(deleting))
+    transactional(Count(All)) should be (Counted(0))
+  }
 }

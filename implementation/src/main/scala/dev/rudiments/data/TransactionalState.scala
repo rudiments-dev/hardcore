@@ -37,17 +37,17 @@ class TransactionalState(persistance: State) extends Skill {
     case command@FindAll(All) =>
       persistance(command).flatMap[FoundAll] { found =>
         val values = mutable.Map.empty[ID, Instance]
-        values ++ found.content
+        values ++= found.content
 
         conclusion.foreach { case (_, event) =>
           event match {
-            case Created(key, value) => values + (key -> value)
+            case Created(key, value) => values += key -> value
             case Updated(key, _, newValue) => if (values.contains(key)) {
-              values(key) = newValue
-            } else values + (key -> newValue)
+              values += key -> newValue
+            } else values += key -> newValue
             case Moved(oldKey, _, newKey, newValue) =>
               values -= oldKey
-              values + (newKey -> newValue)
+              values += newKey -> newValue
             case Deleted(key, _) => values -= key
           }
         }
@@ -130,70 +130,68 @@ class TransactionalState(persistance: State) extends Skill {
           case NotFound(key) => NotFound(key)
         }
       }
-//    case CreateAll(batch) =>
-//      batch.flatMap {case (id, instance) =>
-//        lastDataEvent(id) match {
-//          case Some(value) =>
-//            value match {
-//              case Created(key, value) => Some(BatchFailed())
-//              case Updated(key, oldValue, newValue) => Some(BatchFailed())
-//              case Moved(oldKey, oldValue, newKey, newValue) => None
-//              case Deleted(key, value) => None
-//            }
-//          case None => None
-//        }
-//      }
-//          try {
-//            if((batch -- events.keys).size != batch.size) {
-//              BatchFailed()
-//            } else {
-//              events ++= batch
-//              Commit(batch.map { case (id, value) => id -> Created(id, value) })
-//            }
-//
-//          } catch {
-//            case _: Exception => BatchFailed()
-//          }
-//    case ReplaceAll(batch) =>
-    //      f(Reconcile(batch)).flatMap[Commit] { c =>
-    //        events --= events.keysIterator
-    //        events ++= batch
-    //        c
-    //      }
-//    case DeleteUsing(All) =>
-//          try {
-//            val delete = events.map { case (id, value) => id -> Deleted(id, value) }.toMap
-//            events --= events.keysIterator
-//            Commit(delete)
-//          } catch {
-//            case _: Exception => BatchFailed()
-//          }
+    case CreateAll(batch) =>
+      if (batch.forall { case (id, _) => f(Find(id)).isInstanceOf[NotFound]}) {
+        Commit(batch.map { case (id, value) => id -> Created(id, value)})
+      } else {
+        BatchFailed()
+      }
+    case ReplaceAll(batch) =>
+      f(FindAll(All)).flatMap[FoundAll] { found =>
+        val batchIds = batch.keySet
 
-//    case Reconcile(to) =>
-    //      val create = (to -- events.keys).map { case (id, value) => id -> Created(id, value) }
-    //      val delete = (events -- to.keys).map { case (id, value) => id -> Deleted(id, value) }
-    //      val update = to.filterKeys(events.contains).map   {
-    //        case (id, value) if value != events(id) => id -> Updated(id, events(id), value)
-    //      }
-    //      Commit(create ++ update ++ delete)
+        val updates = found.content.view.filterKeys(batchIds.contains).map { case (id, oldInstance) =>
+          id -> Updated(id, oldInstance, batch(id))
+        }
 
-//    case Apply(commit) => ???
+        val deletes = found.content.view.filterKeys(id => !batchIds.contains(id)).map { case (id, oldInstance) =>
+          id -> Deleted(id, oldInstance)
+        }
 
+        val creates = (batchIds -- found.content.keySet).map { id =>
+          id -> Created(id, batch(id))
+        }
+
+        Commit((updates ++ deletes ++ creates).toMap)
+      }
+    case DeleteUsing(All) =>
+      f(FindAll(All)).flatMap[FoundAll] { found =>
+        Commit(
+          found.content.map { case (id, instance) =>
+            id -> Deleted(id, instance)
+          }
+        )
+      }
   }
 
 
-//  def memorize()
-
-  override def apply(ask: Ask): Reply = {
-    f.apply(ask) match {
+  def memorize(event: DataEvent): Unit = {
+    event match {
+      case Commit(state) =>
+        state.foreach {case (id, instance) => memorize(instance)}
       case evt@DataEvent(id) =>
         conclusion.get(id) match {
           case Some(existing) if existing == evt => existing
+          case Some(existing) =>
+            conclusion(id) = evt
+            events += evt
+            conclusion(id)
           case None =>
             conclusion += id -> evt
             events += evt
             conclusion(id)
         }
+    }
+  }
+
+  override def apply(ask: Ask): Reply = {
+    f.apply(ask) match {
+      case evt@DataEvent(id) =>
+        memorize(evt)
+        evt
+      case evt@Commit(state) =>
+        memorize(evt)
+        evt
       case other => other
     }
   }
