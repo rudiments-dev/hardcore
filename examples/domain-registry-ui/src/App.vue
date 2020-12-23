@@ -30,12 +30,12 @@ export default {
   }),
   methods: {
     setCurrentType(typeName) {
+      let valObj = this.types.filter(function(elem){
+        if(elem.name == typeName) return elem;
+      });
+      this.currentType = valObj[0];
 
-    var valObj = this.types.filter(function(elem){
-      if(elem.name == typeName) return elem;
-    });
-
-    this.currentType = valObj[0];
+      this.$router.push(`/api/${this.currentType.name}`)
     }
   },
   computed: {

@@ -14,11 +14,7 @@
           </svg>
         </button>
       </div>
-      <div class="flex-1 flex items-center justify-center sm:items-stretch sm:justify-start">
-
-
-      </div>
-
+      <div class="flex-1 flex items-center justify-center sm:items-stretch sm:justify-start"></div>
     </div>
   </div>
 
