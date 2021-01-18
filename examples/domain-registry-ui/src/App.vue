@@ -35,7 +35,7 @@ export default {
       });
       this.currentType = valObj[0];
 
-      this.$router.push(`/api/${this.currentType.name}`)
+      this.$router.push(`/api/domain/${this.currentType.name}`)
     }
   },
   computed: {
