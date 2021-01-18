@@ -1,5 +1,4 @@
 <template>
-
   <div>
     <div class="w-full md:w-5/6">
     <table class="table-auto">

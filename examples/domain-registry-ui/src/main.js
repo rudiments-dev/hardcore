@@ -3,6 +3,7 @@ import App from './App.vue'
 import './assets/css/tailwind.css'
 import VueRouter from 'vue-router'
 import TypeCard from "@/components/TypeCard";
+import AddType from "@/components/AddType";
 
 Vue.use(VueRouter);
 
@@ -11,6 +12,10 @@ const routes = [
     path: "",
     component: TypeCard,
   },
+  {
+    path: "add-type",
+    component: AddType
+  }
 ];
 
 const router = new VueRouter({
