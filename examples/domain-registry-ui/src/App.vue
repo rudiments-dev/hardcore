@@ -3,12 +3,27 @@
     <navigation />
     <div class="flex flex-wrap flex-grow h-screen">
       <div class="w-full md:w-1/6 bg-blue-500 p-6 text-left text-gray-200">
+        <div class="order-3 mt-2 flex-shrink-0 w-full sm:order-2 sm:mt-0 sm:w-auto">
+          <a href="#" class="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50">
+            <router-link
+                to="/create-type"
+                v-slot="{ href, route, navigate, isActive }"
+            >
+              <NavLink :active="isActive" :href="href" @click="showTypeCreateForm"
+              >Create Type</NavLink
+              >
+            </router-link>
+          </a>
+        </div>
+
+
         <ul>
           <li v-for="type in orderedTypes" :key="type.name"><a href="#" @click="setCurrentType(type.name)">{{ type.name }}</a></li>
         </ul>
       </div>
       <div class="w-full md:w-5/6 p-4 text-left">
-        <type-card :type=currentType />
+        <create-type v-if="modeEdit === false" />
+        <type-card v-else :type=currentType />
       </div>
     </div>
   </div>
@@ -20,13 +35,15 @@ import _ from 'lodash'
 import axios from 'axios'
 import TypeCard from './components/TypeCard.vue'
 import Navigation from './components/Navigation.vue'
+import CreateType from "@/components/CreateType";
 
 export default {
   name: 'App',
-  components: { TypeCard, Navigation },
+  components: {CreateType, TypeCard, Navigation },
   data: () => ({
     types: [],
-    currentType: null
+    currentType: null,
+    modeEdit: false,
   }),
   methods: {
     setCurrentType(typeName) {
@@ -36,6 +53,9 @@ export default {
       this.currentType = valObj[0];
 
       this.$router.push(`/api/domain/${this.currentType.name}`)
+    },
+    showTypeCreateForm() {
+      this.modeEdit = this.modeEdit === false ? true : false;
     }
   },
   computed: {
