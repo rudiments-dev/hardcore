@@ -1,3 +1,42 @@
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "com.github.jengelman.gradle.plugins:shadow:6.1.0"
+    }
+}
+
+apply plugin: "com.github.johnrengelman.shadow"
+
+//mainClassName = 'dev.rudiments.domain.registry.DomainRegistry'
+
+manifest {
+    attributes 'Main-Class': 'dev.rudiments.domain.registry.DomainRegistry'
+}
+jar {
+    manifest {
+        attributes 'Main-Class': 'dev.rudiments.domain.registry.DomainRegistry'
+    }
+    baseName = 'scalashadowjar-server'
+}
+
+shadowJar {
+    baseName = 'scalashadowjar-server'
+    classifier = null
+    version = null
+
+
+    transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
+        resource = 'reference.conf'
+    }
+    classifier = ''
+}
+
+
+
 dependencies {
     compile project(':implementation')
     compile 'ch.qos.logback:logback-classic:1.2.3'
@@ -8,3 +47,4 @@ task runDomain(type: JavaExec, dependsOn: classes) {
     main = 'dev.rudiments.domain.registry.DomainRegistry'
     standardInput = System.in
 }
+
