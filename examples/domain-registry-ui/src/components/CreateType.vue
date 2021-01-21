@@ -1,54 +1,44 @@
 <template>
   <div class="mt-10 sm:mt-0">
-    <div class="md:grid md:grid-cols-3 md:gap-6">
-
+    <div class="md:grid md:grid-cols-4 md:gap-6">
+<!--      {-->
+<!--      "type": "Spec",-->
+<!--      "name": "SpecExample",-->
+<!--      "fullName": "dev.rudiments.Examples.SpecExample",-->
+<!--      "fields": {-->
+<!--      "b": {-->
+<!--      "thing": {-->
+<!--      "type": "Bool"-->
+<!--      },-->
+<!--      "isRequired": true-->
+<!--      }-->
+<!--      }-->
+<!--      }-->
       <div class="mt-5 md:mt-0 md:col-span-2">
         <form action="#" method="POST">
           <div class="shadow overflow-hidden sm:rounded-md">
             <div class="px-4 py-5 bg-white sm:p-6">
               <div class="grid grid-cols-6 gap-6">
-                <div class="col-span-6 sm:col-span-3">
-                  <label for="first_name" class="block text-sm font-medium text-gray-700">First name</label>
-                  <input type="text" name="first_name" id="first_name" autocomplete="given-name" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                </div>
-
-                <div class="col-span-6 sm:col-span-3">
-                  <label for="last_name" class="block text-sm font-medium text-gray-700">Last name</label>
-                  <input type="text" name="last_name" id="last_name" autocomplete="family-name" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                <div class="col-span-6 sm:col-span-4">
+                  <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
+                  <input type="text" name="Type" id="type" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-black rounded-md">
                 </div>
 
                 <div class="col-span-6 sm:col-span-4">
-                  <label for="email_address" class="block text-sm font-medium text-gray-700">Email address</label>
-                  <input type="text" name="email_address" id="email_address" autocomplete="email" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                  <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                  <input type="text" name="name" id="name" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                 </div>
 
-                <div class="col-span-6 sm:col-span-3">
-                  <label for="country" class="block text-sm font-medium text-gray-700">Country / Region</label>
-                  <select id="country" name="country" autocomplete="country" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                    <option>United States</option>
-                    <option>Canada</option>
-                    <option>Mexico</option>
-                  </select>
+                <div class="col-span-6 sm:col-span-5">
+                  <label for="full_name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                  <input type="text" name="full_name" id="full_name" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                 </div>
 
-                <div class="col-span-6">
-                  <label for="street_address" class="block text-sm font-medium text-gray-700">Street address</label>
-                  <input type="text" name="street_address" id="street_address" autocomplete="street-address" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                </div>
 
-                <div class="col-span-6 sm:col-span-6 lg:col-span-2">
-                  <label for="city" class="block text-sm font-medium text-gray-700">City</label>
-                  <input type="text" name="city" id="city" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                </div>
 
-                <div class="col-span-6 sm:col-span-3 lg:col-span-2">
-                  <label for="state" class="block text-sm font-medium text-gray-700">State / Province</label>
-                  <input type="text" name="state" id="state" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                </div>
-
-                <div class="col-span-6 sm:col-span-3 lg:col-span-2">
-                  <label for="postal_code" class="block text-sm font-medium text-gray-700">ZIP / Postal</label>
-                  <input type="text" name="postal_code" id="postal_code" autocomplete="postal-code" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                <div class="col-span-6 sm:col-span-5">
+                  <label for="fields" class="block text-sm font-medium text-gray-700">Fields</label>
+                  <input type="text" name="fields" id="fields" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                 </div>
               </div>
             </div>

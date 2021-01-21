@@ -9,7 +9,7 @@
                 to="/create-type"
                 v-slot="{ href, route, navigate, isActive }"
             >
-              <NavLink :active="isActive" :href="href" @click="showTypeCreateForm"
+              <NavLink :active="isActive" :href="href" @click="showTypeCreateForm(false)"
               >Create Type</NavLink
               >
             </router-link>
@@ -18,7 +18,7 @@
 
 
         <ul>
-          <li v-for="type in orderedTypes" :key="type.name"><a href="#" @click="setCurrentType(type.name)">{{ type.name }}</a></li>
+          <li v-for="type in orderedTypes" :key="type.name"><a href="#" @click="setCurrentType(type.name); showTypeCreateForm(true)">{{ type.name }}</a></li>
         </ul>
       </div>
       <div class="w-full md:w-5/6 p-4 text-left">
@@ -54,8 +54,8 @@ export default {
 
       this.$router.push(`/api/domain/${this.currentType.name}`)
     },
-    showTypeCreateForm() {
-      this.modeEdit = this.modeEdit === false ? true : false;
+    showTypeCreateForm(state) {
+      this.modeEdit = state;
     }
   },
   computed: {
