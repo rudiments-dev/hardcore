@@ -16,7 +16,7 @@ package object hardcore {
 
   class TxSkill[I <: In : ClassTag, T <: Tx : ClassTag, O <: Out : ClassTag](g: (I, T) => O) extends PF {
     override val signature: Seq[(ID[In], ID[Out])] = Seq(
-      ID[In](implicitly[ClassTag[I]].runtimeClass.getName) -> ID[Out](implicitly[ClassTag[O]].runtimeClass.getName)
+      ID[In](Seq(implicitly[ClassTag[I]].runtimeClass.getName)) -> ID[Out](Seq(implicitly[ClassTag[O]].runtimeClass.getName))
     )
 
     override val f: PartialFunction[(In, Tx), Out] = {
@@ -26,7 +26,7 @@ package object hardcore {
 
   class SagaSkill[I <: In : ClassTag, T <: Tx : ClassTag, O <: Out : ClassTag](g: PartialFunction[I, Out]) extends PF {
     override val signature: Seq[(ID[In], ID[Out])] = Seq(
-      ID[In](implicitly[ClassTag[I]].runtimeClass.getName) -> ID[Out](implicitly[ClassTag[O]].runtimeClass.getName)
+      ID[In](Seq(implicitly[ClassTag[I]].runtimeClass.getName)) -> ID[Out](Seq(implicitly[ClassTag[O]].runtimeClass.getName))
     )
 
     override val f: PartialFunction[(In, Tx), Out] = {

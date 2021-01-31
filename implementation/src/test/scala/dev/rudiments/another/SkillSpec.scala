@@ -22,6 +22,22 @@ class SkillSpec extends AnyWordSpec with Matchers {
 
   val state = new State[Example]()
 
+  "signature of state" in {
+    state.signature should be (Seq(
+      ID[In](Seq("dev.rudiments.another.hardcore.Count")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Counted")),
+      ID[In](Seq("dev.rudiments.another.hardcore.Find")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Found")),
+      ID[In](Seq("dev.rudiments.another.hardcore.FindAll")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Found")),
+      ID[In](Seq("dev.rudiments.another.hardcore.Create")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Created")),
+      ID[In](Seq("dev.rudiments.another.hardcore.Update")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Updated")),
+      ID[In](Seq("dev.rudiments.another.hardcore.Move")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Moved")),
+      ID[In](Seq("dev.rudiments.another.hardcore.Delete")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Deleted")),
+      ID[In](Seq("dev.rudiments.another.hardcore.CreateAll")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Commit")),
+      ID[In](Seq("dev.rudiments.another.hardcore.ReplaceAll")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Commit")),
+      ID[In](Seq("dev.rudiments.another.hardcore.DeleteUsing")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Commit")),
+      ID[In](Seq("dev.rudiments.another.hardcore.Reconcile")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Commit"))
+    ))
+  }
+
   "no element by ID" in {
     state(Count(All)) should be (Counted(0))
     state(Find(id)) should be (NotFound(id))
