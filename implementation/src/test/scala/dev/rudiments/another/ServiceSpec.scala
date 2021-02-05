@@ -15,14 +15,20 @@ class ServiceSpec extends AnyWordSpec with Matchers {
     name: String,
     comment: Option[String] = None
   )
+
+  var txIn = 0
+  var txOut = 0
+  case class Counter(c: Int = txIn + 1) extends Tx {
+    txIn += 1
+  }
   
   private val id = ID[Example](Seq(42L))
   private val sample = Example(42L, "sample", None)
   private val newID = ID[Example](Seq(24L))
 
-  private val pipeline = new Pipeline[In, In, Tx] ({ rq => (rq, NoTx) })
+  private val pipeline = new Pipeline[In, In, Counter] ({ rq =>(rq, Counter())})
   private val state = new State[Example]()
-  private val drainage = new Drainage[Out, Tx, Out]({ (out, tx) => out })
+  private val drainage = new Drainage[Out, Counter, Out]({ (out, tx) => txOut = tx.c; out})
   private val f = new Service(pipeline, state, drainage)
 
   "signature of state" in {
@@ -39,11 +45,17 @@ class ServiceSpec extends AnyWordSpec with Matchers {
       ID[In](Seq("dev.rudiments.another.hardcore.DeleteUsing")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Commit")),
       ID[In](Seq("dev.rudiments.another.hardcore.Reconcile")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Commit"))
     ))
+    txIn should be (0)
+    txOut should be (0)
   }
 
   "no element by ID" in {
     f(Count(All)) should be (Counted(0))
+    txIn should be (1)
+    txOut should be (1)
     f(Find(id)) should be (NotFound(id))
+    txIn should be (2)
+    txOut should be (2)
   }
 
   "put item into repository" in {
@@ -51,6 +63,9 @@ class ServiceSpec extends AnyWordSpec with Matchers {
     f(Create(id, sample)) should be (Created(id, sample))
     f(Count(All)) should be (Counted(1))
     f(Find(id)) should be (Found(id, sample))
+
+    txIn should be (6)
+    txOut should be (6)
   }
 
   "update item in repository" in {
@@ -61,6 +76,9 @@ class ServiceSpec extends AnyWordSpec with Matchers {
         Example(42L, "sample", Some("changes"))))
     f(Count(All)) should be (Counted(1))
     f(Find(id)) should be (Found(id, Example(42L, "sample", Some("changes"))))
+
+    txIn should be (9)
+    txOut should be (9)
   }
 
   "move item in repository" in {
@@ -77,11 +95,17 @@ class ServiceSpec extends AnyWordSpec with Matchers {
       ))
     f(Count(All)) should be (Counted(1))
     f(Find(newID)) should be (Found(newID, Example(24L, "sample", Some("changes"))))
+
+    txIn should be (12)
+    txOut should be (12)
   }
 
   "multiple inserts with same ID causes exception" in {
     f(Count(All)) should be (Counted(1))
     f(Create(newID, sample)) should be (AlreadyExists(newID, Example(24L, "sample", Some("changes"))))
+
+    txIn should be (14)
+    txOut should be (14)
   }
 
   "delete item from repository" in {
@@ -89,6 +113,9 @@ class ServiceSpec extends AnyWordSpec with Matchers {
     f(Delete(newID)) should be (Deleted(newID, Example(24L, "sample", Some("changes"))))
     f(Count(All)) should be (Counted(0))
     f(Find(newID)) should be (NotFound(newID))
+
+    txIn should be (18)
+    txOut should be (18)
   }
 
   "endure 100.000 records" in {
@@ -100,6 +127,9 @@ class ServiceSpec extends AnyWordSpec with Matchers {
 
     val rnd = new Random().nextInt(100000).toLong
     f(Find(ID(Seq(rnd)))) should be (Found(ID(Seq(rnd)), Example(rnd, s"$rnd'th element", None)))
+
+    txIn should be (100020)
+    txOut should be (100020)
   }
 
   "endure 100.000 batch" in {
@@ -112,6 +142,9 @@ class ServiceSpec extends AnyWordSpec with Matchers {
     f(Find(ID(Seq(rnd)))) should be (Found(
       ID(Seq(rnd)),
       Example(rnd, s"$rnd'th element", None)))
+
+    txIn should be (100023)
+    txOut should be (100023)
   }
 
   "endure 100.000 replace" in {
@@ -130,6 +163,9 @@ class ServiceSpec extends AnyWordSpec with Matchers {
     f(Find(ID(Seq(rnd)))) should be (Found(
       ID(Seq(rnd)),
       Example(rnd, s"$rnd item", None)))
+
+    txIn should be (100027)
+    txOut should be (100027)
   }
 
   "clear repository" in {
@@ -140,5 +176,8 @@ class ServiceSpec extends AnyWordSpec with Matchers {
     }.toMap
     f(DeleteUsing(All)) should be (Commit(deleting))
     f(Count(All)) should be (Counted(0))
+
+    txIn should be (100031)
+    txOut should be (100031)
   }
 }
