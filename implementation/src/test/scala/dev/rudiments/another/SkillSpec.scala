@@ -26,7 +26,7 @@ class SkillSpec extends AnyWordSpec with Matchers {
     state.signature should be (Seq(
       ID[In](Seq("dev.rudiments.another.hardcore.Count")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Counted")),
       ID[In](Seq("dev.rudiments.another.hardcore.Find")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Found")),
-      ID[In](Seq("dev.rudiments.another.hardcore.FindAll")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Found")),
+      ID[In](Seq("dev.rudiments.another.hardcore.FindAll")) -> ID[Out](Seq("dev.rudiments.another.hardcore.FoundAll")),
       ID[In](Seq("dev.rudiments.another.hardcore.Create")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Created")),
       ID[In](Seq("dev.rudiments.another.hardcore.Update")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Updated")),
       ID[In](Seq("dev.rudiments.another.hardcore.Move")) -> ID[Out](Seq("dev.rudiments.another.hardcore.Moved")),

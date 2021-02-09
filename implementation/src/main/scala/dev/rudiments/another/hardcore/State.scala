@@ -19,6 +19,11 @@ final class State[T] extends PF {
       Commit(create ++ update ++ delete)
   })
 
+  private def matches(data: T, p: Predicate): Boolean = p match {
+    case All => true
+    case _ => false
+  }
+
   private val skills: Seq[PF] = Seq(
     new SagaSkill[Count, Tx, Counted]({ case Count(All) => Counted(content.size) }),
     new SagaSkill[Find[T], Tx, Found[T]]({
@@ -28,9 +33,9 @@ final class State[T] extends PF {
           case None => NotFound[T](key)
         }
     }),
-    new SagaSkill[FindAll[T], Tx, Found[T]]({
+    new SagaSkill[FindAll[T], Tx, FoundAll[T]]({
       case FindAll(All) => FoundAll[T](content.toMap)
-//      case FindAll(p) => FoundAll(content.filter { it => it._2.matches(p) }.toMap)
+      case FindAll(p) => FoundAll(content.filter { it => matches(it._2, p) }.toMap[ID[T], T])
     }),
     new SagaSkill[Create[T], Tx, Created[T]]({
       case Create(key, value) =>
