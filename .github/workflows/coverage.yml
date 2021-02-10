@@ -8,6 +8,8 @@ on:
 
 jobs:
   build-and-cover:
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
