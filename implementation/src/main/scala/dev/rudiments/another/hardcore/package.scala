@@ -14,7 +14,7 @@ package object hardcore {
     override def apply(x: (In, Tx)): Out = f.apply(x)
   }
 
-  class TxSkill[I <: In : ClassTag, T <: Tx : ClassTag, O <: Out : ClassTag](g: (I, T) => O) extends PF {
+  class TxSkill[I <: In : ClassTag, T <: Tx : ClassTag, O <: Out : ClassTag](g: (I, T) => Out) extends PF {
     override val signature: Seq[(ID[In], ID[Out])] = Seq(
       ID[In](Seq(implicitly[ClassTag[I]].runtimeClass.getName)) -> ID[Out](Seq(implicitly[ClassTag[O]].runtimeClass.getName))
     )
