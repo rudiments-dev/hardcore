@@ -6,7 +6,7 @@ sealed trait Data
 
 case class Count(predicate: Predicate = All) extends Query with Data
 case class Find[T](key: ID[T]) extends Query with Data
-case class FindAll[T](predicate: Predicate) extends Query with Data
+case class FindAll[T](predicate: Predicate = All) extends Query with Data
 case class Reconcile[T](to: Map[ID[T], T]) extends Query with Data
 
 
