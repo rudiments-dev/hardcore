@@ -1,8 +1,7 @@
 package dev.rudiments.another.sql
 
-import dev.rudiments.another.hardcore.{Count, Counted}
-import dev.rudiments.hardcode.sql.schema.SizeMultipliers.N
-import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes}
+import dev.rudiments.another.hardcore.{Count, Counted, ID}
+import dev.rudiments.another.sql.SizeMultipliers.N
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -110,7 +109,12 @@ class H2Adapter2Spec extends AnyWordSpec with Matchers {
       ReferencesDiscovered(
         "HELLO2",
         Set(
-          Reference("REF_1", "EXAMPLE", Seq("BIGINT_COLUMN"), "SAMPLE", Seq("ID"))
+          FK(
+            "REF_1",
+            ID[Table](Seq("EXAMPLE")),
+            ID[Table](Seq("SAMPLE")),
+            Map(ID[Column](Seq("BIGINT_COLUMN")) -> ID[Column](Seq("ID")))
+          )
         )
       )
     )

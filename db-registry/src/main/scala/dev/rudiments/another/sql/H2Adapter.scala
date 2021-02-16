@@ -2,8 +2,7 @@ package dev.rudiments.another.sql
 
 import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.another.{In, Out, Tx}
-import dev.rudiments.another.hardcore.{CompositeSkill, Create, ID, PF, SagaSkill, State, TxSkill}
-import dev.rudiments.hardcode.sql.schema.{Column, ColumnTypes, Table}
+import dev.rudiments.another.hardcore.{CompositeSkill, Create, Find, Found, ID, PF, SagaSkill, State, TxSkill, Update}
 import scalikejdbc.{DB, DBSession, SQL}
 
 class AutoDbTx extends Tx with StrictLogging {
@@ -15,7 +14,7 @@ class H2Adapter extends PF {
 
   //private val schemes = new State[Schema] - schema is too composite
   val tables = new State[Table]
-  val refs = new State[Reference] //TODO Map[ID, Set[ID]] for generic references and indexes
+  val refs = new State[FK] //TODO Map[ID, Set[ID]] for generic references and indexes
 
   private val skills: Seq[PF] = Seq(
     new SagaSkill[CheckConnection, AutoDbTx, ConnectionOk]({ in: CheckConnection =>
@@ -49,7 +48,7 @@ class H2Adapter extends PF {
             rs.string("key").equalsIgnoreCase("PRI")
           )
         }.toIterable().apply().toSeq
-        tables(Create(ID(Seq(in.tableName)), Table(in.tableName, columns)))
+        tables(Create(ID(Seq(in.tableName)), Table(in.tableName, columns, Set.empty)))
         TableDiscovered(in.tableName, columns)
       } catch {
         case e: Exception => ConnectionFailure(e)
@@ -73,15 +72,31 @@ class H2Adapter extends PF {
             |WHERE fk.table_schema = ?
             |  AND fk.constraint_type = 'REFERENTIAL'
             |""".stripMargin.trim).bind(in.schemaName).map { rs =>
-          Reference(
+
+          val fkRefs = rs.string("table_columns")
+            .split(",")
+            .map(i => ID[Column](Seq(i)))
+            .zip(
+              rs.string("ref_columns")
+                .split(",")
+                .map(i => ID[Column](Seq(i)))
+            ).toMap
+
+          FK(
             rs.string("name"),
-            rs.string("table_name"),
-            rs.string("table_columns").split(","),
-            rs.string("ref_name"),
-            rs.string("ref_columns").split(",")
+            ID[Table](Seq(rs.string("table_name"))),
+            ID[Table](Seq(rs.string("ref_name"))),
+            fkRefs
           )
         }.toIterable().apply().toSet
-        references.foreach { it => refs(Create(ID(Seq(it.name)), it)) }
+
+        references.foreach { it =>
+          refs(Create(ID(Seq(it.name)), it))
+
+          tables(Find(it.from)).flatMap[Found[Table]] { found =>
+            tables(Update(it.from, found.value.copy(references = found.value.references + it)))
+          }
+        }
         ReferencesDiscovered(in.schemaName, references)
       } catch {
         case e: Exception => ConnectionFailure(e)
@@ -107,12 +122,4 @@ case class ConnectionOk() extends H2Event
 case class ConnectionFailure(e: Exception) extends H2Event
 case class SchemaDiscovered(name: String, tables: Set[String]) extends H2Event
 case class TableDiscovered(name: String, columns: Seq[Column]) extends H2Event
-case class ReferencesDiscovered(schemaName: String, references: Set[Reference]) extends H2Event
-
-case class Reference(
-  name: String,
-  table: String,
-  columns: Seq[String],
-  refTable: String,
-  refColumns: Seq[String]
-)
+case class ReferencesDiscovered(schemaName: String, references: Set[FK]) extends H2Event
