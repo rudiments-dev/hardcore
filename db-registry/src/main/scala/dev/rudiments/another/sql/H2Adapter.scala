@@ -59,7 +59,7 @@ class H2Adapter extends PF {
         implicit val session: DBSession = tx.session
         val references = SQL(
           """
-            |SELECT -- table_name (table_columns) REFERENCES ref_name (ref_columns)
+            |SELECT DISTINCT -- table_name (table_columns) REFERENCES ref_name (ref_columns)
             |    fk.constraint_name AS name,
             |    fk.table_name      AS table_name,
             |    fk.column_list     AS table_columns,
