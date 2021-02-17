@@ -17,6 +17,13 @@ package object another {
       case m: O => f(m)
       case other => other
     }
+
+    def when[O <: Out : ClassTag](f: O => Unit): Out = this match {
+      case m: O =>
+        f(m)
+        this
+      case _ => this
+    }
   }
 
   trait Command extends In

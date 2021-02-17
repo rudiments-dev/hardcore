@@ -71,6 +71,20 @@ case class PostPort[I <: In, B: Decoder, T <: Tx, O <: Out](
   }
 }
 
+case class PostDirectivePort[D, I <: In, T <: Tx, O <: Out](
+  directive: Directive1[D],
+  in: D => I,
+  s: Service[I, I, T, O, O],
+  result: O => StandardRoute
+) extends Port[I, T, O] with Router {
+
+  override val routes: Route = post {
+    directive { t =>
+      ActionPort(in(t), s, result).routes
+    }
+  }
+}
+
 case class EmptyPostPort[I <: In, T <: Tx, O <: Out](
   in: I,
   s: Service[I, I, T, O, O],

@@ -1,10 +1,13 @@
 package dev.rudiments.another.sql
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives.{complete, pathPrefix}
+import akka.http.scaladsl.server.{PathMatcher, PathMatchers}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.another.{In, Out}
-import dev.rudiments.another.hardcore.{CompositeSkill, Drainage, ID, Pipeline, ReadOnlyHttpPort, Service}
+import dev.rudiments.another.hardcore.{CompositeSkill, Drainage, EmptyPostPort, ID, Pipeline, PostDirectivePort, ReadOnlyHttpPort, Service}
 import dev.rudiments.hardcore.http.RootRouter
 import io.circe.Encoder
 import scalikejdbc.ConnectionPool
@@ -24,7 +27,10 @@ object DBRegistry extends App with LazyLogging {
     val adapter = new H2Adapter()
 
     val pipeline: Pipeline[In, In, AutoDbTx] = new Pipeline({ in => (in, new AutoDbTx) })
-    val drainage: Drainage[Out, AutoDbTx, Out] = new Drainage({ (out, tx) => out })
+    val drainage: Drainage[Out, AutoDbTx, Out] = new Drainage({ (out, tx) =>
+      tx.session.close()
+      out
+    })
 
     val service: Service[In, In, AutoDbTx, Out, Out] = new Service(
       pipeline,
@@ -32,10 +38,9 @@ object DBRegistry extends App with LazyLogging {
       drainage
     )
 
-    service(DiscoverSchema(schema)).flatMap[SchemaDiscovered] { s =>
+    service(DiscoverSchema(schema)).when[SchemaDiscovered] { s =>
       s.tables.foreach { t => service(DiscoverTable(t, s.name)) }
       service(DiscoverReferences(s.name.toUpperCase()))
-      s
     }
 
     import dev.rudiments.hardcore.http.CirceSupport._
@@ -43,7 +48,20 @@ object DBRegistry extends App with LazyLogging {
     implicit val columnTypeEncoder: Encoder[ColumnType] = (a: ColumnType) => Encoder.encodeString(a.toString)
     implicit val refEncoder: Encoder[FK] = (a: FK) => Encoder.encodeString(a.toString)
 
-    val port = new ReadOnlyHttpPort[Table, In, AutoDbTx, Out, String]("schema", service)
+    val port = new ReadOnlyHttpPort[Table, In, AutoDbTx, Out, String]("schema", service, Seq(
+      "refresh" -> PostDirectivePort[String, In, AutoDbTx, Out](
+        pathPrefix(PathMatchers.Segment),
+        DiscoverSchema.apply,
+        service,
+        { out =>
+          out.when[SchemaDiscovered] { s =>
+            s.tables.foreach { t => service(DiscoverTable(t, s.name)) }
+            service(DiscoverReferences(s.name.toUpperCase()))
+          }
+          complete(StatusCodes.OK, out.toString)
+        }
+      )
+    ))
     new RootRouter(config, port).bind()
   } catch {
     case e: Throwable =>
