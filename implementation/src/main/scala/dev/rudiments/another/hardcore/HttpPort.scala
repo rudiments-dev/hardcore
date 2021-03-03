@@ -1,7 +1,7 @@
 package dev.rudiments.another.hardcore
 
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Directive1, Route, StandardRoute}
+import akka.http.scaladsl.server.{Directive, Directive1, PathMatcher1, Route, StandardRoute}
 import dev.rudiments.another.{In, Out, Tx}
 import dev.rudiments.hardcore.http.{CompositeRouter, PrefixRouter, Router}
 import io.circe.Decoder
@@ -9,6 +9,7 @@ import dev.rudiments.hardcore.http.CirceSupport._
 
 import java.sql.Date
 import java.util.UUID
+import scala.language.postfixOps
 trait Port[Rq <: In, T <: Tx, Rs <: Out]
 
 case class ActionPort[I <: In, T <: Tx, O <: Out](
@@ -152,14 +153,18 @@ case class ResourceRouter[A, F : TypeTag](
 }
 
 object IDPath {
-  def apply[A, F: TypeTag]: Directive1[ID[A]] = {
-    if(typeOf[F] =:= typeOf[Long])        pathPrefix(LongNumber).map(l => ID[A](Seq(l)))
-    else if(typeOf[F] =:= typeOf[Int])    pathPrefix(IntNumber).map(i => ID[A](Seq(i)))
-    else if(typeOf[F] =:= typeOf[String]) pathPrefix(Segment).map(s => ID[A](Seq(s)))
-    else if(typeOf[F] =:= typeOf[UUID])   pathPrefix(JavaUUID).map(s => ID[A](Seq(s)))
-    else if(typeOf[F] =:= typeOf[Date])   pathPrefix(Segment).map(s => ID[A](Seq(Date.valueOf(s))))
+  def apply[A, F: TypeTag]: Directive1[ID[A]] = pathPrefix(prefix[F]).map(l => ID[A](Seq(l)))
+
+  def prefix[F: TypeTag]: PathMatcher1[F] = {
+    if(typeOf[F] =:= typeOf[Long])        LongNumber
+    else if(typeOf[F] =:= typeOf[Int])    IntNumber
+    else if(typeOf[F] =:= typeOf[String]) Segment
+    else if(typeOf[F] =:= typeOf[UUID])   JavaUUID
+    else if(typeOf[F] =:= typeOf[Date])   Segment.map(s => Date.valueOf(s))
     else ??? //TODO enums
-  }
+  }.asInstanceOf[PathMatcher1[F]]
+
+  def apply[A, F1 : TypeTag, F2 : TypeTag]: Directive1[ID[A]] = pathPrefix(prefix[F1] / prefix[F2]).tmap { k => ID[A](Seq(k._1, k._2)) }
 }
 
 object PredicateDirective {
