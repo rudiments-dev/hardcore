@@ -22,7 +22,7 @@ class DataHttpPortSpec extends AnyWordSpec with Matchers with ScalatestRouteTest
   
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private val state: State[Example] = new State()
-  private val pipeline = new Pipeline[In, In, Tx] ({ rq => (rq, NoTx) })
+  private val pipeline = new Pipeline[In, In, Tx] ({ rq => (rq, new LogOnlyTx) })
   private val drainage = new Drainage[Out, Tx, Out]({ (out, _) => out })
   private val service = new Service(pipeline, state, drainage)
 

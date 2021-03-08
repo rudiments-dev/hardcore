@@ -24,16 +24,17 @@ package object hardcore {
     }
   }
 
-  class SagaSkill[I <: In : ClassTag, T <: Tx : ClassTag, O <: Out : ClassTag](g: PartialFunction[I, Out]) extends PF {
+  class SagaSkill[I <: In : ClassTag, T <: LogTx : ClassTag, O <: Out : ClassTag](g: PartialFunction[I, Out]) extends PF {
     override val signature: Seq[(ID[In], ID[Out])] = Seq(
       ID[In](Seq(implicitly[ClassTag[I]].runtimeClass.getName)) -> ID[Out](Seq(implicitly[ClassTag[O]].runtimeClass.getName))
     )
 
     override val f: PartialFunction[(In, Tx), Out] = {
       case (in: I, tx: T) =>
-        //TODO start to log
-        g(in)
-        //TODO complete to log
+        tx.log :+ in -> TxStart
+        val out = g(in)
+        tx.log :+ in -> out
+        out
     }
   }
 

@@ -1,5 +1,6 @@
 package dev.rudiments
 
+import scala.collection.mutable
 import scala.reflect.ClassTag
 
 package object another {
@@ -34,7 +35,13 @@ package object another {
   trait Error extends Out
 
   trait Tx extends Binary //TODO add state
-  object NoTx extends Tx
+  case object NoTx extends Tx
+  trait LogTx extends Tx {
+    val log: mutable.Seq[(In, Out)] = mutable.Seq.empty
+  }
+  final class LogOnlyTx extends LogTx
+
+  case object TxStart extends Out
 
 
 }

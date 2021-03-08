@@ -18,7 +18,7 @@ class ServiceSpec extends AnyWordSpec with Matchers {
 
   var txIn = 0
   var txOut = 0
-  case class Counter(c: Int = txIn + 1) extends Tx {
+  case class Counter(c: Int = txIn + 1) extends LogTx {
     txIn += 1
   }
   
