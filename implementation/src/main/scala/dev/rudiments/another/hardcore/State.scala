@@ -2,14 +2,14 @@ package dev.rudiments.another.hardcore
 
 
 import dev.rudiments.another
-import dev.rudiments.another.{In, NoTx, Out, Tx}
+import dev.rudiments.another.{In, LogOnlyTx, LogTx, Out, Tx}
 
 import scala.collection.mutable
 
 final class State[T] extends PF {
   private val content: mutable.Map[ID[T], T] = mutable.Map.empty
 
-  private val reconcile = new SagaSkill[Reconcile[T], Tx, Commit[T]]({
+  private val reconcile = new SagaSkill[Reconcile[T], LogTx, Commit[T]]({
     case Reconcile(to) =>
       val create = (to -- content.keys).map { case (id, value) => id -> Created(id, value) }
       val delete = (content -- to.keys).map { case (id, value) => id -> Deleted(id, value) }
@@ -25,19 +25,19 @@ final class State[T] extends PF {
   }
 
   private val skills: Seq[PF] = Seq(
-    new SagaSkill[Count, Tx, Counted]({ case Count(All) => Counted(content.size) }),
-    new SagaSkill[Find[T], Tx, Found[T]]({
+    new SagaSkill[Count, LogTx, Counted]({ case Count(All) => Counted(content.size) }),
+    new SagaSkill[Find[T], LogTx, Found[T]]({
       case Find(key) =>
         content.get(key) match {
           case Some(value) => Found(key, value)
           case None => NotFound[T](key)
         }
     }),
-    new SagaSkill[FindAll[T], Tx, FoundAll[T]]({
+    new SagaSkill[FindAll[T], LogTx, FoundAll[T]]({
       case FindAll(All) => FoundAll[T](content.toMap)
       case FindAll(p) => FoundAll(content.filter { it => matches(it._2, p) }.toMap[ID[T], T])
     }),
-    new SagaSkill[Create[T], Tx, Created[T]]({
+    new SagaSkill[Create[T], LogTx, Created[T]]({
       case Create(key, value) =>
         content.get(key) match {
           case None =>
@@ -49,7 +49,7 @@ final class State[T] extends PF {
           case Some(v) => AlreadyExists(key, v)
         }
     }),
-    new SagaSkill[Update[T], Tx, Updated[T]]({
+    new SagaSkill[Update[T], LogTx, Updated[T]]({
       case Update(key, value) =>
         content.get(key) match {
           case Some(found) =>
@@ -62,7 +62,7 @@ final class State[T] extends PF {
           case None => NotFound(key)
         }
     }),
-    new SagaSkill[Move[T], Tx, Moved[T]]({
+    new SagaSkill[Move[T], LogTx, Moved[T]]({
       case Move(oldKey, newKey, value) =>
         (content.get(oldKey), content.get(newKey)) match {
           case (Some(found), None) =>
@@ -73,7 +73,7 @@ final class State[T] extends PF {
           case (Some(_), Some(found)) => AlreadyExists(newKey, found)
         }
     }),
-    new SagaSkill[Delete[T], Tx, Deleted[T]]({
+    new SagaSkill[Delete[T], LogTx, Deleted[T]]({
       case Delete(key) =>
         content.get(key) match {
           case Some(found) =>
@@ -85,7 +85,7 @@ final class State[T] extends PF {
           case None => NotFound(key)
         }
     }),
-    new SagaSkill[CreateAll[T], Tx, Commit[T]]({
+    new SagaSkill[CreateAll[T], LogTx, Commit[T]]({
       case CreateAll(batch) =>
         try {
           if((batch -- content.keys).size != batch.size) {
@@ -99,15 +99,15 @@ final class State[T] extends PF {
           case _: Exception => BatchFailed()
         }
     }),
-    new SagaSkill[ReplaceAll[T], Tx, Commit[T]]({
+    new SagaSkill[ReplaceAll[T], LogTx, Commit[T]]({
       case ReplaceAll(batch) =>
-        reconcile(Reconcile(batch), NoTx).flatMap[Commit[T]] { c => //TODO propagate Tx?
+        reconcile(Reconcile(batch), new LogOnlyTx).flatMap[Commit[T]] { c => //TODO propagate Tx?
           content --= content.keysIterator
           content ++= batch
           c
         }
     }),
-    new SagaSkill[DeleteUsing, Tx, Commit[T]]({
+    new SagaSkill[DeleteUsing, LogTx, Commit[T]]({
       case DeleteUsing(All) =>
         try {
           val delete = content.map { case (id, value) => id -> Deleted(id, value) }.toMap
@@ -124,5 +124,5 @@ final class State[T] extends PF {
   override val f: PartialFunction[(another.In, Tx), another.Out] = composite.f
   override val signature: Seq[(ID[another.In], ID[another.Out])] = composite.signature
 
-  def apply[I <: In](in: I): Out = this.apply(in, NoTx)
+  def apply[I <: In](in: I): Out = this.apply(in, new LogOnlyTx)
 }

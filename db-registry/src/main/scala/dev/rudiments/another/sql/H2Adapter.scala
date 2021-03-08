@@ -1,11 +1,11 @@
 package dev.rudiments.another.sql
 
 import com.typesafe.scalalogging.StrictLogging
-import dev.rudiments.another.{In, Out, Tx}
-import dev.rudiments.another.hardcore.{CompositeSkill, Create, Find, Found, ID, PF, SagaSkill, State, TxSkill, Update}
+import dev.rudiments.another.hardcore._
+import dev.rudiments.another.{In, LogTx, Out, Tx}
 import scalikejdbc.{DB, DBSession, SQL}
 
-class AutoDbTx extends Tx with StrictLogging {
+class AutoDbTx extends LogTx with StrictLogging {
   val session: DBSession = DB.readOnlySession()
   logger.info("AutoTx initiated: {}", session)
 }
@@ -17,7 +17,7 @@ class H2Adapter extends PF {
   val refs = new State[FK] //TODO Map[ID, Set[ID]] for generic references and indexes
 
   private val skills: Seq[PF] = Seq(
-    new SagaSkill[CheckConnection, AutoDbTx, ConnectionOk]({ in: CheckConnection =>
+    new SagaSkill[CheckConnection, AutoDbTx, ConnectionOk]({ in =>
       try {
         SQL("SELECT 1+1").single()
         ConnectionOk()
@@ -25,7 +25,7 @@ class H2Adapter extends PF {
         case e: Exception => ConnectionFailure(e)
       }
     }),
-    new TxSkill[DiscoverSchema, AutoDbTx, SchemaDiscovered]({ (in: DiscoverSchema, tx: AutoDbTx) =>
+    new TxSkill[DiscoverSchema, AutoDbTx, SchemaDiscovered]({ (in, tx) =>
       try {
         implicit val session: DBSession = tx.session
         val tables = SQL("SHOW TABLES FROM " + in.name).map { rs =>
@@ -36,7 +36,7 @@ class H2Adapter extends PF {
         case e: Exception => ConnectionFailure(e)
       }
     }),
-    new TxSkill[DiscoverTable, AutoDbTx, TableDiscovered]({(in: DiscoverTable, tx: AutoDbTx) =>
+    new TxSkill[DiscoverTable, AutoDbTx, TableDiscovered]({(in, tx) =>
       try {
         implicit val session: DBSession = tx.session
         val columns = SQL("SHOW COLUMNS FROM " + in.tableName + " FROM " + in.schemaName).map { rs =>
@@ -54,7 +54,7 @@ class H2Adapter extends PF {
         case e: Exception => ConnectionFailure(e)
       }
     }),
-    new TxSkill[DiscoverReferences, AutoDbTx, ReferencesDiscovered]({(in: DiscoverReferences, tx: AutoDbTx) =>
+    new TxSkill[DiscoverReferences, AutoDbTx, ReferencesDiscovered]({(in, tx) =>
       try {
         implicit val session: DBSession = tx.session
         val references = SQL(

@@ -66,6 +66,7 @@ class H2Adapter2Spec extends AnyWordSpec with Matchers {
   }
 
   "should discover table by name and schema" in {
+    val out = adapter(DiscoverTable("sample", "hello2"))
     adapter(DiscoverTable("sample", "hello2")) should be (
       TableDiscovered("sample", Seq(
         Column("ID", ColumnTypes.BIGINT, false, true, true),
