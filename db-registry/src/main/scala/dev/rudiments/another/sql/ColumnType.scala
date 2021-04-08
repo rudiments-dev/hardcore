@@ -42,7 +42,7 @@ object ColumnTypes {
     val REALpattern = "^REAL\\((\\d+)\\)".r
     val TIMEpattern = "^TIME\\((\\d+)\\)".r
     val DATEpattern = "^DATE\\((\\d+)\\)".r
-    val TIMESTAMPpattern = "^TIMESTAMP\\((\\d+)\\)".r
+    val TIMESTAMPpattern = "^TIMESTAMP( WITH TIME ZONE)?\\((\\d+)\\)".r
     val BINARYpattern = "^VARBINARY\\((\\d+)\\)".r
     val VARCHARpattern = "VARCHAR\\((\\d+)\\)".r
     val CHARpattern = "CHAR\\((\\d+)\\)".r
@@ -62,7 +62,7 @@ object ColumnTypes {
       case REALpattern(p) => REAL(p.toInt)
       case TIMEpattern(p) => TIME(p.toInt, true)
       case DATEpattern(p) => DATE(p.toInt)
-      case TIMESTAMPpattern(p) => TIMESTAMP(p.toInt, true)
+      case TIMESTAMPpattern(_, p) => TIMESTAMP(p.toInt, true)
       case BINARYpattern(p) => BINARY(p.toInt)
       case VARCHARpattern(p) => VARCHAR(p.toInt)
       case CHARpattern(p) => CHAR(p.toInt)

@@ -1,11 +1,16 @@
 package dev.rudiments.another.sql
 
-import dev.rudiments.another.hardcore.ID
+import dev.rudiments.another.hardcore.{ID, State}
+
+case class Schema(
+  name: String,
+  tables: State[Table] = new State,
+  references: State[FK] = new State
+)
 
 case class Table(
   name: String,
-  columns: Seq[Column],
-  references: Set[FK]
+  columns: Seq[Column]
 ) {
   val pk: Seq[Column] = columns.filter(_.pk)
 }
@@ -20,12 +25,11 @@ case class Column(
 
 case class FK(
   name: String,
-  from: ID[Table],
-  to: ID[Table],
-  references: Map[ID[Column], ID[Column]]
-) {
-  override def toString: String = {
-    val refs = references.toSeq
-    from + "(" + refs.map(_._1).mkString(", ") + ") -> " + to + refs.map(_._2).mkString(", ") + ")"
-  }
-}
+  from: TableRef,
+  to: TableRef
+)
+
+case class TableRef(
+  table: ID[Table],
+  columns: Seq[ID[Column]]
+)

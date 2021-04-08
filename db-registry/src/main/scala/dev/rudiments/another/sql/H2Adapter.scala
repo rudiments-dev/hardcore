@@ -11,13 +11,10 @@ class AutoDbTx extends LogTx with StrictLogging {
 }
 
 class H2Adapter extends PF {
-
-  //private val schemes = new State[Schema] - schema is too composite
-  val tables = new State[Table]
-  val refs = new State[FK] //TODO Map[ID, Set[ID]] for generic references and indexes
+  val schemas = new State[Schema]
 
   private val skills: Seq[PF] = Seq(
-    new SagaSkill[CheckConnection, AutoDbTx, ConnectionOk]({ in =>
+    new SagaSkill[CheckConnection, AutoDbTx, ConnectionOk]({ _ =>
       try {
         SQL("SELECT 1+1").single()
         ConnectionOk()
@@ -25,79 +22,69 @@ class H2Adapter extends PF {
         case e: Exception => ConnectionFailure(e)
       }
     }),
-    new TxSkill[DiscoverSchema, AutoDbTx, SchemaDiscovered]({ (in, tx) =>
+    new TxSkill[InspectDB, AutoDbTx, InspectedDB]({ (_, tx) =>
       try {
         implicit val session: DBSession = tx.session
-        val tables = SQL("SHOW TABLES FROM " + in.name).map { rs =>
-          rs.string("table_name")
-        }.toIterable().apply().toSet
-        SchemaDiscovered(in.name, tables)
-      } catch {
-        case e: Exception => ConnectionFailure(e)
-      }
-    }),
-    new TxSkill[DiscoverTable, AutoDbTx, TableDiscovered]({(in, tx) =>
-      try {
-        implicit val session: DBSession = tx.session
-        val columns = SQL("SHOW COLUMNS FROM " + in.tableName + " FROM " + in.schemaName).map { rs =>
-          Column(
-            rs.string("field"),
-            ColumnTypes.valueOf(rs.string("type")),
-            rs.string("null").equalsIgnoreCase("YES"),
-            !rs.string("default").equalsIgnoreCase("NULL"),
-            rs.string("key").equalsIgnoreCase("PRI")
-          )
-        }.toIterable().apply().toSeq
-        tables(Create(ID(Seq(in.tableName)), Table(in.tableName, columns, Set.empty)))
-        TableDiscovered(in.tableName, columns)
-      } catch {
-        case e: Exception => ConnectionFailure(e)
-      }
-    }),
-    new TxSkill[DiscoverReferences, AutoDbTx, ReferencesDiscovered]({(in, tx) =>
-      try {
-        implicit val session: DBSession = tx.session
-        val references = SQL(
-          """
-            |SELECT DISTINCT -- table_name (table_columns) REFERENCES ref_name (ref_columns)
-            |    fk.constraint_name AS name,
-            |    fk.table_name      AS table_name,
-            |    fk.column_list     AS table_columns,
-            |    pk.table_name      AS ref_name,
-            |    pk.column_list     AS ref_columns
-            |FROM   information_schema.constraints fk
-            |  JOIN information_schema.constraints pk
-            |      ON fk.unique_index_name =  pk.unique_index_name
-            |     AND pk.constraint_type =    'PRIMARY KEY'
-            |WHERE fk.table_schema = ?
-            |  AND fk.constraint_type = 'REFERENTIAL'
-            |""".stripMargin.trim).bind(in.schemaName).map { rs =>
+        val schemaNames = SQL("SHOW SCHEMAS").map { rs =>
+          rs.string("SCHEMA_NAME")
+        }.toList().apply()
 
-          val fkRefs = rs.string("table_columns")
-            .split(",")
-            .map(i => ID[Column](Seq(i)))
-            .zip(
-              rs.string("ref_columns")
-                .split(",")
-                .map(i => ID[Column](Seq(i)))
-            ).toMap
+        schemaNames.foreach { s =>
+          val schema = Schema(s)
+          schemas(Create(ID(Seq(schema.name)), schema))
+          val tableNames = SQL(s"SHOW TABLES FROM ${s.toUpperCase()}").map { rs2 =>
+            rs2.string("TABLE_NAME")
+          }.toList().apply()
 
-          FK(
-            rs.string("name"),
-            ID[Table](Seq(rs.string("table_name"))),
-            ID[Table](Seq(rs.string("ref_name"))),
-            fkRefs
-          )
-        }.toIterable().apply().toSet
+          tableNames
+            .foreach { t2 =>
+            val columns = SQL(s"SHOW COLUMNS FROM ${t2.toUpperCase()} FROM ${s.toUpperCase()}")
+              .map { rs3 =>
+              Column(
+                rs3.string("field"),
+                ColumnTypes.valueOf(rs3.string("type")),
+                rs3.string("null").equalsIgnoreCase("YES"),
+                !rs3.string("default").equalsIgnoreCase("NULL"),
+                rs3.string("key").equalsIgnoreCase("PRI")
+              )
+            }.toList().apply()
 
-        references.foreach { it =>
-          refs(Create(ID(Seq(it.name)), it))
-
-          tables(Find(it.from)).flatMap[Found[Table]] { found =>
-            tables(Update(it.from, found.value.copy(references = found.value.references + it)))
+            schema.tables(Create(ID(Seq(t2)), Table(t2, columns)))
           }
+
+          val references = SQL(
+            """
+              |SELECT DISTINCT -- table_name (table_columns) REFERENCES ref_name (ref_columns)
+              |    fk.constraint_name AS name,
+              |    fk.table_name      AS table_name,
+              |    fk.column_list     AS table_columns,
+              |    pk.table_name      AS ref_name,
+              |    pk.column_list     AS ref_columns
+              |FROM   information_schema.constraints fk
+              |  JOIN information_schema.constraints pk
+              |      ON fk.unique_index_name =  pk.unique_index_name
+              |     AND pk.constraint_type =    'PRIMARY KEY'
+              |WHERE fk.table_schema = ?
+              |  AND fk.constraint_type = 'REFERENTIAL'
+              |""".stripMargin.trim).bind(schema.name).map { rs =>
+            FK(
+              rs.string("name"),
+              TableRef(
+                ID[Table](Seq(rs.string("table_name"))),
+                rs.string("table_columns").split(",").map(i => ID[Column](Seq(i)))
+              ),
+              TableRef(
+                ID[Table](Seq(rs.string("ref_name"))),
+                rs.string("ref_columns").split(",").map(i => ID[Column](Seq(i)))
+              )
+            )
+          }.toIterable().apply().map(i => ID[FK](Seq(i.name)) -> i).toMap
+          schema.references(CreateAll(references))
         }
-        ReferencesDiscovered(in.schemaName, references)
+
+        schemas(FindAll(All)).flatMap[FoundAll[Schema]] { s =>
+          InspectedDB(s.content.keys.toSet)
+        }
       } catch {
         case e: Exception => ConnectionFailure(e)
       }
@@ -113,13 +100,9 @@ class H2Adapter extends PF {
 
 trait H2Command extends In
 case class CheckConnection() extends H2Command
-case class DiscoverSchema(name: String) extends H2Command
-case class DiscoverTable(tableName: String, schemaName: String) extends H2Command
-case class DiscoverReferences(schemaName: String) extends H2Command
+case class InspectDB() extends H2Command
 
 trait H2Event extends Out
 case class ConnectionOk() extends H2Event
+case class InspectedDB(schemas: Set[ID[Schema]]) extends H2Event
 case class ConnectionFailure(e: Exception) extends H2Event
-case class SchemaDiscovered(name: String, tables: Set[String]) extends H2Event
-case class TableDiscovered(name: String, columns: Seq[Column]) extends H2Event
-case class ReferencesDiscovered(schemaName: String, references: Set[FK]) extends H2Event

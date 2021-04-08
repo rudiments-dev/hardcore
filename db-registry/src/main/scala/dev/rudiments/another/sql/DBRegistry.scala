@@ -22,7 +22,7 @@ object DBRegistry extends App with LazyLogging {
 
   try {
     val config = ConfigFactory.load()
-    val schema = initConnectionPool(config.getConfig("db"))
+    initConnectionPool(config.getConfig("db"))
 
     val adapter = new H2Adapter()
 
@@ -34,32 +34,22 @@ object DBRegistry extends App with LazyLogging {
 
     val service: Service[In, In, AutoDbTx, Out, Out] = new Service(
       pipeline,
-      new CompositeSkill(Seq(adapter, adapter.tables)),
+      new CompositeSkill(Seq(adapter, adapter.schemas)),
       drainage
     )
 
-    service(DiscoverSchema(schema)).when[SchemaDiscovered] { s =>
-      s.tables.foreach { t => service(DiscoverTable(t, s.name)) }
-      service(DiscoverReferences(s.name.toUpperCase()))
-    }
+    service(InspectDB())
 
     import dev.rudiments.hardcore.http.CirceSupport._
     implicit val idEncoder: Encoder[ID[_]] = (a: ID[_]) => Encoder.encodeString(a.keys.mkString("#", "/", ""))
     implicit val columnTypeEncoder: Encoder[ColumnType] = (a: ColumnType) => Encoder.encodeString(a.toString)
-    implicit val refEncoder: Encoder[FK] = (a: FK) => Encoder.encodeString(a.toString)
+//    implicit val refEncoder: Encoder[FK] = (a: FK) => Encoder.encodeString(a.toString)
 
     val port = new ReadOnlyHttpPort[Table, In, AutoDbTx, Out, String]("schema", service, Seq(
-      "refresh" -> PostDirectivePort[String, In, AutoDbTx, Out](
-        pathPrefix(PathMatchers.Segment),
-        DiscoverSchema.apply,
+      "inspect" -> EmptyPostPort[In, AutoDbTx, Out](
+        InspectDB(),
         service,
-        { out =>
-          out.when[SchemaDiscovered] { s =>
-            s.tables.foreach { t => service(DiscoverTable(t, s.name)) }
-            service(DiscoverReferences(s.name.toUpperCase()))
-          }
-          complete(StatusCodes.OK, out.toString)
-        }
+        { out => complete(StatusCodes.OK, out.toString) }
       )
     ))
     new RootRouter(config, port).bind()
