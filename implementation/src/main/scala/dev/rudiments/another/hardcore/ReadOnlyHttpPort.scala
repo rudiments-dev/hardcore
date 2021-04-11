@@ -8,9 +8,10 @@ import dev.rudiments.another._
 import dev.rudiments.hardcore.http.{CompositeRouter, PrefixRouter, Router}
 import io.circe.Encoder
 
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 
-class ReadOnlyHttpPort[A : Encoder, I <: In, T <: Tx, O <: Out, F : TypeTag](
+class ReadOnlyHttpPort[A: Encoder : ClassTag, I <: In, T <: Tx, O <: Out, F: TypeTag](
   prefix: String,
   s: Service[In, In, T, O, O],
   customRoutes: Seq[(String, Router)] = Seq.empty,
@@ -32,7 +33,7 @@ class ReadOnlyHttpPort[A : Encoder, I <: In, T <: Tx, O <: Out, F : TypeTag](
   import dev.rudiments.hardcore.http.CirceSupport._
   def responseWith(out: Out): StandardRoute = out match {
     case Found(_, value: A) =>                complete(StatusCodes.OK, value)
-    case FoundAll(content: Map[ID[_], A]) =>  complete(StatusCodes.OK, content.values.asInstanceOf[Iterable[A]])
+    case FoundAll(content: Map[Identifier, A]) =>  complete(StatusCodes.OK, content.values.asInstanceOf[Iterable[A]])
 
     case NotFound(_) =>               complete(StatusCodes.NotFound)
     case AlreadyExists(_, _) =>       complete(StatusCodes.Conflict)

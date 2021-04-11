@@ -10,6 +10,7 @@ import dev.rudiments.hardcore.http.CirceSupport._
 import java.sql.Date
 import java.util.UUID
 import scala.language.postfixOps
+import scala.reflect.ClassTag
 trait Port[Rq <: In, T <: Tx, Rs <: Out]
 
 case class ActionPort[I <: In, T <: Tx, O <: Out](
@@ -140,7 +141,7 @@ case class IDRouter[A](idDirective: Directive1[ID[A]], idRouters: (ID[A] => Rout
 }
 
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
-case class ResourceRouter[A, F : TypeTag](
+case class ResourceRouter[A: ClassTag, F: TypeTag](
   prefix: String,
   id: A => ID[A],
   pathRouters: Seq[Router] = Seq.empty,
@@ -153,7 +154,7 @@ case class ResourceRouter[A, F : TypeTag](
 }
 
 object IDPath {
-  def apply[A, F: TypeTag]: Directive1[ID[A]] = pathPrefix(prefix[F]).map(l => ID[A](Seq(l)))
+  def apply[A: ClassTag, F: TypeTag]: Directive1[ID[A]] = pathPrefix(prefix[F]).map(l => ID[A](Seq(l)))
 
   def prefix[F: TypeTag]: PathMatcher1[F] = {
     if(typeOf[F] =:= typeOf[Long])        LongNumber
@@ -164,7 +165,7 @@ object IDPath {
     else ??? //TODO enums
   }.asInstanceOf[PathMatcher1[F]]
 
-  def apply[A, F1 : TypeTag, F2 : TypeTag]: Directive1[ID[A]] = pathPrefix(prefix[F1] / prefix[F2]).tmap { k => ID[A](Seq(k._1, k._2)) }
+  def apply[A: ClassTag, F1: TypeTag, F2: TypeTag]: Directive1[ID[A]] = pathPrefix(prefix[F1] / prefix[F2]).tmap { k => ID[A](Seq(k._1, k._2)) }
 }
 
 object PredicateDirective {

@@ -78,12 +78,12 @@ class H2Adapter extends PF {
                 rs.string("ref_columns").split(",").map(i => ID[Column](Seq(i)))
               )
             )
-          }.toIterable().apply().map(i => ID[FK](Seq(i.name)) -> i).toMap
+          }.toIterable().apply().map(i => ID[FK](Seq(i.name)).asInstanceOf[Identifier] -> i).toMap
           schema.references(CreateAll(references))
         }
 
         schemas(FindAll(All)).flatMap[FoundAll[Schema]] { s =>
-          InspectedDB(s.content.keys.toSet)
+          InspectedDB(s.content.keys.collect { case id: ID[Schema] => id }.toSet)
         }
       } catch {
         case e: Exception => ConnectionFailure(e)

@@ -1,22 +1,21 @@
 package dev.rudiments.another.hardcore
 
-
 import dev.rudiments.another
 import dev.rudiments.another.{In, LogOnlyTx, LogTx, Out, Tx}
 
 import scala.collection.mutable
 
 final class State[T] extends PF {
-  private val content: mutable.Map[ID[T], T] = mutable.Map.empty
+  private val content: mutable.Map[Identifier, T] = mutable.Map.empty
 
   private val reconcile = new SagaSkill[Reconcile[T], LogTx, Commit[T]]({
     case Reconcile(to) =>
-      val create = (to -- content.keys).map { case (id, value) => id -> Created(id, value) }
-      val delete = (content -- to.keys).map { case (id, value) => id -> Deleted(id, value) }
-      val update = to.view.filterKeys(content.contains).map   {
+      val create: Map[Identifier, Created[T]] = (to -- content.keys).map { case (id, value) => id -> Created(id, value) }
+      val delete: Map[Identifier, Deleted[T]] = (content -- to.keys).map { case (id, value) => id -> Deleted(id, value) }.toMap
+      val update: Map[Identifier, Updated[T]] = to.view.filterKeys(content.contains).map   {
         case (id, value) if value != content(id) => id -> Updated(id, content(id), value)
-      }
-      Commit(create ++ update ++ delete)
+      }.toMap
+      Commit[T](create ++ update ++ delete)
   })
 
   private def matches(data: T, p: Predicate): Boolean = p match {
@@ -35,7 +34,7 @@ final class State[T] extends PF {
     }),
     new SagaSkill[FindAll[T], LogTx, FoundAll[T]]({
       case FindAll(All) => FoundAll[T](content.toMap)
-      case FindAll(p) => FoundAll(content.filter { it => matches(it._2, p) }.toMap[ID[T], T])
+      case FindAll(p) => FoundAll(content.filter { it => matches(it._2, p) }.toMap[Identifier, T])
     }),
     new SagaSkill[Create[T], LogTx, Created[T]]({
       case Create(key, value) =>

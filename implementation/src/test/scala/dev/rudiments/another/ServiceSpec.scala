@@ -133,7 +133,7 @@ class ServiceSpec extends AnyWordSpec with Matchers {
   }
 
   "endure 100.000 batch" in {
-    val batch = (100001 to 200000).map(i => ID[Example](Seq(i.toLong)) -> Example(i.toLong, s"$i'th element", None)).toMap
+    val batch = (100001 to 200000).map(i => ID[Example](Seq(i.toLong)).asInstanceOf[Identifier] -> Example(i.toLong, s"$i'th element", None)).toMap
     f(CreateAll(batch)) should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
 
     f(Count(All)) should be (Counted(200000))
@@ -148,9 +148,9 @@ class ServiceSpec extends AnyWordSpec with Matchers {
   }
 
   "endure 100.000 replace" in {
-    val batch = (200001 to 300000).map(i => (ID[Example](Seq(i.toLong)), Example(i.toLong, s"$i item", None))).toMap
+    val batch = (200001 to 300000).map(i => (ID[Example](Seq(i.toLong)).asInstanceOf[Identifier], Example(i.toLong, s"$i item", None))).toMap
     val deleting = f(FindAll(All)).asInstanceOf[FoundAll[Example]].content.values.map { it =>
-      val k = ID[Example](Seq(it.id))
+      val k = ID[Example](Seq(it.id)).asInstanceOf[Identifier]
       k -> Deleted(k, it)
     }.toMap
     f(ReplaceAll[Example](batch)) should be (Commit(
@@ -171,7 +171,7 @@ class ServiceSpec extends AnyWordSpec with Matchers {
   "clear repository" in {
     f(Count(All)) should be (Counted(100000))
     val deleting = f(FindAll(All)).asInstanceOf[FoundAll[Example]].content.values.map { it =>
-      val k = ID[Example](Seq(it.id))
+      val k = ID[Example](Seq(it.id)).asInstanceOf[Identifier]
       k -> Deleted(k, it)
     }.toMap
     f(DeleteUsing(All)) should be (Commit(deleting))

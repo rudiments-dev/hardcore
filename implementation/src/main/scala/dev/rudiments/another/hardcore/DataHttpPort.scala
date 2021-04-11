@@ -8,8 +8,10 @@ import dev.rudiments.another._
 import dev.rudiments.hardcore.http.{CompositeRouter, PrefixRouter, Router}
 import io.circe.{Decoder, Encoder}
 
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
-class DataHttpPort[A : Encoder : Decoder, I <: In, T <: Tx, O <: Out, F : TypeTag](
+
+class DataHttpPort[A: Encoder : Decoder : ClassTag, I <: In, T <: Tx, O <: Out, F: TypeTag](
   prefix: String,
   identify: A => ID[A],
   s: Service[In, In, T, O, O],
@@ -21,8 +23,8 @@ class DataHttpPort[A : Encoder : Decoder, I <: In, T <: Tx, O <: Out, F : TypeTa
     CompositeRouter(
       GetDirectivePort(PredicateDirective.apply, (d: Predicate) => FindAll.apply(d), s, responseWith),
       PostPort((value: A) => Create(identify(value), value), s, responseWith),
-      PostPort((batch: Seq[A]) => CreateAll(batch.groupBy(identify).view.mapValues(_.head).toMap[ID[A], A]), s, responseWith),
-      PutPort((batch: Seq[A]) => ReplaceAll(batch.groupBy(identify).view.mapValues(_.head).toMap[ID[A], A]), s, responseWith),
+      PostPort((batch: Seq[A]) => CreateAll(batch.groupBy(identify).view.mapValues(_.head).toMap[Identifier, A]), s, responseWith),
+      PutPort((batch: Seq[A]) => ReplaceAll(batch.groupBy(identify).view.mapValues(_.head).toMap[Identifier, A]), s, responseWith),
       DeleteDirectivePort(PredicateDirective.apply, DeleteUsing.apply, s, responseWith),
       CompositeRouter(customRoutes.map { case (p, r) => PrefixRouter(p, r) } : _*)
     ),
@@ -46,7 +48,7 @@ class DataHttpPort[A : Encoder : Decoder, I <: In, T <: Tx, O <: Out, F : TypeTa
   def responseWith(out: Out): StandardRoute = out match {
     case Created(_, value: A) =>              complete(StatusCodes.Created, value)
     case Found(_, value: A) =>                complete(StatusCodes.OK, value)
-    case FoundAll(content: Map[ID[_], A]) =>  complete(StatusCodes.OK, content.values.asInstanceOf[Iterable[A]])
+    case FoundAll(content: Map[Identifier, A]) =>  complete(StatusCodes.OK, content.values.asInstanceOf[Iterable[A]])
     case Updated(_, _, newValue: A) =>        complete(StatusCodes.OK, newValue)
     case Moved(_, _, _, newValue: A) =>       complete(StatusCodes.OK, newValue)
     case Deleted(_, _) =>                     complete(StatusCodes.NoContent)

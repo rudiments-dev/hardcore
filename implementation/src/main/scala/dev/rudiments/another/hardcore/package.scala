@@ -3,7 +3,33 @@ package dev.rudiments.another
 import scala.reflect.ClassTag
 
 package object hardcore {
-  case class ID[T](keys: Seq[Any]) extends ADT
+
+  sealed trait Identifier extends ADT {}
+
+  case class ID[T: ClassTag](keys: Seq[Any]) extends Identifier {
+    lazy val is: String = ofType
+
+    def toPair: (String, ID[T]) = {
+      ofType -> this
+    }
+
+    def ofType: String = implicitly[ClassTag[T]].runtimeClass.getSimpleName
+  }
+  case class Path(ids: Seq[ID[_]]) extends Identifier {
+    def toMap: Map[String, ID[_]] = ids.map(_.toPair).toMap
+
+    def hasID[T: ClassTag]: Option[ID[T]] = ids.collectFirst { case id: ID[T] => id }
+
+    def after[T: ClassTag]: Path = {
+      val of = implicitly[ClassTag[T]].runtimeClass.getSimpleName
+      if(ids.isEmpty) throw new IllegalArgumentException("Path should not be empty!")
+      val dropped = ids.dropWhile { _.is != of }.drop(1)
+      if (dropped.isEmpty) EmptyPath
+      else Path(dropped)
+    }
+  }
+
+  object EmptyPath extends Path(Seq.empty)
 
 
   trait PF extends PartialFunction[(In, Tx), Out] {

@@ -100,7 +100,7 @@ class SkillSpec extends AnyWordSpec with Matchers {
   }
 
   "endure 100.000 batch" in {
-    val batch = (100001 to 200000).map(i => ID[Example](Seq(i.toLong)) -> Example(i.toLong, s"$i'th element", None)).toMap
+    val batch = (100001 to 200000).map(i => ID[Example](Seq(i.toLong)).asInstanceOf[Identifier] -> Example(i.toLong, s"$i'th element", None)).toMap
     state(CreateAll(batch)) should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
 
     state(Count(All)) should be (Counted(200000))
@@ -112,13 +112,13 @@ class SkillSpec extends AnyWordSpec with Matchers {
   }
 
   "endure 100.000 replace" in {
-    val batch = (200001 to 300000).map(i => (ID[Example](Seq(i.toLong)), Example(i.toLong, s"$i item", None))).toMap
+    val batch = (200001 to 300000).map(i => (ID[Example](Seq(i.toLong)).asInstanceOf[Identifier], Example(i.toLong, s"$i item", None))).toMap
     val deleting = state(FindAll(All)).asInstanceOf[FoundAll[Example]].content.values.map { it =>
-      val k = ID[Example](Seq(it.id))
+      val k = ID[Example](Seq(it.id)).asInstanceOf[Identifier]
       k -> Deleted(k, it)
     }.toMap
     state(ReplaceAll[Example](batch)) should be (Commit(
-      deleting ++ batch.map { case (k: ID[Example], v) => k -> Created(k, v) }
+      deleting ++ batch.map { case (k: Identifier, v) => k -> Created[Example](k, v) }
     ))
 
     state(Count(All)) should be (Counted(100000))
@@ -132,7 +132,7 @@ class SkillSpec extends AnyWordSpec with Matchers {
   "clear repository" in {
     state(Count(All)) should be (Counted(100000))
     val deleting = state(FindAll(All)).asInstanceOf[FoundAll[Example]].content.values.map { it =>
-      val k = ID[Example](Seq(it.id))
+      val k = ID[Example](Seq(it.id)).asInstanceOf[Identifier]
       k -> Deleted(k, it)
     }.toMap
     state(DeleteUsing(All)) should be (Commit(deleting))

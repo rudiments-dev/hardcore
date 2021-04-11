@@ -119,9 +119,9 @@ class DataHttpPortSpec extends AnyWordSpec with Matchers with ScalatestRouteTest
   }
 
   "endure 100.000 replace" in {
-    val batch = (200001 to 300000).map(i => (ID[Example](Seq(i.toLong)), Example(i.toLong, s"$i item"))).toMap
+    val batch = (200001 to 300000).map(i => (ID[Example](Seq(i.toLong)).asInstanceOf[Identifier], Example(i.toLong, s"$i item"))).toMap
     val deleting = state(FindAll[Example](All)).asInstanceOf[FoundAll[Example]].content.values.map { it =>
-      val id = ID[Example](Seq(it.id))
+      val id = ID[Example](Seq(it.id)).asInstanceOf[Identifier]
       id -> Deleted(id, it)
     }.toMap
     state(ReplaceAll[Example](batch)) should be (Commit(
