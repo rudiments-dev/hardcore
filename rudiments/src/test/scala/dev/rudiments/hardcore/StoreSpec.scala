@@ -19,36 +19,36 @@ class StoreSpec extends AnyWordSpec with Matchers {
   private val sample = Example(42L, "sample", None)
   private val newID = ID[Example, Long](24L)
 
-  val state = new Store[Example]()
+  val store = new Store[Example]()
 
-  "signature of state" ignore {
+  "signature of store" ignore {
     //TODO
   }
 
-  "no element by ID" in {
-    state(Count(All)) should be (Counted(0))
-    state(Find(id)) should be (NotFound(id))
+  "no element by ID in store" in {
+    store(Count(All)) should be (Counted(0))
+    store(Find(id)) should be (NotFound(id))
   }
 
-  "put item into repository" in {
-    state(Count(All)) should be (Counted(0))
-    state(Create(id, sample)) should be (Created(id, sample))
-    state(Count(All)) should be (Counted(1))
-    state(Find(id)) should be (Found(id, sample))
+  "put item into store" in {
+    store(Count(All)) should be (Counted(0))
+    store(Create(id, sample)) should be (Created(id, sample))
+    store(Count(All)) should be (Counted(1))
+    store(Find(id)) should be (Found(id, sample))
   }
 
-  "update item in repository" in {
-    state(Update(id, Example(42L, "sample", Some("changes")))) should be (
+  "update item in store" in {
+    store(Update(id, Example(42L, "sample", Some("changes")))) should be (
       Updated(
         id,
         Example(42L, "sample", None),
         Example(42L, "sample", Some("changes"))))
-    state(Count(All)) should be (Counted(1))
-    state(Find(id)) should be (Found(id, Example(42L, "sample", Some("changes"))))
+    store(Count(All)) should be (Counted(1))
+    store(Find(id)) should be (Found(id, Example(42L, "sample", Some("changes"))))
   }
 
-  "move item in repository" in {
-    state(Move(
+  "move item in store" in {
+    store(Move(
       id,
       newID,
       Example(24L, "sample", Some("changes"))
@@ -59,70 +59,70 @@ class StoreSpec extends AnyWordSpec with Matchers {
         newID,
         Example(24L, "sample", Some("changes")),
       ))
-    state(Count(All)) should be (Counted(1))
-    state(Find(newID)) should be (Found(newID, Example(24L, "sample", Some("changes"))))
+    store(Count(All)) should be (Counted(1))
+    store(Find(newID)) should be (Found(newID, Example(24L, "sample", Some("changes"))))
   }
 
   "multiple inserts with same ID causes exception" in {
-    state(Count(All)) should be (Counted(1))
-    state(Create(newID, sample)) should be (AlreadyExists(newID, Example(24L, "sample", Some("changes"))))
+    store(Count(All)) should be (Counted(1))
+    store(Create(newID, sample)) should be (AlreadyExists(newID, Example(24L, "sample", Some("changes"))))
   }
 
-  "delete item from repository" in {
-    state(Count(All)) should be (Counted(1))
-    state(Delete(newID)) should be (Deleted(newID, Example(24L, "sample", Some("changes"))))
-    state(Count(All)) should be (Counted(0))
-    state(Find(newID)) should be (NotFound(newID))
+  "delete item from store" in {
+    store(Count(All)) should be (Counted(1))
+    store(Delete(newID)) should be (Deleted(newID, Example(24L, "sample", Some("changes"))))
+    store(Count(All)) should be (Counted(0))
+    store(Find(newID)) should be (NotFound(newID))
   }
 
-  "endure 100.000 records" in {
+  "endure 100.000 Creates into store" in {
     (1 to 100000)
       .map(i => Example(i.toLong, s"$i'th element", None))
-      .foreach(s => state(Create(ID(s.id), s)))
+      .foreach(s => store(Create(ID(s.id), s)))
 
-    state(Count(All)) should be (Counted(100000))
+    store(Count(All)) should be (Counted(100000))
 
     val rnd = new Random().nextInt(100000).toLong
-    state(Find(ID(rnd))) should be (Found(ID(rnd), Example(rnd, s"$rnd'th element", None)))
+    store(Find(ID(rnd))) should be (Found(ID(rnd), Example(rnd, s"$rnd'th element", None)))
   }
 
-  "endure 100.000 batch" in {
+  "endure 100.000 CreateAll into store" in {
     val batch = (100001 to 200000).map(i => ID[Example, Long](i.toLong) -> Example(i.toLong, s"$i'th element", None)).toMap
-    state(CreateAll(batch)) should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
+    store(CreateAll(batch)) should be (Commit(batch.map { case (k, v) => k -> Created(k, v) }))
 
-    state(Count(All)) should be (Counted(200000))
+    store(Count(All)) should be (Counted(200000))
 
     val rnd = new Random().nextInt(200000).toLong
-    state(Find(ID(rnd))) should be (Found(
+    store(Find(ID(rnd))) should be (Found(
       ID(rnd),
       Example(rnd, s"$rnd'th element", None)))
   }
 
-  "endure 100.000 replace" in {
+  "endure 100.000 Replace in store" in {
     val batch = (200001 to 300000).map(i => (ID[Example, Long](i.toLong), Example(i.toLong, s"$i item", None))).toMap
-    val deleting = state(FindAll(All)).asInstanceOf[FoundAll[Example, Example]].content.values.map { it =>
+    val deleting = store(FindAll(All)).asInstanceOf[FoundAll[Example, Example]].content.values.map { it =>
       val k = ID[Example, Long](it.id)
       k -> Deleted(k, it)
     }.toMap
-    state(ReplaceAll[Example, Example](batch)) should be (Commit(
+    store(ReplaceAll[Example, Example](batch)) should be (Commit(
       deleting ++ batch.map { case (k: ID[Example], v) => k -> Created[Example, Example](k, v) }
     ))
 
-    state(Count(All)) should be (Counted(100000))
+    store(Count(All)) should be (Counted(100000))
 
     val rnd = new Random().nextInt(100000).toLong + 200000L
-    state(Find(ID(rnd))) should be (Found(
+    store(Find(ID(rnd))) should be (Found(
       ID(rnd),
       Example(rnd, s"$rnd item", None)))
   }
 
-  "clear repository" in {
-    state(Count(All)) should be (Counted(100000))
-    val deleting = state(FindAll(All)).asInstanceOf[FoundAll[Example, Example]].content.values.map { it =>
+  "clear store" in {
+    store(Count(All)) should be (Counted(100000))
+    val deleting = store(FindAll(All)).asInstanceOf[FoundAll[Example, Example]].content.values.map { it =>
       val k = ID[Example, Long](it.id)
       k -> Deleted(k, it)
     }.toMap
-    state(DeleteUsing(All)) should be (Commit(deleting))
-    state(Count(All)) should be (Counted(0))
+    store(DeleteUsing(All)) should be (Commit(deleting))
+    store(Count(All)) should be (Counted(0))
   }
 }
