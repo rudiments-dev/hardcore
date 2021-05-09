@@ -5,13 +5,13 @@ import scala.collection.mutable
 class Store[T] extends PartialFunction[(In, Tx), Out] with Location[T, T] {
   val f: PartialFunction[(In, Tx), Out] = {
     case (_: Count[T, T], _) => Counted[T, T](content.size)
-    case (q: Find[T, T], _) => //TODO add Tx into output of read value
+    case (q: Read[T, T], _) => //TODO add Tx into output of read value
       content.get(q.key) match {
-        case Some(value) => Found(q.key, value)
+        case Some(value) => Readen(q.key, value)
         case None => NotFound[T, T](q.key)
       }
-    case (FindAll(All), tx: LogTx) => FoundAll[T, T](content.toMap)
-    case (FindAll(p), tx: LogTx) => FoundAll[T, T](content.filter { it => matches(it._2, p) }.toMap[ID[T], T])
+    case (Find(All), tx: LogTx) => Found[T, T](content.toMap)
+    case (Find(p), tx: LogTx) => Found[T, T](content.filter { it => matches(it._2, p) }.toMap[ID[T], T])
 
     case (cmd: Create[T, T], tx: LogTx) =>
       content.get(cmd.key) match {
@@ -53,6 +53,15 @@ class Store[T] extends PartialFunction[(In, Tx), Out] with Location[T, T] {
           content -= cmd.oldKey
           content.put(cmd.newKey, cmd.value)
           Moved(cmd.oldKey, found, cmd.newKey, cmd.value)
+        case (None, _) => NotFound(cmd.oldKey)
+        case (Some(_), Some(found)) => AlreadyExists(cmd.newKey, found)
+      }
+
+    case (cmd: Copy[T, T], tx: LogTx) =>
+      (content.get(cmd.oldKey), content.get(cmd.newKey)) match {
+        case (Some(found), None) =>
+          content.put(cmd.newKey, cmd.value)
+          Copied(cmd.oldKey, found, cmd.newKey, cmd.value)
         case (None, _) => NotFound(cmd.oldKey)
         case (Some(_), Some(found)) => AlreadyExists(cmd.newKey, found)
       }
