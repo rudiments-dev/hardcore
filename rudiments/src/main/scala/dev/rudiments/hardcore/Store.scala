@@ -4,30 +4,32 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 
 class Store[T : ClassTag] extends PartialFunction[(In, Tx), Out] with Location[T, T] {
+  val read: OptionSkill[T, Read[T, T], Readen[T, T], NotFound[T, T]] = new OptionSkill(
+    cmd => content.get(cmd.key),
+    (in, _, found) => Readen[T, T](in.key, found),
+    (in, _) => NotFound(in.key)
+  )
+
+
   val skills: Map[ID[In], Skill] = Seq(
     SagaSkill[Create[T, T], Created[T, T]]((cmd: Create[T, T], tx: Tx) => {
-      this.f(Read(cmd.key), tx)
+      read(Read(cmd.key), tx)
         .|> [NotFound[T, T]] { _ =>
           content.put(cmd.key, cmd.value)
-          this.f(Read(cmd.key), tx)
+          read(Read(cmd.key), tx)
             .|> [Readen[T, T]] { found => Created(cmd.key, found.value) }
             .|> [NotFound[T, T]] { _ => FailedToCreate(cmd.key, cmd.value) }
         }
         .|> [Readen[T, T]] { found => AlreadyExists(cmd.key, found.value) }
     }),
-    SagaSkill[Read[T, T], Readen[T, T]] { in: Read[T, T] =>
-      content.get(in.key) match {
-        case Some(value) => Readen(in.key, value)
-        case None => NotFound[T, T](in.key)
-      }
-    },
+    read,
     SagaSkill[Update[T, T], Updated[T, T]] { (cmd: Update[T, T], tx: Tx) =>
-      this.f(Read(cmd.key), tx) |> [Readen[T, T]] { found =>
+      read(Read(cmd.key), tx) |> [Readen[T, T]] { found =>
         if(found.value == cmd.value) {
           found
         } else {
           content.put(cmd.key, cmd.value)
-          this.f(Read(cmd.key), tx) |> [Readen[T, T]] { updated =>
+          read(Read(cmd.key), tx) |> [Readen[T, T]] { updated =>
             if(cmd.value == updated.value) {
               Updated(cmd.key, found.value, updated.value)
             } else {
@@ -38,9 +40,9 @@ class Store[T : ClassTag] extends PartialFunction[(In, Tx), Out] with Location[T
       }
     },
     SagaSkill[Delete[T, T], Deleted[T, T]] { (cmd: Delete[T, T], tx: Tx) =>
-      this.f(Read(cmd.key), tx) |> [Readen[T, T]] { found =>
+      read(Read(cmd.key), tx) |> [Readen[T, T]] { found =>
         content -= cmd.key
-        this.f(Read(cmd.key), tx)
+        read(Read(cmd.key), tx)
           .|> [NotFound[T, T]] { _ => Deleted(cmd.key, found.value) }
           .|> [Readen[T, T]] { failed => FailedToDelete(cmd.key, failed) }
       }
@@ -53,8 +55,8 @@ class Store[T : ClassTag] extends PartialFunction[(In, Tx), Out] with Location[T
       }
     },
     SagaSkill[Move[T, T], Moved[T, T]] { (cmd: Move[T, T], tx: Tx) =>
-      this.f(Read(cmd.oldKey), tx) |> [Readen[T, T]] { from =>
-        this.f(Read(cmd.newKey), tx)
+      read(Read(cmd.oldKey), tx) |> [Readen[T, T]] { from =>
+        read(Read(cmd.newKey), tx)
           .|> [NotFound[T, T]] { _ =>
             content.put(cmd.newKey, cmd.value)
             content -= cmd.oldKey
@@ -64,8 +66,8 @@ class Store[T : ClassTag] extends PartialFunction[(In, Tx), Out] with Location[T
       }
     },
     SagaSkill[Copy[T, T], Copied[T, T]] { (cmd: Copy[T, T], tx: Tx) =>
-      this.f(Read(cmd.oldKey), tx) |> [Readen[T, T]] { from =>
-        this.f(Read(cmd.newKey), tx)
+      read(Read(cmd.oldKey), tx) |> [Readen[T, T]] { from =>
+        read(Read(cmd.newKey), tx)
           .|> [NotFound[T, T]] { _ =>
             content.put(cmd.newKey, cmd.value)
             Copied(cmd.oldKey, from.value, cmd.newKey, cmd.value)
