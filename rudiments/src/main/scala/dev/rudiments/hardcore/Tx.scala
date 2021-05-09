@@ -2,11 +2,12 @@ package dev.rudiments.hardcore
 
 import scala.collection.mutable
 
-trait Tx extends Binary //TODO add state
-case object NoTx extends Tx
-trait LogTx extends Tx {
-  val log: mutable.Seq[(In, Out)] = mutable.Seq.empty
+class Tx {
+  val story: mutable.Seq[(In, Out)] = mutable.Seq.empty
+  def apply(in: In, out: Out): Out = {
+    story :+ in -> out
+    out
+  }
 }
-final class LogOnlyTx extends LogTx
 
 case object TxStart extends Out

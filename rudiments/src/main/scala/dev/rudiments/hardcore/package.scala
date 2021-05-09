@@ -9,7 +9,7 @@ package object hardcore {
   trait Message extends ADT
   trait In extends Message //TODO skill generator DSL?
   trait Out extends Message {
-    def flatMap[O <: Out : ClassTag](f: O => Out): Out = this match {
+    def |>[O <: Out : ClassTag](f: O => Out): Out = this match {
       case m: O => f(m)
       case other => other
     }
@@ -21,4 +21,6 @@ package object hardcore {
   trait Event extends Out
   trait Report extends Out
   trait Error extends Out
+
+  case object Started extends Out
 }

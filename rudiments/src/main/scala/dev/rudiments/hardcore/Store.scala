@@ -1,72 +1,79 @@
 package dev.rudiments.hardcore
 
 import scala.collection.mutable
+import scala.reflect.ClassTag
 
-class Store[T] extends PartialFunction[(In, Tx), Out] with Location[T, T] {
-  val f: PartialFunction[(In, Tx), Out] = {
-    case (_: Count[T, T], _) => Counted[T, T](content.size)
-    case (q: Read[T, T], _) => //TODO add Tx into output of read value
-      content.get(q.key) match {
-        case Some(value) => Readen(q.key, value)
-        case None => NotFound[T, T](q.key)
-      }
-    case (Find(All), tx: LogTx) => Found[T, T](content.toMap)
-    case (Find(p), tx: LogTx) => Found[T, T](content.filter { it => matches(it._2, p) }.toMap[ID[T], T])
-
-    case (cmd: Create[T, T], tx: LogTx) =>
-      content.get(cmd.key) match {
-        case None =>
+class Store[T : ClassTag] extends PartialFunction[(In, Tx), Out] with Location[T, T] {
+  val skills: Map[ID[In], Skill] = Seq(
+    SagaSkill[Create[T, T], Created[T, T]]((cmd: Create[T, T], tx: Tx) => {
+      this.f(Read(cmd.key), tx)
+        .|> [NotFound[T, T]] { _ =>
           content.put(cmd.key, cmd.value)
-          content.get(cmd.key) match {
-            case Some(created) => Created(cmd.key, created)
-            case None => FailedToCreate(cmd.key, cmd.value)
-          }
-        case Some(v) => AlreadyExists(cmd.key, v)
+          this.f(Read(cmd.key), tx)
+            .|> [Readen[T, T]] { found => Created(cmd.key, found.value) }
+            .|> [NotFound[T, T]] { _ => FailedToCreate(cmd.key, cmd.value) }
+        }
+        .|> [Readen[T, T]] { found => AlreadyExists(cmd.key, found.value) }
+    }),
+    SagaSkill[Read[T, T], Readen[T, T]] { in: Read[T, T] =>
+      content.get(in.key) match {
+        case Some(value) => Readen(in.key, value)
+        case None => NotFound[T, T](in.key)
       }
-
-    case (cmd: Update[T, T], tx: LogTx) =>
-      content.get(cmd.key) match {
-        case Some(found) =>
+    },
+    SagaSkill[Update[T, T], Updated[T, T]] { (cmd: Update[T, T], tx: Tx) =>
+      this.f(Read(cmd.key), tx) |> [Readen[T, T]] { found =>
+        if(found.value == cmd.value) {
+          found
+        } else {
           content.put(cmd.key, cmd.value)
-          content.get(cmd.key) match {
-            case Some(v) if v == cmd.value => Updated(cmd.key, found, cmd.value)
-            case Some(v) if v != cmd.value => FailedToUpdate(cmd.key, v)
-            case None => NotFound(cmd.key) //TODO think about this error
+          this.f(Read(cmd.key), tx) |> [Readen[T, T]] { updated =>
+            if(cmd.value == updated.value) {
+              Updated(cmd.key, found.value, updated.value)
+            } else {
+              FailedToUpdate(cmd.key, updated.value)
+            }
           }
-        case None => NotFound(cmd.key)
+        }
       }
-
-    case (cmd: Delete[T, T], tx: LogTx) =>
-      content.get(cmd.key) match {
-        case Some(found) =>
-          content -= cmd.key
-          content.get(cmd.key) match {
-            case None => Deleted(cmd.key, found)
-            case Some(_) => FailedToDelete(cmd.key, found)
+    },
+    SagaSkill[Delete[T, T], Deleted[T, T]] { (cmd: Delete[T, T], tx: Tx) =>
+      this.f(Read(cmd.key), tx) |> [Readen[T, T]] { found =>
+        content -= cmd.key
+        this.f(Read(cmd.key), tx)
+          .|> [NotFound[T, T]] { _ => Deleted(cmd.key, found.value) }
+          .|> [Readen[T, T]] { failed => FailedToDelete(cmd.key, failed) }
+      }
+    },
+    SagaSkill[Count[T, T], Counted[T, T]] { _: Count[T, T] => Counted[T, T](content.size) },
+    SagaSkill[Find[T, T], Found[T, T]] { q: Find[T, T] =>
+      q match {
+        case Find(All) => Found[T, T](content.toMap)
+        case Find(p) => Found[T, T](content.filter { it => matches(it._2, p) }.toMap[ID[T], T])
+      }
+    },
+    SagaSkill[Move[T, T], Moved[T, T]] { (cmd: Move[T, T], tx: Tx) =>
+      this.f(Read(cmd.oldKey), tx) |> [Readen[T, T]] { from =>
+        this.f(Read(cmd.newKey), tx)
+          .|> [NotFound[T, T]] { _ =>
+            content.put(cmd.newKey, cmd.value)
+            content -= cmd.oldKey
+            Moved(cmd.oldKey, from.value, cmd.newKey, cmd.value)
           }
-        case None => NotFound(cmd.key)
+          .|> [Readen[T, T]] { found => AlreadyExists(cmd.newKey, found.value) }
       }
-
-    case (cmd: Move[T, T], tx: LogTx) =>
-      (content.get(cmd.oldKey), content.get(cmd.newKey)) match {
-        case (Some(found), None) =>
-          content -= cmd.oldKey
-          content.put(cmd.newKey, cmd.value)
-          Moved(cmd.oldKey, found, cmd.newKey, cmd.value)
-        case (None, _) => NotFound(cmd.oldKey)
-        case (Some(_), Some(found)) => AlreadyExists(cmd.newKey, found)
+    },
+    SagaSkill[Copy[T, T], Copied[T, T]] { (cmd: Copy[T, T], tx: Tx) =>
+      this.f(Read(cmd.oldKey), tx) |> [Readen[T, T]] { from =>
+        this.f(Read(cmd.newKey), tx)
+          .|> [NotFound[T, T]] { _ =>
+            content.put(cmd.newKey, cmd.value)
+            Copied(cmd.oldKey, from.value, cmd.newKey, cmd.value)
+          }
+          .|> [Readen[T, T]] { found => AlreadyExists(cmd.newKey, found.value) }
       }
-
-    case (cmd: Copy[T, T], tx: LogTx) =>
-      (content.get(cmd.oldKey), content.get(cmd.newKey)) match {
-        case (Some(found), None) =>
-          content.put(cmd.newKey, cmd.value)
-          Copied(cmd.oldKey, found, cmd.newKey, cmd.value)
-        case (None, _) => NotFound(cmd.oldKey)
-        case (Some(_), Some(found)) => AlreadyExists(cmd.newKey, found)
-      }
-
-    case (cmd: CreateAll[T, T], tx: LogTx) =>
+    },
+    SagaSkill[CreateAll[T, T], Commit[T, T]] { cmd: CreateAll[T, T] =>
       try {
         if((cmd.batch -- content.keys).size != cmd.batch.size) {
           BatchFailed()
@@ -77,17 +84,20 @@ class Store[T] extends PartialFunction[(In, Tx), Out] with Location[T, T] {
       } catch {
         case _: Exception => BatchFailed()
       }
-
-    case (DeleteUsing(All), tx: LogTx) =>
-      try {
-        val delete = content.map { case (id, value) => id -> Deleted(id, value) }.toMap
-        content --= content.keysIterator
-        Commit(delete)
-      } catch {
-        case _: Exception => BatchFailed()
+    },
+    SagaSkill[DeleteUsing[T, T], Commit[T, T]] { cmd: DeleteUsing[T, T] =>
+      cmd match {
+        case DeleteUsing(All) =>
+          try {
+            val delete = content.map { case (id, value) => id -> Deleted(id, value) }.toMap
+            content --= content.keysIterator
+            Commit(delete)
+          } catch {
+            case _: Exception => BatchFailed()
+          }
       }
-
-    case (cmd: Reconcile[T, T], tx: LogTx) =>
+    },
+    SagaSkill[Reconcile[T, T], Commit[T, T]] { cmd: Reconcile[T, T] =>
       val to = cmd.to
       val create: Map[ID[T], Created[T, T]] = (to -- content.keys).map { case (id, value) => id -> Created[T, T](id, value) }
       val delete: Map[ID[T], Deleted[T, T]] = (content -- to.keys).map { case (id, value) => id -> Deleted[T, T](id, value) }.toMap
@@ -95,13 +105,21 @@ class Store[T] extends PartialFunction[(In, Tx), Out] with Location[T, T] {
         case (id, value) if value != content(id) => id -> Updated[T, T](id, content(id), value)
       }.toMap
       Commit[T, T](create ++ update ++ delete)
-
-    case (cmd: ReplaceAll[T, T], tx: LogTx) =>
-      this.f(Reconcile[T, T](cmd.batch), tx).flatMap[Commit[T, T]] { c =>
+    },
+    SagaSkill[ReplaceAll[T, T], Commit[T, T]] { (cmd: ReplaceAll[T, T], tx: Tx) =>
+      this.f(Reconcile[T, T](cmd.batch), tx) |> [Commit[T, T]] { c =>
         content --= content.keysIterator
         content ++= cmd.batch
         c
       }
+    }
+  ).map(s => s.signature -> s).toMap
+
+  val f: PartialFunction[(In, Tx), Out] = {
+    case (in, tx: Tx) => skills.get(ID[In, String](in.getClass.getName)) match {
+      case Some(skill) => skill(in, tx)
+      case None => NotImplemented(in)
+    }
   }
 
   override def isDefinedAt(x: (In, Tx)): Boolean = f.isDefinedAt(x)
@@ -113,5 +131,5 @@ class Store[T] extends PartialFunction[(In, Tx), Out] with Location[T, T] {
     case _ => false
   }
 
-  def apply[I <: In](in: I): Out = this.apply(in, new LogOnlyTx)
+  def apply[I <: In](in: I): Out = this.apply(in, new Tx)
 }
