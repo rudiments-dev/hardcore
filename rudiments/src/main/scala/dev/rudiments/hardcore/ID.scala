@@ -6,16 +6,13 @@ import scala.reflect.ClassTag
 
 sealed trait Ref[+A] {}
 
-sealed trait Thing {}
+sealed trait Thing extends ADT {}
 
-final case class Abstract(name: String, fields: Map[String, Field]) extends Store[Field] with Thing
+final case class Abstract(name: String, fields: Map[String, Field]) extends Store[Field, Field] with Thing
 
-final case class Data[A: ClassTag](fields: Seq[Any]) extends Store[Any] with Thing with Ref[A] { // Store[What??]
-  def toScala: A =
-    implicitly[ClassTag[A]].runtimeClass.getConstructors()(0).newInstance(fields: _*).asInstanceOf[A]
-}
+final case class Data[A <: ADT](value: A) extends Store[Field, Any] with Thing with Ref[A]
 
-final case class Type(name: String, fields: Map[String, Field]) extends Store[Field] with Thing
+final case class Type(name: String, fields: Map[String, Field]) extends Store[Field, Field] with Thing
 
 
 sealed abstract class ID[+A: ClassTag] extends Ref[A] {

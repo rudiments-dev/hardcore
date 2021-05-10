@@ -19,7 +19,7 @@ class StoreSpec extends AnyWordSpec with Matchers {
   private val sample = Example(42L, "sample", None)
   private val newID = ID[Example, Long](24L)
 
-  val store = new Store[Example]()
+  val store = new Store[Example, Example]()
 
   "signature of store" ignore {
     //TODO
