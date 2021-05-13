@@ -21,8 +21,24 @@ class StoreSpec extends AnyWordSpec with Matchers {
 
   val store = new Store[Example, Example]()
 
-  "signature of store" ignore {
-    //TODO
+  "signature of store" in {
+    store.skills.map(s => s._1 -> s._2.outcomes) should be (Map(
+      ID[In, String]("dev.rudiments.hardcore.Create") -> Set(ID[In, String]("dev.rudiments.hardcore.Created")),
+      ID[In, String]("dev.rudiments.hardcore.Read") -> Set(ID[In, String]("dev.rudiments.hardcore.Readen"), ID[In, String]("dev.rudiments.hardcore.NotFound")),
+      ID[In, String]("dev.rudiments.hardcore.Update") -> Set(ID[In, String]("dev.rudiments.hardcore.Updated")),
+      ID[In, String]("dev.rudiments.hardcore.Delete") -> Set(ID[In, String]("dev.rudiments.hardcore.Deleted")),
+
+      ID[In, String]("dev.rudiments.hardcore.Copy") -> Set(ID[In, String]("dev.rudiments.hardcore.Copied")),
+      ID[In, String]("dev.rudiments.hardcore.Move") -> Set(ID[In, String]("dev.rudiments.hardcore.Moved")),
+
+      ID[In, String]("dev.rudiments.hardcore.Count") -> Set(ID[In, String]("dev.rudiments.hardcore.Counted")),
+      ID[In, String]("dev.rudiments.hardcore.Find") -> Set(ID[In, String]("dev.rudiments.hardcore.Found")),
+
+      ID[In, String]("dev.rudiments.hardcore.Reconcile") -> Set(ID[In, String]("dev.rudiments.hardcore.Commit")),
+      ID[In, String]("dev.rudiments.hardcore.CreateAll") -> Set(ID[In, String]("dev.rudiments.hardcore.Commit")),
+      ID[In, String]("dev.rudiments.hardcore.DeleteUsing") -> Set(ID[In, String]("dev.rudiments.hardcore.Commit")),
+      ID[In, String]("dev.rudiments.hardcore.ReplaceAll") -> Set(ID[In, String]("dev.rudiments.hardcore.Commit")),
+    ))
   }
 
   "no element by ID in store" in {
