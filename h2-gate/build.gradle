@@ -1,0 +1,18 @@
+dependencies {
+    compile project(':rudiments')
+
+    compile 'com.h2database:h2:1.4.199'
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+}
+
+task serveH2(type: JavaExec, dependsOn: classes) {
+    classpath sourceSets.main.runtimeClasspath
+    main = 'dev.rudiments.gates.h2.H2Server'
+    standardInput = System.in
+}
+
+task gateH2(type: JavaExec, dependsOn: classes) {
+    classpath sourceSets.main.runtimeClasspath
+    main = 'dev.rudiments.gates.h2.Registry'
+    standardInput = System.in
+}
