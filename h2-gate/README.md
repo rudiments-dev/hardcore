@@ -6,5 +6,6 @@ To run registry:
 ### Requests:
 * `GET /health` - always OK
 * `GET /db/` - list of schemes
-* `POST /db/inspect` - inspect DB to registry
+* `POST /db/inspect` - inspect DB to registry, update them on DB schema change
 * `GET /db/:schema/` - tables of :schema
+* `GET /db/:schema/:table` - :table of :schema
