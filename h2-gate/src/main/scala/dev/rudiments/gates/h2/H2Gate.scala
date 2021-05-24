@@ -1,7 +1,7 @@
 package dev.rudiments.gates.h2
 
 import com.typesafe.scalalogging.StrictLogging
-import dev.rudiments.hardcore.{All, Create, Created, CrudPlus, Data, Find, Found, ID, In, Location, Out, Read, Readen, Store, Tx, Updated, Upsert}
+import dev.rudiments.hardcore._
 import scalikejdbc.{DB, DBSession, SQL}
 
 class H2Gate(config: H2Config) extends Location[Schema, Schema] {
@@ -17,7 +17,7 @@ class H2Gate(config: H2Config) extends Location[Schema, Schema] {
     case (d: CrudPlus[Schema, Schema], tx: Tx) => schemas(d, tx)
     case (cmd: InspectSchema, tx: H2Tx) =>
       implicit val session: DBSession = tx.session
-      schemas(Read[Schema, Schema](ID[Schema, String](cmd.name))) |> [Readen[Schema, Schema]] { evt =>
+      schemas(Read[Schema, Schema](ID[Schema, String](cmd.name)), tx) |> [Readen[Schema, Schema]] { evt =>
         val schema = evt.value
         val s = schema.name.toUpperCase()
 
@@ -36,7 +36,7 @@ class H2Gate(config: H2Config) extends Location[Schema, Schema] {
               )
             }.toList().apply()
 
-          schema.tables(Upsert(ID[Table, String](t), Table(t, columns)))
+          schema.tables(Upsert(ID[Table, String](t), Table(t, columns)), tx)
         }
 
         SQL(
@@ -66,12 +66,12 @@ class H2Gate(config: H2Config) extends Location[Schema, Schema] {
             )
           )
         }.toIterable().apply().foreach { fk =>
-          schema.references(Upsert[FK, FK](ID[FK, String](fk.name), fk))
+          schema.references(Upsert[FK, FK](ID[FK, String](fk.name), fk), tx)
         }
 
-        schemas(Read[Schema, Schema](ID[Schema, String](cmd.name))) |> [Readen[Schema, Schema]] { evt =>
-          evt.value.tables(Find[Table, Table](All)) |> [Found[Table, Table]] { tables =>
-            evt.value.references(Find[FK, FK](All)) |>[Found[FK, FK]] { refs =>
+        schemas(Read[Schema, Schema](ID[Schema, String](cmd.name)), tx) |> [Readen[Schema, Schema]] { evt =>
+          evt.value.tables(Find[Table, Table](All), tx) |> [Found[Table, Table]] { tables =>
+            evt.value.references(Find[FK, FK](All), tx) |>[Found[FK, FK]] { refs =>
               InspectedSchema(evt.value.name, tables.content.values.toSeq, refs.content.values.toSeq)
             }
           }
@@ -83,7 +83,7 @@ class H2Gate(config: H2Config) extends Location[Schema, Schema] {
         rs.string("SCHEMA_NAME")
       }.toList().apply()
       schemaNames.foreach { name =>
-        schemas(Upsert[Schema, Schema](ID[Schema, String](name), Schema(name))) |> [Created[Schema, Schema]] { evt =>
+        schemas(Upsert[Schema, Schema](ID[Schema, String](name), Schema(name)), tx) |> [Created[Schema, Schema]] { evt =>
           f(InspectSchema(evt.value.name), tx)
         } |> [Updated[Schema, Schema]] { evt =>
           f(InspectSchema(evt.newValue.name), tx)
