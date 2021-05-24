@@ -1,7 +1,7 @@
 package dev.rudiments.gates.h2
 
 import com.typesafe.scalalogging.StrictLogging
-import dev.rudiments.hardcore.{All, Create, Created, CrudPlus, Data, Find, Found, ID, In, Location, Out, Read, Readen, Store, Tx}
+import dev.rudiments.hardcore.{All, Create, Created, CrudPlus, Data, Find, Found, ID, In, Location, Out, Read, Readen, Store, Tx, Updated, Upsert}
 import scalikejdbc.{DB, DBSession, SQL}
 
 class H2Gate(config: H2Config) extends Location[Schema, Schema] {
@@ -36,7 +36,7 @@ class H2Gate(config: H2Config) extends Location[Schema, Schema] {
               )
             }.toList().apply()
 
-          schema.tables(Create(ID[Table, String](t), Table(t, columns)))
+          schema.tables(Upsert(ID[Table, String](t), Table(t, columns)))
         }
 
         SQL(
@@ -66,7 +66,7 @@ class H2Gate(config: H2Config) extends Location[Schema, Schema] {
             )
           )
         }.toIterable().apply().foreach { fk =>
-          schema.references(Create[FK, FK](ID[FK, String](fk.name), fk))
+          schema.references(Upsert[FK, FK](ID[FK, String](fk.name), fk))
         }
 
         schemas(Read[Schema, Schema](ID[Schema, String](cmd.name))) |> [Readen[Schema, Schema]] { evt =>
@@ -83,14 +83,25 @@ class H2Gate(config: H2Config) extends Location[Schema, Schema] {
         rs.string("SCHEMA_NAME")
       }.toList().apply()
       schemaNames.foreach { name =>
-        schemas(Create[Schema, Schema](ID[Schema, String](name), Schema(name))) |> [Created[Schema, Schema]] { evt =>
+        schemas(Upsert[Schema, Schema](ID[Schema, String](name), Schema(name))) |> [Created[Schema, Schema]] { evt =>
+          f(InspectSchema(evt.value.name), tx)
+        } |> [Updated[Schema, Schema]] { evt =>
+          f(InspectSchema(evt.newValue.name), tx)
+        } |> [Readen[Schema, Schema]] { evt =>
           f(InspectSchema(evt.value.name), tx)
         }
       }
       InspectedDB(schemaNames.toSet.map(ID[Schema, String]))
   }
 
-  def apply(in: In): Out = f(in, new H2Tx)
+  def apply(in: In): Out = {
+    val tx = new H2Tx
+    try {
+      f(in, tx)
+    } finally {
+      tx.session.close()
+    }
+  }
 }
 
 class H2Tx extends Tx with StrictLogging { //TODO make session an object inside story?

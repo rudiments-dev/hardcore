@@ -12,6 +12,7 @@ case class Reconcile[K, V](to: Map[ID[K], V]) extends Query with CrudPlus[K, V]
 sealed abstract class DataCommand[K, V](val id: ID[K]*) extends Command with CrudPlus[K, V]
 case class Create[K, V](key: ID[K], value: V) extends DataCommand[K, V](key)
 case class Update[K, V](key: ID[K], value: V) extends DataCommand[K, V](key)
+case class Upsert[K, V](key: ID[K], value: V) extends DataCommand[K, V](key)
 case class Move[K, V](oldKey: ID[K], newKey: ID[K], value: V) extends DataCommand[K, V](oldKey, newKey)
 case class Copy[K, V](oldKey: ID[K], newKey: ID[K], value: V) extends DataCommand[K, V](oldKey, newKey)
 case class Delete[K, V](key: ID[K]) extends DataCommand[K, V](key)

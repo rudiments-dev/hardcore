@@ -48,6 +48,7 @@ trait SampleH2Gate {
          |)""".stripMargin.execute().apply()
 
     sql"ALTER TABLE example ADD CONSTRAINT ref_1 FOREIGN KEY (bigint_column) REFERENCES sample (id)".execute().apply()
+    session.close()
   }
 
 }

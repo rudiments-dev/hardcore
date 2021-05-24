@@ -26,6 +26,7 @@ class StoreSpec extends AnyWordSpec with Matchers {
       ID[In, String]("dev.rudiments.hardcore.Create") -> Set(ID[In, String]("dev.rudiments.hardcore.Created")),
       ID[In, String]("dev.rudiments.hardcore.Read") -> Set(ID[In, String]("dev.rudiments.hardcore.Readen"), ID[In, String]("dev.rudiments.hardcore.NotFound")),
       ID[In, String]("dev.rudiments.hardcore.Update") -> Set(ID[In, String]("dev.rudiments.hardcore.Updated")),
+      ID[In, String]("dev.rudiments.hardcore.Upsert") -> Set(ID[In, String]("dev.rudiments.hardcore.Updated")),
       ID[In, String]("dev.rudiments.hardcore.Delete") -> Set(ID[In, String]("dev.rudiments.hardcore.Deleted")),
 
       ID[In, String]("dev.rudiments.hardcore.Copy") -> Set(ID[In, String]("dev.rudiments.hardcore.Copied")),

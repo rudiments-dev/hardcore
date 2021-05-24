@@ -39,6 +39,12 @@ class RegistryRouterSpec extends AnyWordSpec with SampleH2Gate with Matchers wit
     }
   }
 
+  "POST /db/inspect should inspect schema from router" in {
+    Post("/db/inspect") ~> routes ~> check {
+      response.status should be (StatusCodes.OK)
+    }
+  }
+
   "/db/hello2 find tables" in {
     Get("/db/HELLO2/") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
@@ -225,6 +231,78 @@ class RegistryRouterSpec extends AnyWordSpec with SampleH2Gate with Matchers wit
       val json = responseAs[Json]
       json.asArray.map(_.size) should be (Some(33))
       response.status should be(StatusCodes.OK)
+    }
+  }
+
+  "/db/HELLO2/SAMPLE read table" in {
+    Get("/db/HELLO2/SAMPLE") ~> routes ~> check {
+      response.status should be(StatusCodes.OK)
+      responseAs[Json] should be (Json.obj(
+        "name" -> Json.fromString("SAMPLE"),
+        "columns" -> Json.arr(
+          Json.obj(
+            "name" -> Json.fromString("ID"),
+            "type" -> Json.fromString("BIGINT"),
+            "nullable" -> Json.fromBoolean(false),
+            "default" -> Json.fromBoolean(true),
+            "pk" -> Json.fromBoolean(true)
+          ),
+          Json.obj(
+            "name" -> Json.fromString("NAME"),
+            "type" -> Json.fromString("VARCHAR(255)"),
+            "nullable" -> Json.fromBoolean(false),
+            "default" -> Json.fromBoolean(false),
+            "pk" -> Json.fromBoolean(false)
+          ),
+          Json.obj(
+            "name" -> Json.fromString("COMMENT"),
+            "type" -> Json.fromString("CLOB(2147483647, N)"),
+            "nullable" -> Json.fromBoolean(true),
+            "default" -> Json.fromBoolean(false),
+            "pk" -> Json.fromBoolean(false)
+          )
+        )
+      ))
+    }
+  }
+
+  "/db/HELLO2/PIECE available after table create" in {
+    {
+      import scalikejdbc._
+      implicit val session: DBSession = AutoSession
+
+      sql"""CREATE TABLE piece (
+           |      id IDENTITY PRIMARY KEY,
+           |      name VARCHAR(255) NOT NULL
+           |)""".stripMargin.execute().apply()
+      session.close()
+    }
+
+    Post("/db/inspect") ~> routes ~> check {
+      response.status should be (StatusCodes.OK)
+    }
+
+    Get("/db/HELLO2/PIECE") ~> routes ~> check {
+      response.status should be(StatusCodes.OK)
+      responseAs[Json] should be (Json.obj(
+        "name" -> Json.fromString("PIECE"),
+        "columns" -> Json.arr(
+          Json.obj(
+            "name" -> Json.fromString("ID"),
+            "type" -> Json.fromString("BIGINT"),
+            "nullable" -> Json.fromBoolean(false),
+            "default" -> Json.fromBoolean(true),
+            "pk" -> Json.fromBoolean(true)
+          ),
+          Json.obj(
+            "name" -> Json.fromString("NAME"),
+            "type" -> Json.fromString("VARCHAR(255)"),
+            "nullable" -> Json.fromBoolean(false),
+            "default" -> Json.fromBoolean(false),
+            "pk" -> Json.fromBoolean(false)
+          )
+        )
+      ))
     }
   }
 }

@@ -39,6 +39,27 @@ class Store[K : ClassTag, V : ClassTag] extends PartialFunction[(In, Tx), Out] w
         }
       }
     },
+    SagaSkill[Upsert[K, V], Updated[K, V]] { (cmd: Upsert[K, V], tx: Tx) =>
+      read(Read(cmd.key), tx) |> [Readen[K, V]] { found =>
+        if(found.value == cmd.value) {
+          found
+        } else {
+          content.put(cmd.key, cmd.value)
+          read(Read(cmd.key), tx) |> [Readen[K, V]] { updated =>
+            if(cmd.value == updated.value) {
+              Updated(cmd.key, found.value, updated.value)
+            } else {
+              FailedToUpdate(cmd.key, updated.value)
+            }
+          }
+        }
+      } |> [NotFound[K, V]] { _ =>
+        content.put(cmd.key, cmd.value)
+        read(Read(cmd.key), tx)
+          .|> [Readen[K, V]] { found => Created(cmd.key, found.value) }
+          .|> [NotFound[K, V]] { _ => FailedToCreate(cmd.key, cmd.value) }
+      }
+    },
     SagaSkill[Delete[K, V], Deleted[K, V]] { (cmd: Delete[K, V], tx: Tx) =>
       read(Read(cmd.key), tx) |> [Readen[K, V]] { found =>
         content -= cmd.key
