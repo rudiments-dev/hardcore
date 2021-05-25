@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.{Route, StandardRoute}
 import dev.rudiments.hardcore._
 import io.circe.Encoder
 
-class RegistryRouter(gate: H2Gate)(implicit sEn: Encoder[Schema], tEn: Encoder[Table]) {
+class RegistryRouter(gate: H2Gate)(implicit sEn: Encoder[Schema], tEn: Encoder[Table], tFk: Encoder[FK]) {
   val route: Route = {
     path("health") { complete(StatusCodes.OK) } ~
     pathPrefix("db") {
@@ -17,14 +17,26 @@ class RegistryRouter(gate: H2Gate)(implicit sEn: Encoder[Schema], tEn: Encoder[T
         }
       } ~ pathPrefix(Segment) { schemaName =>
         get {
-          pathSingleSlash {
-            doneTable(gate(Read[Schema, Schema](ID[Schema, String](schemaName))) |> [Readen[Schema, Schema]] { found =>
-              found.value.tables(Find[Table, Table](All))
-            })
-          } ~ path(Segment) { tableName =>
-            doneTable(gate(Read[Schema, Schema](ID[Schema, String](schemaName))) |> [Readen[Schema, Schema]] { found =>
-              found.value.tables(Read[Table, Table](ID[Table, String](tableName)))
-            })
+          pathPrefix("tables") {
+            pathSingleSlash {
+              doneTable(gate(Read[Schema, Schema](ID[Schema, String](schemaName))) |> [Readen[Schema, Schema]] { found =>
+                found.value.tables(Find[Table, Table](All))
+              })
+            } ~ path(Segment) { tableName =>
+              doneTable(gate(Read[Schema, Schema](ID[Schema, String](schemaName))) |> [Readen[Schema, Schema]] { found =>
+                found.value.tables(Read[Table, Table](ID[Table, String](tableName)))
+              })
+            }
+          } ~ pathPrefix("references") {
+            pathSingleSlash {
+              doneReference(gate(Read[Schema, Schema](ID[Schema, String](schemaName))) |> [Readen[Schema, Schema]] { found =>
+                found.value.references(Find[FK, FK](All))
+              })
+            } ~ path(Segment) { fkName =>
+              doneReference(gate(Read[Schema, Schema](ID[Schema, String](schemaName))) |> [Readen[Schema, Schema]] { found =>
+                found.value.references(Read[FK, FK](ID[FK, String](fkName)))
+              })
+            }
           }
         }
       }
@@ -45,6 +57,16 @@ class RegistryRouter(gate: H2Gate)(implicit sEn: Encoder[Schema], tEn: Encoder[T
   def doneTable(out: Out): StandardRoute = out match {
     case evt: Readen[Table, Table] => complete(StatusCodes.OK, evt.value)
     case evt: Found[Table, Table] =>  complete(StatusCodes.OK, evt.content.values)
+
+    case NotFound(_) =>               complete(StatusCodes.NotFound)
+    case AlreadyExists(_, _) =>       complete(StatusCodes.Conflict)
+    case _: Error =>                  complete(StatusCodes.InternalServerError)
+    case _ =>                         complete(StatusCodes.InternalServerError)
+  }
+
+  def doneReference(out: Out): StandardRoute = out match {
+    case evt: Readen[FK, FK] => complete(StatusCodes.OK, evt.value)
+    case evt: Found[FK, FK] =>  complete(StatusCodes.OK, evt.content.values)
 
     case NotFound(_) =>               complete(StatusCodes.NotFound)
     case AlreadyExists(_, _) =>       complete(StatusCodes.Conflict)

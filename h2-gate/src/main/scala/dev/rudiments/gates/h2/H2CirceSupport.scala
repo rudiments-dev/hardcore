@@ -3,7 +3,7 @@ package dev.rudiments.gates.h2
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.gates.h2.ColumnTypes.{ARRAY, BIGINT, BINARY, BLOB, BOOLEAN, CHAR, CLOB, DATE, DECIMAL, DOUBLE, ENUM, INT, REAL, SMALLINT, TIME, TIMESTAMP, TINYINT, UUID, VARCHAR}
 import dev.rudiments.hardcore.http.CirceSupport
-import io.circe.{Encoder, Printer}
+import io.circe.{Encoder, Json, Printer}
 import io.circe.generic.extras.{AutoDerivation, Configuration}
 
 trait H2CirceSupport extends CirceSupport {
@@ -32,6 +32,13 @@ trait H2CirceSupport extends CirceSupport {
 
     case ARRAY(p) => Encoder.encodeString(s"ARRAY($p)")
     case ENUM(p) => Encoder.encodeString(s"ENUM($p)")
+  }
+
+  implicit def refEncoder: Encoder[TableRef] = new Encoder[TableRef] {
+    override def apply(a: TableRef): Json = Json.obj(
+      "table" -> idFormat.apply(a.table),
+      "columns" -> Json.arr(a.columns.map(idFormat.apply): _*)
+    )
   }
 }
 

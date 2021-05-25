@@ -46,7 +46,7 @@ class RegistryRouterSpec extends AnyWordSpec with SampleH2Gate with Matchers wit
   }
 
   "/db/hello2 find tables" in {
-    Get("/db/HELLO2/") ~> routes ~> check {
+    Get("/db/HELLO2/tables/") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Json] should be (
         Json.arr(
@@ -226,16 +226,16 @@ class RegistryRouterSpec extends AnyWordSpec with SampleH2Gate with Matchers wit
     }
   }
 
-  "/db/INFORMATION_SCHEMA find tables" in {
-    Get("/db/INFORMATION_SCHEMA/") ~> routes ~> check {
+  "/db/INFORMATION_SCHEMA/tables/ find tables" in {
+    Get("/db/INFORMATION_SCHEMA/tables/") ~> routes ~> check {
       val json = responseAs[Json]
       json.asArray.map(_.size) should be (Some(33))
       response.status should be(StatusCodes.OK)
     }
   }
 
-  "/db/HELLO2/SAMPLE read table" in {
-    Get("/db/HELLO2/SAMPLE") ~> routes ~> check {
+  "/db/HELLO2/tables/SAMPLE read table" in {
+    Get("/db/HELLO2/tables/SAMPLE") ~> routes ~> check {
       response.status should be(StatusCodes.OK)
       responseAs[Json] should be (Json.obj(
         "name" -> Json.fromString("SAMPLE"),
@@ -266,7 +266,26 @@ class RegistryRouterSpec extends AnyWordSpec with SampleH2Gate with Matchers wit
     }
   }
 
-  "/db/HELLO2/PIECE available after table create" in {
+  "/db/HELLO2/references/ find references" in {
+    Get("/db/HELLO2/references/") ~> routes ~> check {
+      response.status should be(StatusCodes.OK)
+      responseAs[Json].asArray should be (Some(Seq(
+        Json.obj(
+          "name" -> Json.fromString("REF_1"),
+          "from" -> Json.obj(
+            "table" -> Json.fromString("EXAMPLE"),
+            "columns" -> Json.arr(Json.fromString("BIGINT_COLUMN"))
+          ),
+          "to" -> Json.obj(
+            "table" -> Json.fromString("SAMPLE"),
+            "columns" -> Json.arr(Json.fromString("ID"))
+          )
+        ),
+      )))
+    }
+  }
+
+  "/db/HELLO2/tables/PIECE available after table create" in {
     {
       import scalikejdbc._
       implicit val session: DBSession = AutoSession
@@ -282,7 +301,7 @@ class RegistryRouterSpec extends AnyWordSpec with SampleH2Gate with Matchers wit
       response.status should be (StatusCodes.OK)
     }
 
-    Get("/db/HELLO2/PIECE") ~> routes ~> check {
+    Get("/db/HELLO2/tables/PIECE") ~> routes ~> check {
       response.status should be(StatusCodes.OK)
       responseAs[Json] should be (Json.obj(
         "name" -> Json.fromString("PIECE"),
