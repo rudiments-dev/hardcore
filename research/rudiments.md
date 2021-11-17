@@ -1,17 +1,17 @@
-Рудименты - формальная, дискретная спецификация для ИТ.
+Рудименты - формальная, дискретная спецификация для ИТ. В ее основе - коммуникация между пользователями и агентами.
 
-rudiments.dev - реализация рудиментов, содержит само-рефлексивную спецификацию.
+rudiments.dev - реализация рудиментов, содержит само-рефлексивную спецификацию и типы, основанные на предикатах.
 
 ### ToC:
 1. Location, ID, Path
 2. CRUD
 3. Tx, Commit
 4. Predicate (Type, ACL)
-5. Users, Groups, Roles
-6. Skills, Agents
+5. Skills, Agents
+6. Users, Groups, Roles
 7. I/O
 
-Also included: Expressions, Adapters, Ports, Pipelines, Multiplexing, Validation, Verification, Followers
+Also included: Expressions, Adapters, Ports, Pipelines, Multiplexing, Validation, Verification, Partners, Followers
 
 
 ### Навигация
