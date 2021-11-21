@@ -11,6 +11,8 @@ class Memory {
   val skill: PartialFunction[In, Out] = readPF.orElse(create(this)).orElse(update(this)).orElse(delete(this)) //TODO CRUD Agent from skills
 
   def read(id: ID): Out = readPF(Read(id))
+
+  def apply(in: In): Out = skill.apply(in)
 }
 
 object Memory {

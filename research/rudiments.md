@@ -7,7 +7,7 @@ rudiments.dev - реализация рудиментов, содержит са
 2. CRUD
 3. Tx, Commit
 4. Predicate (Type, ACL)
-5. Skills, Agents
+5. Skills, Agents, Data
 6. Users, Groups, Roles
 7. I/O
 
