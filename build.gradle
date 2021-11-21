@@ -122,35 +122,35 @@ configure(scalaModules()) {
     }
 
     dependencies {
-        implementation 'org.scala-lang:scala-library:2.13.3'
-        implementation 'com.typesafe.akka:akka-actor_2.13:2.6.10'
-        implementation 'com.typesafe.akka:akka-slf4j_2.13:2.6.10'
-        implementation 'com.typesafe.akka:akka-stream_2.13:2.6.10'
-        implementation 'com.typesafe.akka:akka-http_2.13:10.2.1'
+        implementation 'org.scala-lang:scala-library:2.13.7'
+        implementation 'com.typesafe.akka:akka-actor_2.13:2.6.17'
+        implementation 'com.typesafe.akka:akka-slf4j_2.13:2.6.17'
+        implementation 'com.typesafe.akka:akka-stream_2.13:2.6.17'
+        implementation 'com.typesafe.akka:akka-http_2.13:10.2.7'
 
 
-        implementation 'ch.megard:akka-http-cors_2.13:1.1.0'
-        implementation 'io.circe:circe-core_2.13:0.13.0'
-        implementation 'io.circe:circe-generic_2.13:0.13.0'
-        implementation 'io.circe:circe-generic-extras_2.13:0.13.0'
-        implementation 'de.heikoseeberger:akka-http-circe_2.13:1.35.2'
+        implementation 'ch.megard:akka-http-cors_2.13:1.1.2'
+        implementation 'io.circe:circe-core_2.13:0.14.1'
+        implementation 'io.circe:circe-generic_2.13:0.14.1'
+        implementation 'io.circe:circe-generic-extras_2.13:0.14.1'
+        implementation 'de.heikoseeberger:akka-http-circe_2.13:1.38.2'
 
-        implementation 'org.scalikejdbc:scalikejdbc_2.13:3.5.0'
+        implementation 'org.scalikejdbc:scalikejdbc_2.13:4.0.0'
 
-        implementation 'com.beachape:enumeratum_2.13:1.6.1'
+        implementation 'com.beachape:enumeratum_2.13:1.7.0'
 
-        implementation 'com.typesafe.scala-logging:scala-logging_2.13:3.9.2'
-        implementation 'org.slf4j:slf4j-api:1.7.25'
+        implementation 'com.typesafe.scala-logging:scala-logging_2.13:3.9.4'
+        implementation 'org.slf4j:slf4j-api:1.7.32'
 
-        testImplementation 'org.scalatest:scalatest_2.13:3.2.3'
-        testImplementation 'org.scalatestplus:junit-4-13_2.13:3.2.2.0'
-        testImplementation 'com.typesafe.akka:akka-testkit_2.13:2.6.10'
-        testImplementation 'com.typesafe.akka:akka-http-testkit_2.13:10.2.1'
-        testImplementation 'com.dimafeng:testcontainers-scala_2.13:0.39.0'
-        testImplementation 'com.dimafeng:testcontainers-scala-postgresql_2.13:0.39.0'
-        testImplementation 'org.postgresql:postgresql:42.2.18'
+        testImplementation 'org.scalatest:scalatest_2.13:3.2.10'
+        testImplementation 'org.scalatestplus:junit-4-13_2.13:3.2.10.0'
+        testImplementation 'com.typesafe.akka:akka-testkit_2.13:2.6.17'
+        testImplementation 'com.typesafe.akka:akka-http-testkit_2.13:10.2.7'
+        testImplementation 'com.dimafeng:testcontainers-scala_2.13:0.39.12'
+        testImplementation 'com.dimafeng:testcontainers-scala-postgresql_2.13:0.39.12'
+        testImplementation 'org.postgresql:postgresql:42.3.1'
 
-        testImplementation 'junit:junit:4.12'
-        testImplementation 'ch.qos.logback:logback-classic:1.2.3'
+        testImplementation 'junit:junit:4.13.2'
+        testImplementation 'ch.qos.logback:logback-classic:1.2.7'
     }
 }
