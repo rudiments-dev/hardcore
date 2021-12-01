@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.ScalaTypes.plain
-import enumeratum.EnumEntry
+import dev.rudiments.hardcore.Size.Big
 
 import scala.collection.immutable.ListMap
 import scala.reflect.ClassTag
@@ -21,8 +21,14 @@ object Data {
     Data(t, Seq(args: _*))
   }
 
-  def apply[T : ClassTag : TypeTag](value: T): Data = value match {
-    case p: Product => build[T](p.productIterator.toList: _*)
+  def apply[T : ClassTag : TypeTag](value: T): Data = {
+    val t = Type.fullName(typeOf[T].typeSymbol)
+    plain.get(t) match {
+      case Some(p) => new Data(p, value)
+      case None => value match {
+        case p: Product => build[T](p.productIterator.toList: _*)
+      }
+    }
   }
 }
 final case class List(item: Predicate) extends Thing
@@ -43,20 +49,15 @@ object Type {
     val symbol = sysType.typeSymbol
     val name = this.name(symbol)
 
-    plain.collectFirst {
-      case (k, v) if sysType =:= k => v
-    }.getOrElse {
-      if (sysType <:< typeOf[Product])     {
-        makeAlgebraic(symbol)
-      } else {
-        throw new IllegalArgumentException(s"Scala type not supported: $name")
-      }
-    }
+    plain.getOrElse(this.fullName(symbol), if (sysType <:< typeOf[Product]) {
+      makeAlgebraic(symbol)
+    } else {
+      throw new IllegalArgumentException(s"Scala type not supported: $name")
+    })
   }
 
   def makeAlgebraic(symbol: Symbol): Predicate = {
     val t = symbol.asType
-    val name = this.name(t) //TODO use for ID?
     if(t.isAbstract) {
       Abstract(fieldsOf(t))
     } else if(t.isModuleClass) {
@@ -85,8 +86,8 @@ object Type {
     }
   }
 
-  private def name(s: Symbol): String = s.name.toString.trim
-  private def fullName(s: Symbol): String = s.fullName.trim
+  def name(s: Symbol): String = s.name.toString.trim
+  def fullName(s: Symbol): String = s.fullName.trim
 }
 
 sealed trait Plain extends Predicate {}

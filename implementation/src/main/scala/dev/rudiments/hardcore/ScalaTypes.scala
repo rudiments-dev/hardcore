@@ -4,29 +4,9 @@ import java.sql.{Date, Time, Timestamp}
 import java.util.UUID
 
 
-
 object ScalaTypes {
-  def wrapPlain(plain: Plain, value: Any): Any = (plain, value) match {
-    case (Plain.Bool,         i: Boolean) => i
-    case (Plain.Text(_),      i: String) => i
-    case (Plain.UUID,         i: UUID) => i
-    case (ScalaByte,          i: Byte) => i
-    case (ScalaShort,         i: Short) => i
-    case (ScalaInt,           i: Int) => i
-    case (ScalaLong,          i: Long) => i
-    case (ScalaFloat,         i: Float) => i
-    case (ScalaDouble,        i: Double) => i
-    case (ScalaBigInteger,    i: BigInt) => i
-    case (ScalaBigDecimal,    i: BigDecimal) => i
-    case (Plain.Date,         i: java.sql.Date) => i
-    case (Plain.Time,         i: java.sql.Time) => i
-    case (Plain.Timestamp,    i: java.sql.Timestamp) => i
-
-    case (p, v) => throw new IllegalArgumentException(s"Incompatible $p with value $v")
-  }
-
-  import scala.reflect.runtime.universe.{Type => SysType, _}
-  val plain: Map[SysType, Plain] = Map(
+  import scala.reflect.runtime.universe._
+  val plain: Map[String, Plain] = Map(
     typeOf[Boolean] ->    Plain.Bool,
     typeOf[String] ->     ScalaTypes.ScalaString,
     typeOf[UUID] ->       Plain.UUID,
@@ -44,7 +24,7 @@ object ScalaTypes {
     typeOf[Date] ->       Plain.Date,
     typeOf[Time] ->       Plain.Time,
     typeOf[Timestamp] ->  Plain.Timestamp
-  )
+  ).map { case (k, v) => k.typeSymbol.fullName.trim -> v }
 
   object ScalaString extends Plain.Text(MaxInt)
   object ScalaByte   extends Plain.Number(MinByte,  MaxByte,   NumberFormat.Integer)

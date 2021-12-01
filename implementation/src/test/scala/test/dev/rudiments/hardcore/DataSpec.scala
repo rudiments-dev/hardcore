@@ -12,6 +12,10 @@ class DataSpec extends AnyWordSpec with Matchers {
   private val data1: Data = Smt(42, "sample", Some("example")).asData
   private val data2 = Smt(13, "test", None).asData
 
+  "can build primitive data" in {
+    "test".asData should be (Data(Plain.Text(4), "test")) // or .build is not a good option?
+  }
+
   "can build data instance with type" in {
     Data.build[Smt](42, "sample", Some("example")) should be (data1)
     Data.build[Smt](13, "test", None) should be (data2)
