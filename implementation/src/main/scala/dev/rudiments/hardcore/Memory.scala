@@ -1,64 +1,105 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.Memory._
 
 import scala.collection.mutable
 
 class Memory {
   val state: mutable.SeqMap[ID, Data] = mutable.SeqMap.empty
-  val readPF: PartialFunction[In, Out] = Memory.read(this)
 
-  val skill: PartialFunction[In, Out] = readPF.orElse(create(this)).orElse(update(this)).orElse(delete(this)) //TODO CRUD Agent from skills
+  def read(id: ID): Out = Memory.read.action(Read(id), this)
 
-  def read(id: ID): Out = readPF(Read(id))
+  private val action: In => Out = Memory.read.action
+    .orElse(Memory.create.action)
+    .orElse(Memory.update.action)
+    .orElse(Memory.delete.action).apply(_, this)
 
-  def apply(in: In): Out = skill.apply(in)
+  private val reaction: Out => Data = Memory.read.reaction
+    .orElse(Memory.create.reaction)
+    .orElse(Memory.update.reaction)
+    .orElse(Memory.delete.reaction)
+    .apply(_, this)
+
+  def apply(in: In): Out = {
+    action(in) match {
+      case evt: Event =>
+        commit(evt)
+        evt
+      case report: Report => report
+      case error: Error => error
+    }
+  }
+
+  def commit(out: Out): Data = reaction(out)
 }
 
 object Memory {
-  def read(that: Memory): PartialFunction[In, Out] = {
-    case Read(id: ID) => that.state.get(id) match {
-      case Some(found) => Readen(id, found)
-      case None => NotFound(id)
+  val read: Skill[Memory] = Skill[Memory](
+    action = {
+      case (Read(id), ctx) => ctx.state.get(id) match {
+        case Some(found) => Readen(id, found)
+        case None => NotFound(id)
+      }
+    },
+    reaction = { //TODO remove reaction if In is Query
+      case (Readen(_, found), _) => found
+      case (NotFound(id), _) => throw new IllegalArgumentException(s"Not found $id")
     }
-  }
+  )
 
-  def create(that: Memory): PartialFunction[In, Out] = {
-    case Create(id, data) => that.read(id) match {
-      case Readen(i, found) => AlreadyExist(i, found)
-      case NotFound(i) => Created(i, data)
-    }
-  }
-
-  def update(that: Memory): PartialFunction[In, Out] = {
-    case Update(id: ID, data: Data) => that.read(id) match {
-      case Readen(i, found) => Updated(i, found, data)
-      case e: Error => e
-    }
-  }
-
-  def delete(that: Memory): PartialFunction[In, Out] = {
-    case Delete(id: ID) => that.read(id) match {
-      case Readen(i, found) => Deleted(i, found)
-      case e: Error => e
-    }
-  }
-
-  def commit(that: Memory): PartialFunction[In, Out] = {
-    case Apply(data) =>
-      val out = data.map { case (id, event) =>
-        event match {
-          case Created(k, v) =>
-            that.state += k -> v // TODO error-handling
-            k -> Some(v)
-          case Updated(k, oldData, newData) =>
-            that.state += k -> newData // TODO error-handling
-            k -> Some(newData)
-          case Deleted(k, v) =>
-            that.state -= k // TODO error-handling
-            k -> None
+  val create: Skill[Memory] = Skill[Memory](
+    action = {
+      case (Create(id, data), ctx) => ctx.read(id) match {
+        case Readen(i, found) => AlreadyExist(i, found)
+        case NotFound(i) => Created(i, data)
+      }
+    },
+    reaction = {
+      case (Created(id, data), ctx) =>
+        ctx.state.get(id) match {
+          case None =>
+            ctx.state += id -> data
+            ctx.state(id)
+          case Some(_) => throw new IllegalArgumentException(s"Already exist $id")
         }
-      }.collect { case (k, Some(v)) => k -> v }
-      Commit(out)
-  }
+    }
+  )
+
+  val update: Skill[Memory] = Skill[Memory](
+    action = {
+      case (Update(id, data), ctx) => ctx.read(id) match {
+        case Readen(i, found) => Updated(i, found, data)
+        case e: Error => e
+      }
+    },
+    reaction = {
+      case (Updated(id, oldData, newData), ctx) =>
+        ctx.state.get(id) match {
+          case Some(v) if v == oldData =>
+            ctx.state += id -> newData
+            ctx.state(id)
+          case Some(_) => throw new IllegalArgumentException(s"Conflict data for update $id")
+          case None => throw new IllegalArgumentException(s"Not found $id")
+        }
+    }
+  )
+
+  val delete: Skill[Memory] = new Skill[Memory](
+    action = {
+      case (Delete(id), ctx) => ctx.read(id) match {
+        case Readen(i, found) => Deleted(i, found)
+        case e: Error => e
+      }
+    },
+    reaction = {
+      case (Deleted(id, data), ctx) =>
+        ctx.state.get(id) match {
+          case Some(v) if v == data =>
+            ctx.state -= id
+            data
+          case Some(_) => throw new IllegalArgumentException(s"Conflict data for delete $id") // or just delete?
+          case None => throw new IllegalArgumentException(s"Not found $id")
+        }
+
+    }
+  )
 }

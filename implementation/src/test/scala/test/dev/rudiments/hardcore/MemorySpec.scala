@@ -39,7 +39,7 @@ class MemorySpec extends AnyWordSpec with Matchers {
   }
 
   "NotFound after Delete" in {
-    agent(Read(id)) should be (Deleted(id, elseData)) // or NotFound(id) ?
+    agent(Read(id)) should be (NotFound(id)) // or Deleted(id, elseData) ?
   }
 
   private val wrongId = ID(666)

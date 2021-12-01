@@ -23,7 +23,3 @@ case class Deleted(id: ID, data: Data) extends Event with CRUD
 case class NotFound(id: ID) extends Error with CRUD
 case class AlreadyExist(id: ID, data: Data) extends Error with CRUD
 case class Conflict(id: ID) extends Error with CRUD
-
-
-case class Apply(data: Map[ID, CRUD]) extends In
-case class Commit(data: Map[ID, Data]) extends Out

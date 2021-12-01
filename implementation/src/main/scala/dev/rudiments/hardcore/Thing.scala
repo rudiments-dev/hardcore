@@ -31,7 +31,7 @@ final case class Index(of: Predicate, over: Predicate) extends Thing
 class Instruction(f: Any => Any) extends Thing {}
 sealed trait Expression extends Thing {}
 sealed trait Predicate extends Expression {}
-abstract class Skill[Ctx](in: Predicate, ctx: Ctx, out: Predicate) extends Expression {}
+case class Skill[Ctx](action: PartialFunction[(In, Ctx), Out], reaction: PartialFunction[(Out, Ctx), Data]) extends Expression {}
 
 final case class Abstract(fields: ListMap[String, Predicate]) extends Predicate
 final case class Type(fields: ListMap[String, Predicate]) extends Predicate
