@@ -2,7 +2,6 @@ package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.ScalaTypes._
 
-import scala.collection.immutable.ListMap
 import scala.reflect.runtime.universe.{Type => SysType, _}
 
 sealed trait Thing {}
@@ -48,8 +47,8 @@ sealed trait Expression extends Thing {}
 sealed trait Predicate extends Expression {}
 case class Skill(act: PartialFunction[In, Out], commit: PartialFunction[Out, Data]) extends Expression {}
 
-final case class Abstract(fields: ListMap[String, Predicate]) extends Predicate
-final case class Type(fields: ListMap[String, Predicate], fullName: Option[String] = None) extends Predicate
+final case class Abstract(fields: Seq[Field] = Seq.empty) extends Predicate
+final case class Type(fields: Seq[Field] = Seq.empty, fullName: Option[String] = None) extends Predicate
 
 object Type {
   def build[A : TypeTag]: Predicate = make(typeOf[A])
@@ -58,7 +57,7 @@ object Type {
     val symbol = sysType.typeSymbol
     val name = this.name(symbol)
 
-    plain.getOrElse(this.fullName(symbol), if (sysType <:< typeOf[Product]) {
+    plain.getOrElse(this.fullName(symbol), if (sysType <:< typeOf[Any]) {
       makeAlgebraic(symbol)
     } else {
       throw new IllegalArgumentException(s"Scala type not supported: $name")
@@ -70,7 +69,7 @@ object Type {
     if(t.isAbstract) {
       Abstract(fieldsOf(t))
     } else if(t.isModuleClass) {
-      ??? // TODO singletone as ID -> Data, but Data is not predicate
+      AllOf(fieldsOf(t): _*)
     } else if(t.isClass) {
       Type(fieldsOf(t), Some(fullName(t)))
     } else {
@@ -78,16 +77,16 @@ object Type {
     }
   }
 
-  def fieldsOf(t: TypeSymbol): ListMap[String, Predicate] = {
+  def fieldsOf(t: TypeSymbol): Seq[Field] = {
     val paramLists = t.asClass.primaryConstructor.typeSignature.paramLists
     if(paramLists.isEmpty) {
-      ListMap.empty
+      Seq.empty
     } else {
-      ListMap(paramLists.head.collect { case ts: TermSymbol => this.name(ts) -> fieldOf(ts) }: _*)
+      Seq(paramLists.head.collect { case ts: TermSymbol => Field(this.name(ts), ifOption(ts)) }: _*)
     }
   }
 
-  def fieldOf(ts: TermSymbol): Predicate = {
+  def ifOption(ts: TermSymbol): Predicate = {
     if(ts.typeSignature <:< typeOf[Option[_]]) {
       make(ts.typeSignature.typeArgs.head)
     } else {
@@ -98,6 +97,8 @@ object Type {
   def name(s: Symbol): String = s.name.toString.trim
   def fullName(s: Symbol): String = s.fullName.trim
 }
+
+case class Field(name: String, p: Predicate) extends Predicate
 
 sealed trait Plain extends Predicate {}
 
