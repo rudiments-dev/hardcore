@@ -1,10 +1,8 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.ScalaTypes.plain
-import dev.rudiments.hardcore.Size.Big
+import dev.rudiments.hardcore.ScalaTypes._
 
 import scala.collection.immutable.ListMap
-import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{Type => SysType, _}
 
 sealed trait Thing {}
@@ -14,21 +12,32 @@ final case class ID(k: Any) extends Ref
 final case class Data(p: Predicate, v: Any) extends Ref {
   def apply(cmd: Command): Event = ???
   def apply(evt: Event): Data = ???
+
+  def reconstruct[T](): T = {
+    p match {
+      case _: Plain => v.asInstanceOf[T] // validate?
+      case Type(_, Some(fullName)) =>
+        Class.forName(fullName).getConstructors()(0)
+          .newInstance(v.asInstanceOf[Seq[Object]]: _*).asInstanceOf[T]
+      case other => throw new IllegalArgumentException(s"Can't reconstruct from $other")
+    }
+
+  }
 }
 object Data {
-  def build[T : ClassTag : TypeTag](args: Any*): Data = {
+  def build[T : TypeTag](args: Any*): Data = {
     val t = Type.build[T]
     Data(t, Seq(args: _*))
   }
 
-  def apply[T : ClassTag : TypeTag](value: T): Data = {
-    val t = Type.fullName(typeOf[T].typeSymbol)
-    plain.get(t) match {
-      case Some(p) => new Data(p, value)
-      case None => value match {
-        case p: Product => build[T](p.productIterator.toList: _*)
-      }
-    }
+  def apply[T : TypeTag](value: T): Data = value match {
+    case s: String => Data(Plain.Text(s.size), s)
+    case i: Int => Data(ScalaInt, i)
+    case i: Long => Data(ScalaLong, i)
+    case i: BigInt => Data(ScalaBigInteger, i)
+    case i: BigDecimal => Data(ScalaBigDecimal, i) //TODO think about level of construction between Data and Type
+
+    case p: Product => build[T](p.productIterator.toList: _*)
   }
 }
 final case class List(item: Predicate) extends Thing
@@ -40,7 +49,7 @@ sealed trait Predicate extends Expression {}
 case class Skill(act: PartialFunction[In, Out], commit: PartialFunction[Out, Data]) extends Expression {}
 
 final case class Abstract(fields: ListMap[String, Predicate]) extends Predicate
-final case class Type(fields: ListMap[String, Predicate]) extends Predicate
+final case class Type(fields: ListMap[String, Predicate], fullName: Option[String] = None) extends Predicate
 
 object Type {
   def build[A : TypeTag]: Predicate = make(typeOf[A])
@@ -63,7 +72,7 @@ object Type {
     } else if(t.isModuleClass) {
       ??? // TODO singletone as ID -> Data, but Data is not predicate
     } else if(t.isClass) {
-      Type(fieldsOf(t))
+      Type(fieldsOf(t), Some(fullName(t)))
     } else {
       throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
     }
