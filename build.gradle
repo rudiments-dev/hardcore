@@ -127,8 +127,6 @@ configure(scalaModules()) {
         implementation 'com.typesafe.akka:akka-slf4j_2.13:2.6.17'
         implementation 'com.typesafe.akka:akka-stream_2.13:2.6.17'
 
-//        implementation 'org.scalikejdbc:scalikejdbc_2.13:4.0.0'
-
         implementation 'com.beachape:enumeratum_2.13:1.7.0'
 
         implementation 'com.typesafe.scala-logging:scala-logging_2.13:3.9.4'
@@ -136,9 +134,6 @@ configure(scalaModules()) {
 
         testImplementation 'org.scalatest:scalatest_2.13:3.2.10'
         testImplementation 'org.scalatestplus:junit-4-13_2.13:3.2.10.0'
-//        testImplementation 'com.dimafeng:testcontainers-scala_2.13:0.39.12'
-//        testImplementation 'com.dimafeng:testcontainers-scala-postgresql_2.13:0.39.12'
-//        testImplementation 'org.postgresql:postgresql:42.3.1'
 
         testImplementation 'junit:junit:4.13.2'
         testImplementation 'ch.qos.logback:logback-classic:1.2.7'

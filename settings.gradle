@@ -1,3 +1,4 @@
 rootProject.name = 'hardcore'
 include 'implementation'
 include 'http'
+include 'sql'
