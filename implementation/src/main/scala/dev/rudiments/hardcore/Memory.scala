@@ -3,10 +3,17 @@ package dev.rudiments.hardcore
 
 import scala.collection.mutable
 
-class Memory {
+abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] {
+  val f: PartialFunction[In, Out]
+  override def isDefinedAt(x: In): Boolean = f.isDefinedAt(x)
+  override def apply(x: In): Out = f.apply(x)
+}
+
+class Memory(override val in: Predicate, override val out: Predicate) extends Agent(in, out) {
   val state: mutable.SeqMap[ID, Data] = mutable.SeqMap.empty
 
-  def apply(in: In): Out = {
+  override val f: PartialFunction[In, Out] = {
+    case in: In =>
     skill.act(in) match {
       case evt: Event =>
         skill.commit(evt)
@@ -86,8 +93,17 @@ class Memory {
     }
   )
 
+  private val find: Skill = Skill(
+    act = {
+      case Find(All) => Found(All, state.toMap) //TODO filter predicate
+    },
+    commit = { //TODO remove reaction if In is Query?
+      case Found(_, found) => found.head._2
+    }
+  )
+
   private val skill: Skill = Skill(
-    act = read.act.orElse(create.act).orElse(update.act).orElse(delete.act),
+    act = read.act.orElse(create.act).orElse(update.act).orElse(delete.act).orElse(find.act),
     commit = create.commit.orElse(update.commit).orElse(delete.commit)
   )
 }

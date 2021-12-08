@@ -1,6 +1,7 @@
 package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.ScalaTypes._
+import dev.rudiments.hardcore.Size.{NegativeInfinity, PositiveInfinity}
 
 import scala.reflect.runtime.universe.{Type => SysType, _}
 
@@ -8,6 +9,7 @@ sealed trait Thing {}
 
 sealed trait Ref extends Thing {}
 final case class ID(k: Any) extends Ref
+final case class Path(ids: ID*) extends Ref
 final case class Data(p: Predicate, v: Any) extends Ref {
   def apply(cmd: Command): Event = ???
   def apply(evt: Event): Data = ???
@@ -44,11 +46,31 @@ final case class Index(of: Predicate, over: Predicate) extends Thing
 
 class Instruction(f: Any => Any) extends Thing {}
 sealed trait Expression extends Thing {}
-sealed trait Predicate extends Expression {}
+sealed trait Predicate extends Expression {
+  def validate(value: Any): Boolean
+}
 case class Skill(act: PartialFunction[In, Out], commit: PartialFunction[Out, Data]) extends Expression {}
 
-final case class Abstract(fields: Seq[Field] = Seq.empty) extends Predicate
-final case class Type(fields: Seq[Field] = Seq.empty, fullName: Option[String] = None) extends Predicate
+final case class Abstract(fields: Seq[Field] = Seq.empty, fullName: Option[String] = None) extends Predicate {
+  override def validate(value: Any): Boolean = {
+    (fullName, value) match {
+      case (Some(name), Data(Abstract(fields, Some(typeName)), _)) => this.fields == fields && name == typeName
+      case (None,       Data(Abstract(fields, None), _))           => this.fields == fields
+      //TODO compare with list of partners
+      case _ => false
+    }
+  }
+}
+final case class Type(fields: Seq[Field] = Seq.empty, fullName: Option[String] = None) extends Predicate {
+  override def validate(value: Any): Boolean = {
+    (fullName, value) match {
+      case (Some(name), Data(Type(fields, Some(typeName)), _)) => this.fields == fields && name == typeName
+      case (None,       Data(Type(fields, None), _))           => this.fields == fields
+      //TODO compare with list of partners
+      case _ => false
+    }
+  }
+}
 
 object Type {
   def build[A : TypeTag]: Predicate = make(typeOf[A])
@@ -67,7 +89,7 @@ object Type {
   def makeAlgebraic(symbol: Symbol): Predicate = {
     val t = symbol.asType
     if(t.isAbstract) {
-      Abstract(fieldsOf(t))
+      Abstract(fieldsOf(t), Some(fullName(t)))
     } else if(t.isModuleClass) {
       AllOf(fieldsOf(t): _*)
     } else if(t.isClass) {
@@ -82,15 +104,15 @@ object Type {
     if(paramLists.isEmpty) {
       Seq.empty
     } else {
-      Seq(paramLists.head.collect { case ts: TermSymbol => Field(this.name(ts), ifOption(ts)) }: _*)
+      Seq(paramLists.head.collect { case ts: TermSymbol => ifOption(ts) }: _*)
     }
   }
 
-  def ifOption(ts: TermSymbol): Predicate = {
+  def ifOption(ts: TermSymbol): Field = {
     if(ts.typeSignature <:< typeOf[Option[_]]) {
-      make(ts.typeSignature.typeArgs.head)
+      Field(this.name(ts), make(ts.typeSignature.typeArgs.head), required = false)
     } else {
-      AllOf(make(ts.typeSignature), Required)
+      Field(this.name(ts), make(ts.typeSignature), required = true)
     }
   }
 
@@ -98,29 +120,74 @@ object Type {
   def fullName(s: Symbol): String = s.fullName.trim
 }
 
-case class Field(name: String, p: Predicate) extends Predicate
+case class Field(name: String, p: Predicate, required: Boolean) extends Predicate {
+  override def validate(value: Any): Boolean = {
+    ???
+  }
+}
 
 sealed trait Plain extends Predicate {}
 
 object Plain {
-  case object Bool extends Plain
+  case object Bool extends Plain {
+    override def validate(value: Any): Boolean = value match {
+      case _: Boolean => true //TODO more checks?
+      case _ => false
+    }
+  }
 
   case class Text (
     maxSize: Size
-  ) extends Plain
+  ) extends Plain {
+    override def validate(value: Any): Boolean = value match {
+      case _: String => true //TODO more checks?
+      case _ => false
+    }
+  }
 
   case class Number (
     min: Size,
     max: Size,
     format: NumberFormat
-  ) extends Plain
+  ) extends Plain {
+    override def validate(value: Any): Boolean = value match {
+      case _: Byte if min == MinByte && max == MaxByte => true
+      case _: Short if min == MinShort && max == MaxShort => true
+      case _: Int if min == MinInt && max == MaxInt => true
+      case _: Long if min == MinLong && max == MaxLong => true
+      case _: BigInt if min == NegativeInfinity && max == PositiveInfinity => true
+      case _: BigDecimal if min == NegativeInfinity && max == PositiveInfinity => true //TODO more checks?
+      case _ => false
+    }
+  }
 
   sealed trait Temporal extends Plain {}
-  case object Date extends Temporal
-  case object Time extends Temporal
-  case object Timestamp extends Temporal
+  case object Date extends Temporal {
+    override def validate(value: Any): Boolean = value match {
+      case _: java.sql.Date => true
+      case _ => false
+    }
+  }
+  case object Time extends Temporal {
+    override def validate(value: Any): Boolean = value match {
+      case _:java.sql.Time => true
+      case _ => false
+    }
+  }
+  case object Timestamp extends Temporal {
+    override def validate(value: Any): Boolean = value match {
+      case _:java.sql.Timestamp => true
+      case _ => false
+    }
+  }
 
-  case object UUID extends Plain
+
+  case object UUID extends Plain {
+    override def validate(value: Any): Boolean = value match {
+      case _: java.util.UUID => true
+      case _ => false
+    }
+  }
 }
 
 
@@ -139,9 +206,23 @@ object NumberFormat {
   case object Decimal extends NumberFormat
 }
 
-sealed trait CompositePredicate extends Predicate {}
-case class AllOf(p: Predicate*) extends CompositePredicate
-case class AnyOf(p: Predicate*) extends CompositePredicate
-case class OneOf(p: Predicate*) extends CompositePredicate
+case object All extends Predicate {
+  override def validate(value: Any): Boolean = true
+}
 
-case object Required extends Predicate {} //TODO check various cases
+sealed trait CompositePredicate extends Predicate {}
+case class AllOf(p: Predicate*) extends CompositePredicate {
+  override def validate(value: Any): Boolean = {
+    p.forall(_.validate(value))
+  }
+}
+case class AnyOf(p: Predicate*) extends CompositePredicate {
+  override def validate(value: Any): Boolean = {
+    p.exists(_.validate(value))
+  }
+}
+case class OneOf(p: Predicate*) extends CompositePredicate {
+  override def validate(value: Any): Boolean = {
+    p.count(_.validate(value)) != 1
+  }
+}

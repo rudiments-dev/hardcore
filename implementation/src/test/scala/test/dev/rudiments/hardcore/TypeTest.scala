@@ -14,9 +14,9 @@ class TypeTest extends AnyWordSpec with Matchers {
     Type.build[Smt] should be (
       Type(
         Seq(
-          Field("id", AllOf(ScalaTypes.ScalaLong, Required)),
-          Field("name", AllOf(ScalaTypes.ScalaString, Required)),
-          Field("comment", ScalaTypes.ScalaString)
+          Field("id", ScalaTypes.ScalaLong, required = true),
+          Field("name", ScalaTypes.ScalaString, required = true),
+          Field("comment", ScalaTypes.ScalaString, required = false)
         ), Some("test.dev.rudiments.Smt")
       )
     )
@@ -24,7 +24,7 @@ class TypeTest extends AnyWordSpec with Matchers {
 
   "can build type from trait" in {
     Type.build[Blah] should be (
-      Abstract()
+      Abstract(Seq.empty, Some("test.dev.rudiments.Blah"))
     )
   }
 }
