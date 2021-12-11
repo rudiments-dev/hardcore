@@ -10,7 +10,7 @@ trait Router {
   val routes: Route
   val path: Path
 
-  val pathDirective: Directive0 = path.ids.map {
+  lazy val pathDirective: Directive0 = path.ids.map {
     case ID(None) => pathSingleSlash
     case ID(a) => pathPrefix(a.toString)
   }.reduce(_ and _)

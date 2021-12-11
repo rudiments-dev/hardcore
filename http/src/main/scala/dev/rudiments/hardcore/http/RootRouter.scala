@@ -10,7 +10,7 @@ import ch.megard.akka.http.cors.scaladsl.CorsDirectives
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
-import dev.rudiments.hardcore.Path
+import dev.rudiments.hardcore.{ID, Path}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -18,15 +18,12 @@ import scala.util.{Failure, Success}
 class RootRouter(
   config: Config,
   routers: Router*
-)(implicit
-  actorSystem: ActorSystem,
-  mat: Materializer
-) extends Router with StrictLogging {
+)(implicit actorSystem: ActorSystem) extends Router with StrictLogging {
 
   private implicit val ec: ExecutionContext = actorSystem.getDispatcher
   private val prefixExists = config.hasPath(RootRouter.prefixPath)
   private val prefix = if(prefixExists) Some(config.getString(RootRouter.prefixPath)) else None
-  override val path: Path = Path()
+  override val path: Path = prefix.map(p => Path(ID(p))).getOrElse(Path(ID("api")))
 
   override val routes: Route =
     CorsDirectives.cors(CorsSettings(config.getConfig(RootRouter.rootPath))) {
