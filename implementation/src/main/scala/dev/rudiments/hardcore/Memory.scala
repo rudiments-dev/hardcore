@@ -9,7 +9,7 @@ abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunct
   override def apply(x: In): Out = f.apply(x)
 }
 
-class Memory(override val in: Predicate, override val out: Predicate) extends Agent(in, out) {
+class Memory(override val in: Predicate = Type.build[In], override val out: Predicate = Type.build[Out]) extends Agent(in, out) {
   val state: mutable.SeqMap[ID, Data] = mutable.SeqMap.empty
 
   override val f: PartialFunction[In, Out] = {

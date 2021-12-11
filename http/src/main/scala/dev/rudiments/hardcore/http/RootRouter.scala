@@ -10,6 +10,7 @@ import ch.megard.akka.http.cors.scaladsl.CorsDirectives
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
+import dev.rudiments.hardcore.Path
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -25,12 +26,13 @@ class RootRouter(
   private implicit val ec: ExecutionContext = actorSystem.getDispatcher
   private val prefixExists = config.hasPath(RootRouter.prefixPath)
   private val prefix = if(prefixExists) Some(config.getString(RootRouter.prefixPath)) else None
+  override val path: Path = Path()
 
   override val routes: Route =
     CorsDirectives.cors(CorsSettings(config.getConfig(RootRouter.rootPath))) {
       prefix match {
-        case Some(pre)  => Directives.pathPrefix(pre) { routers.map(_.routes).reduce(_ ~ _) }
-        case None       => routers.map(_.routes).reduce(_ ~ _)
+        case Some(pre)  => Directives.pathPrefix(pre) { routers.map(r => r.pathDirective { r.routes }).reduce(_ ~ _) }
+        case None       => routers.map(r => r.pathDirective { r.routes }).reduce(_ ~ _)
       }
     }
 

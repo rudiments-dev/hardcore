@@ -18,7 +18,7 @@ final case class Data(p: Predicate, v: Any) extends Ref {
     p match {
       case _: Plain => v.asInstanceOf[T] // validate?
       case Type(_, Some(fullName)) =>
-        Class.forName(fullName).getConstructors()(0)
+        Class.forName(fullName).getConstructors()(0) //TODO internal classes via $
           .newInstance(v.asInstanceOf[Seq[Object]]: _*).asInstanceOf[T]
       case other => throw new IllegalArgumentException(s"Can't reconstruct from $other")
     }
