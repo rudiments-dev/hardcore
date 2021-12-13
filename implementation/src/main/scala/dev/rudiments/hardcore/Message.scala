@@ -9,22 +9,25 @@ trait Event extends Out {}
 trait Report extends Out {}
 trait Error extends Out {}
 
-sealed trait CRUD {}
-case class Create(id: ID, data: Data) extends Command with CRUD
-case class Read(id: ID) extends Query with CRUD
-case class Update(id: ID, data: Data) extends Command with CRUD
-case class Delete(id: ID) extends Command with CRUD
+sealed abstract class CRUD(val id: ID) {}
+case class Create(override val id: ID, data: Data) extends CRUD(id) with Command
+case class Read(override val id: ID) extends CRUD(id) with Query
+case class Update(override val id: ID, data: Data) extends CRUD(id) with Command
+case class Delete(override val id: ID) extends CRUD(id) with Command
 
-case class Created(id: ID, data: Data) extends Event with CRUD
-case class Readen(id: ID, data: Data) extends Report with CRUD
-case class Updated(id: ID, oldData: Data, newData: Data) extends Event with CRUD
-case class Deleted(id: ID, data: Data) extends Event with CRUD
+case class Created(override val id: ID, data: Data) extends CRUD(id) with Event
+case class Readen(override val id: ID, data: Data) extends CRUD(id) with Report
+case class Updated(override val id: ID, oldData: Data, newData: Data) extends CRUD(id) with Event
+case class Deleted(override val id: ID, data: Data) extends CRUD(id) with Event
 
-case class NotFound(id: ID) extends Error with CRUD
-case class AlreadyExist(id: ID, data: Data) extends Error with CRUD
-case class Conflict(id: ID) extends Error with CRUD
+case class NotFound(override val id: ID) extends CRUD(id) with Error
+case class AlreadyExist(override val id: ID, data: Data) extends CRUD(id) with Error
+case class Conflict(override val id: ID) extends CRUD(id) with Error
 
 
 case class Find(p: Predicate = All) extends Query
-
 case class Found(p: Predicate, data: Map[ID, Data]) extends Report
+
+//TODO naming
+case class Apply(log: Seq[In]) extends Command
+case class Commit(events: Seq[(In, Out)]) extends Event

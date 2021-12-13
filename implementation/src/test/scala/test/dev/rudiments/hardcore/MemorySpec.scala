@@ -50,4 +50,38 @@ class MemorySpec extends AnyWordSpec with Matchers {
   "NotFound if Delete with wrong ID" in {
     agent(Delete(wrongId)) should be (NotFound(wrongId))
   }
+
+  "can Apply bunch of commands" in {
+    agent(
+      Apply( Seq(
+        Create(ID(1L), Smt(1, "1", None).asData),
+        Create(ID(2L), Smt(2, "2", None).asData),
+        Create(ID(3L), Smt(3, "3", None).asData)
+      ))
+    ) should be (
+      Commit( Seq(
+        Create(ID(1L), Smt(1, "1", None).asData) -> Created(ID(1L), Smt(1, "1", None).asData),
+        Create(ID(2L), Smt(2, "2", None).asData) -> Created(ID(2L), Smt(2, "2", None).asData),
+        Create(ID(3L), Smt(3, "3", None).asData) -> Created(ID(3L), Smt(3, "3", None).asData)
+      ))
+    )
+
+    agent(
+      Apply( Seq(
+        Update(ID(1L), Smt(12, "12", None).asData),
+        Delete(ID(2L)),
+        Create(ID(4L), Smt(4, "4", None).asData)//, Update(ID(4L), Smt(42, "42", None).asData)
+      ))
+    ) should be (
+      Commit( Seq(
+        Update(ID(1L), Smt(12, "12", None).asData) -> Updated(ID(1L), Smt(1, "1", None).asData, Smt(12, "12", None).asData),
+        Delete(ID(2L)) -> Deleted(ID(2L), Smt(2, "2", None).asData),
+        Create(ID(4L), Smt(4, "4", None).asData) -> Created(ID(4L), Smt(4, "4", None).asData)
+      ))
+    )
+  }
+
+  "fail Apply if conflict data" in {
+
+  }
 }

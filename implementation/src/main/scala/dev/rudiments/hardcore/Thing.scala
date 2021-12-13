@@ -28,7 +28,7 @@ final case class Data(p: Predicate, v: Any) extends Ref {
 object Data {
   def build[T : TypeTag](args: Any*): Data = {
     val t = Type.build[T]
-    Data(t, Seq(args: _*))
+    Data(t, args)
   }
 
   def apply[T : TypeTag](value: T): Data = value match {
@@ -41,8 +41,6 @@ object Data {
     case p: Product => build[T](p.productIterator.toList: _*)
   }
 }
-final case class List(item: Predicate) extends Thing
-final case class Index(of: Predicate, over: Predicate) extends Thing
 
 class Instruction(f: Any => Any) extends Thing {}
 sealed trait Expression extends Thing {}
@@ -50,6 +48,13 @@ sealed trait Predicate extends Expression {
   def validate(value: Any): Boolean
 }
 case class Skill(act: PartialFunction[In, Out], commit: PartialFunction[Out, Data]) extends Expression {}
+
+final case class List(item: Predicate) extends Predicate {
+  override def validate(value: Any): Boolean = true //TODO fix
+}
+final case class Index(of: Predicate, over: Predicate) extends Predicate {
+  override def validate(value: Any): Boolean = true //TODO fix
+}
 
 final case class Abstract(fields: Seq[Field] = Seq.empty, fullName: Option[String] = None) extends Predicate {
   override def validate(value: Any): Boolean = {
