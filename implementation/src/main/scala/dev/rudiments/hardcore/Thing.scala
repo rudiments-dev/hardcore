@@ -8,8 +8,14 @@ import scala.reflect.runtime.universe.{Type => SysType, _}
 sealed trait Thing {}
 
 sealed trait Ref extends Thing {}
-final case class ID(k: Any) extends Ref
-final case class Path(ids: ID*) extends Ref
+final case class ID(k: Any) extends Ref {
+  def /(id: ID): Path = Path(this, id)
+  def /(path: Path): Path = Path(this +: path.ids :_*)
+}
+final case class Path(ids: ID*) extends Ref {
+  def /(id: ID): Path = Path(ids :+ id :_*)
+  def /(path: Path): Path = Path(ids :++ path.ids :_*)
+}
 final case class Data(p: Predicate, v: Any) extends Ref {
   def apply(cmd: Command): Event = ???
   def apply(evt: Event): Data = ???
