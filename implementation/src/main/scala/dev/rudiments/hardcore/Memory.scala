@@ -6,7 +6,7 @@ class Memory(
   override val in: Predicate = Type.build[In],
   override val out: Predicate = Type.build[Out]
 ) extends Agent(in, out) {
-  val state: mutable.SeqMap[ID, Data] = mutable.SeqMap.empty
+  val state: mutable.SeqMap[ID, Thing] = mutable.SeqMap.empty
 
   override val f: PartialFunction[In, Out] = {
     case in: In =>

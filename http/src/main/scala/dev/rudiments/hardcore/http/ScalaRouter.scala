@@ -36,16 +36,17 @@ class ScalaRouter[T : TypeTag : Encoder : Decoder](
     }
 
   def responseWith(event: Out): StandardRoute = event match {
-    case Created(_, value) =>        complete(StatusCodes.Created, value)
-    case Readen(_, value) =>         complete(StatusCodes.OK, value)
-    case Updated(_, _, newValue) =>  complete(StatusCodes.OK, newValue)
-    case Deleted(_, _) =>            complete(StatusCodes.NoContent)
-    case Found(_, values) =>         complete(StatusCodes.OK, values.values)
+    case Created(_, value: Data) =>       complete(StatusCodes.Created, value)
+    case Readen(_, value: Data) =>        complete(StatusCodes.OK, value)
+    case Updated(_, _, newValue: Data) => complete(StatusCodes.OK, newValue)
+    case Deleted(_, _) =>                 complete(StatusCodes.NoContent)
 
-    case NotFound(_) =>              complete(StatusCodes.NotFound)
-    case AlreadyExist(_, _) =>       complete(StatusCodes.Conflict)
+    case Found(_, values: Map[ID, Data]) => complete(StatusCodes.OK, values.values)
 
-    case _: Error =>                 complete(StatusCodes.InternalServerError)
-    case _ =>                        complete(StatusCodes.InternalServerError)
+    case NotFound(_) =>        complete(StatusCodes.NotFound)
+    case AlreadyExist(_, _) => complete(StatusCodes.Conflict)
+
+    case _: Error =>           complete(StatusCodes.InternalServerError)
+    case _ =>                  complete(StatusCodes.InternalServerError)
   }
 }

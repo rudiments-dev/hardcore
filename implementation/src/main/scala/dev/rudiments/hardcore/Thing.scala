@@ -56,7 +56,7 @@ sealed trait Predicate extends Expression {
 trait Skill extends Expression {}
 object Skill {
   def apply(act: PartialFunction[In, Out]): RO = RO(act)
-  def apply(act: PartialFunction[In, Out], commit: PartialFunction[Out, Data]): RW = RW(act, commit)
+  def apply(act: PartialFunction[In, Out], commit: PartialFunction[Out, Thing]): RW = RW(act, commit)
   def apply(roSkills: RO*): RO = RO(roSkills.map(_.act).reduce(_ orElse _))
   def apply(skills: Skill*): RW = {
     val groupped = skills.groupBy {
@@ -74,7 +74,7 @@ object Skill {
   }
 }
 case class RO(act: PartialFunction[In, Out]) extends Skill {}
-case class RW(act: PartialFunction[In, Out], commit: PartialFunction[Out, Data]) extends Skill {}
+case class RW(act: PartialFunction[In, Out], commit: PartialFunction[Out, Thing]) extends Skill {}
 
 final case class List(item: Predicate) extends Predicate {
   override def validate(value: Any): Boolean = true //TODO fix

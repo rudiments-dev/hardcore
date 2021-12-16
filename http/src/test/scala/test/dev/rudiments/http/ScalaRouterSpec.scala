@@ -2,12 +2,10 @@ package test.dev.rudiments.http
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.ScalaTypes.ScalaLong
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
-import io.circe.Decoder.Result
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
