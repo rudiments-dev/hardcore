@@ -70,13 +70,14 @@ class MemorySpec extends AnyWordSpec with Matchers {
       Apply( Seq(
         Update(ID(1L), Smt(12, "12", None).asData),
         Delete(ID(2L)),
-        Create(ID(4L), Smt(4, "4", None).asData)//, Update(ID(4L), Smt(42, "42", None).asData)
+        Create(ID(4L), Smt(4, "4", None).asData),
+        Update(ID(4L), Smt(42, "42", None).asData)
       ))
     ) should be (
-      Commit( Seq(
-        Update(ID(1L), Smt(12, "12", None).asData) -> Updated(ID(1L), Smt(1, "1", None).asData, Smt(12, "12", None).asData),
-        Delete(ID(2L)) -> Deleted(ID(2L), Smt(2, "2", None).asData),
-        Create(ID(4L), Smt(4, "4", None).asData) -> Created(ID(4L), Smt(4, "4", None).asData)
+      Commit( Map(
+          ID(1L) -> Updated(ID(1L), Smt(1, "1", None).asData, Smt(12, "12", None).asData),
+          ID(2L) -> Deleted(ID(2L), Smt(2, "2", None).asData),
+          ID(4L) -> Created(ID(4L), Smt(42, "42", None).asData)
       ))
     )
   }

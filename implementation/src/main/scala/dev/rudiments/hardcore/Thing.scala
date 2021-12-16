@@ -42,12 +42,39 @@ object Data {
   }
 }
 
+abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] with Ref {
+  val f: PartialFunction[In, Out]
+  override def isDefinedAt(x: In): Boolean = f.isDefinedAt(x)
+  override def apply(x: In): Out = f.apply(x)
+}
+
 class Instruction(f: Any => Any) extends Thing {}
 sealed trait Expression extends Thing {}
 sealed trait Predicate extends Expression {
   def validate(value: Any): Boolean
 }
-case class Skill(act: PartialFunction[In, Out], commit: PartialFunction[Out, Data]) extends Expression {}
+trait Skill extends Expression {}
+object Skill {
+  def apply(act: PartialFunction[In, Out]): RO = RO(act)
+  def apply(act: PartialFunction[In, Out], commit: PartialFunction[Out, Data]): RW = RW(act, commit)
+  def apply(roSkills: RO*): RO = RO(roSkills.map(_.act).reduce(_ orElse _))
+  def apply(skills: Skill*): RW = {
+    val groupped = skills.groupBy {
+      case _: RW => "cmd"
+      case _: RO => "evt"
+    }
+      RW(
+        act = skills.map {
+          case q: RO => q.act
+          case c: RW => c.act
+        }.reduce(_ orElse _),
+
+        commit = groupped("cmd").map { case c: RW => c.commit }.reduce(_ orElse _)
+      )
+  }
+}
+case class RO(act: PartialFunction[In, Out]) extends Skill {}
+case class RW(act: PartialFunction[In, Out], commit: PartialFunction[Out, Data]) extends Skill {}
 
 final case class List(item: Predicate) extends Predicate {
   override def validate(value: Any): Boolean = true //TODO fix

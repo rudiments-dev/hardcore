@@ -1,40 +1,31 @@
 package dev.rudiments.hardcore
 
-
 import scala.collection.mutable
 
-abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] {
-  val f: PartialFunction[In, Out]
-  override def isDefinedAt(x: In): Boolean = f.isDefinedAt(x)
-  override def apply(x: In): Out = f.apply(x)
-}
-
-class Memory(override val in: Predicate = Type.build[In], override val out: Predicate = Type.build[Out]) extends Agent(in, out) {
+class Memory(
+  override val in: Predicate = Type.build[In],
+  override val out: Predicate = Type.build[Out]
+) extends Agent(in, out) {
   val state: mutable.SeqMap[ID, Data] = mutable.SeqMap.empty
 
   override val f: PartialFunction[In, Out] = {
     case in: In =>
-    skill.act(in) match {
-      case evt: Event =>
-        skill.commit(evt)
-        evt
-      case other => other
-    }
+      skill.act(in) match {
+        case evt: Event =>
+          skill.commit(evt)
+          evt
+        case other => other
+      }
   }
 
   def read(id: ID): Out = read.act(Read(id))
 
-  private val read: Skill = Skill(
-    act = {
-      case Read(id) => state.get(id) match {
-        case Some(found) => Readen(id, found)
-        case None => NotFound(id)
-      }
-    },
-    commit = { //TODO remove reaction if In is Query?
-      case Readen(_, found) => found
+  private val read: RO = RO {
+    case Read(id) => state.get(id) match {
+      case Some(found) => Readen(id, found)
+      case None => NotFound(id)
     }
-  )
+  }
 
   private val create: Skill = Skill(
     act = {
@@ -93,50 +84,30 @@ class Memory(override val in: Predicate = Type.build[In], override val out: Pred
     }
   )
 
-  private val find: Skill = Skill(
-    act = {
-      case Find(All) => Found(All, state.toMap) //TODO filter predicate
-    },
-    commit = { //TODO remove reaction if In is Query?
-      case Found(_, found) => found.head._2
-    }
-  )
+  private val find: Skill = RO {
+    case Find(All) => Found(All, state.toMap) //TODO filter predicate
+  }
 
-  private val commit: Skill = Skill(
+
+  private val commit: RW = Skill(
     act = {
       case Apply(commands) =>
-        val result: Seq[(Command, Event)] = commands
-          .map { cmd => cmd -> skill.act(cmd) }
-          .collect { case it: (Command, Event) => it } //TODO not hide failures? or propagate errors?
+        val result: Seq[(In, Out)] = Apply.collapse(commands).values.map { cmd =>
+          cmd -> skill.act(cmd)
+        }.toSeq
         Commit(result)
     },
     commit = {
-      case Commit(events) =>
-        val prepare = events.collect {
-          case (_, crud: CRUD) => crud.id -> crud
-        }.foldLeft(Map.empty[ID, Event]) {
-          (acc, evt) =>
-            val r = acc.get(evt._1) match {
-              case None =>
-                evt._2 match { case crud: Event with CRUD => crud.id -> crud }
-              case Some(found) =>
-                (found, evt._2) match {
-                  case (Created(id1, d1), Updated(id2, _, d22)) if id1 == id2 && d1 == d22 => id1 -> Created(id1, d22)
-                  case (Updated(id1, d11, d12), Updated(id2, d21, d22)) if id1 == id2 && d12 == d21 => id1 -> Updated(id1, d11, d22)
-                  case (Created(id1, d1), Deleted(id2, d2)) if id1 == id2 && d1 == d2 => id1 -> Deleted(id1, d1)
-                  case (Updated(id1, _, d12), Deleted(id2, d2)) if id1 == id2 && d12 == d2 => id1 -> Deleted(id1, d12)
-                  case (_, _) => throw new IllegalArgumentException("Conflict")
-                }
-            }
-            acc + r
+      case Commit(delta, extra) =>
+        val data = delta.map {
+          case (id, evt) => id -> skill.commit(evt)
         }
-        val data = prepare.map { case (id, evt) => id -> skill.commit(evt) }
+        extra.foreach {
+          case (_, evt: Event) => skill.commit(evt) //TODO log? ignore?
+        }
         new Data(Index(Type.build[ID], Type.build[Data]), data)
     }
   )
 
-  private val skill: Skill = Skill(
-    act = read.act.orElse(create.act).orElse(update.act).orElse(delete.act).orElse(find.act).orElse(commit.act),
-    commit = create.commit.orElse(update.commit).orElse(delete.commit).orElse(commit.commit)
-  )
+  private val skill: RW = Skill(create, read, update, delete, find, commit)
 }
