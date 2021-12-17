@@ -4,9 +4,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.app.{Body, Example}
-import dev.rudiments.hardcore.ScalaTypes.ScalaLong
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
+import dev.rudiments.hardcore.http.CirceSupport
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -19,8 +18,8 @@ class ExampleSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with
   private val example = new Example()
   private val router = example.router
   private val routes = router.routes
-  private implicit val en: Encoder[Data] = router.en
-  private implicit val de: Decoder[Data] = router.de
+  private implicit val en: Encoder[Thing] = example.encoder
+  private implicit val de: Decoder[Thing] = example.decoder
 
   private val sample: Data = Body("some name", Seq("some data")).asData
 
@@ -46,29 +45,29 @@ class ExampleSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with
   }
 
   "put item into repository" in {
-    Post("/example/42", sample) ~> routes ~> check {
+    Post("/example/42", sample.asInstanceOf[Thing]) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      responseAs[Data] should be (sample)
+      responseAs[Thing] should be (sample)
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Data] should be (sample)
+      responseAs[Thing] should be (sample)
     }
   }
 
   "update item in repository" in {
-    Put("/example/42", Body("name", Seq("some", "data")).asData) ~> routes ~> check {
+    Put("/example/42", Body("name", Seq("some", "data")).asData.asInstanceOf[Thing]) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Data] should be (Body("name", Seq("some", "data")).asData)
+      responseAs[Thing] should be (Body("name", Seq("some", "data")).asData)
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Data] should be (Body("name", Seq("some", "data")).asData)
+      responseAs[Thing] should be (Body("name", Seq("some", "data")).asData)
     }
   }
 
   "second POST with same item conflicts with existing" in {
-    Post("/example/42", Body("test", Seq.empty).asData) ~> routes ~> check {
+    Post("/example/42", Body("test", Seq.empty).asData.asInstanceOf[Thing]) ~> routes ~> check {
       response.status should be (StatusCodes.Conflict)
     }
   }

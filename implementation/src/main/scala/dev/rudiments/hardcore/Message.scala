@@ -28,6 +28,8 @@ case class Conflict(override val id: ID) extends CRUD(id) with Error
 case class Find(p: Predicate = All) extends Query
 case class Found(p: Predicate, data: Map[ID, Thing]) extends Report
 
+case class NotImplemented(in: In) extends Error
+
 //TODO naming
 case class Apply(log: Seq[In]) extends Command
 object Apply {

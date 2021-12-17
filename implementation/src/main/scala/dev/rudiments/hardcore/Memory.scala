@@ -2,32 +2,19 @@ package dev.rudiments.hardcore
 
 import scala.collection.mutable
 
-class Memory(
-  override val in: Predicate = Type.build[In],
-  override val out: Predicate = Type.build[Out]
-) extends Agent(in, out) {
+class Memory() extends Agent(Type.build[In], Type.build[Out]) {
   val state: mutable.SeqMap[ID, Thing] = mutable.SeqMap.empty
-
-  override val f: PartialFunction[In, Out] = {
-    case in: In =>
-      skill.act(in) match {
-        case evt: Event =>
-          skill.commit(evt)
-          evt
-        case other => other
-      }
-  }
 
   def read(id: ID): Out = read.act(Read(id))
 
-  private val read: RO = RO {
+  val read: RO = RO {
     case Read(id) => state.get(id) match {
       case Some(found) => Readen(id, found)
       case None => NotFound(id)
     }
   }
 
-  private val create: Skill = Skill(
+  val create: RW = Skill(
     act = {
       case Create(id, data) => read(id) match {
         case Readen(i, found) => AlreadyExist(i, found)
@@ -45,7 +32,7 @@ class Memory(
     }
   )
 
-  private val update: Skill = Skill(
+  val update: RW = Skill(
     act = {
       case Update(id, data) => read(id) match {
         case Readen(i, found) => Updated(i, found, data)
@@ -64,7 +51,7 @@ class Memory(
     }
   )
 
-  private val delete: Skill = Skill(
+  val delete: RW = Skill(
     act = {
       case Delete(id) => read(id) match {
         case Readen(i, found) => Deleted(i, found)
@@ -84,30 +71,9 @@ class Memory(
     }
   )
 
-  private val find: Skill = RO {
+  val find: RO = RO {
     case Find(All) => Found(All, state.toMap) //TODO filter predicate
   }
 
-
-  private val commit: RW = Skill(
-    act = {
-      case Apply(commands) =>
-        val result: Seq[(In, Out)] = Apply.collapse(commands).values.map { cmd =>
-          cmd -> skill.act(cmd)
-        }.toSeq
-        Commit(result)
-    },
-    commit = {
-      case Commit(delta, extra) =>
-        val data = delta.map {
-          case (id, evt) => id -> skill.commit(evt)
-        }
-        extra.foreach {
-          case (_, evt: Event) => skill.commit(evt) //TODO log? ignore?
-        }
-        new Data(Index(Type.build[ID], Type.build[Data]), data)
-    }
-  )
-
-  private val skill: RW = Skill(create, read, update, delete, find, commit)
+  override val skill: RW = Skill(create, read, update, delete, find, commit)
 }

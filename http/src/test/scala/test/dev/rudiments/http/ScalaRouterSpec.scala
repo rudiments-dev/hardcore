@@ -6,6 +6,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.ScalaTypes.ScalaLong
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -17,9 +18,11 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   private val memory = new Memory()
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
+  private implicit val en: Encoder[Thing] = deriveEncoder[Smt].contramap { case d: Data => d.reconstruct[Smt]() }
+  private implicit val dataEncoder: Encoder[Data] = deriveEncoder[Smt].contramap { case d: Data => d.reconstruct[Smt]() }
+  private implicit val de: Decoder[Thing] = deriveDecoder[Smt].map(_.asData)
+
   private val router = new ScalaRouter[Smt](Path(ID("example")), ScalaLong, memory)
-  private implicit val en: Encoder[Data] = router.en
-  private implicit val de: Decoder[Data] = router.de
 
   private val routes = router.seal()
   private val sample: Data = Smt(42, "sample", None).asData
@@ -33,7 +36,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   }
 
   "InstanceDecoder can decode" in {
-    val decoded = router.de.decodeJson(Json.obj(
+    val decoded = de.decodeJson(Json.obj(
       "id" -> Json.fromLong(42),
       "name" -> Json.fromString("sample"),
       "comment" -> Json.Null
@@ -50,22 +53,22 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   "put item into repository" in {
     Post("/example/42", sample) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      responseAs[Data] should be (sample)
+      responseAs[Thing] should be (sample)
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Data] should be (sample)
+      responseAs[Thing] should be (sample)
     }
   }
 
   "update item in repository" in {
     Put("/example/42", Smt(42L, "test", None).asData) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Data] should be (Smt(42L, "test", None).asData)
+      responseAs[Thing] should be (Smt(42L, "test", None).asData)
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Data] should be (Smt(42L, "test", None).asData)
+      responseAs[Thing] should be (Smt(42L, "test", None).asData)
     }
   }
 

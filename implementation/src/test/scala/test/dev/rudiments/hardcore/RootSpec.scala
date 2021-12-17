@@ -11,59 +11,59 @@ import scala.collection.mutable
 
 @RunWith(classOf[JUnitRunner])
 class RootSpec extends AnyWordSpec with Matchers {
-  private val root = new Root
-  private val somePath = ID("one")/ID(42)/ID("path")
+  private implicit val space: Space = new Space()
+  private val somePath: Path = ID("one")/ID(42)/ID("path")
 
-  private val path = somePath / ID("agent")
+  private val path: Path = somePath / ID("agent")
 
   private val id = ID("42")
   private val data = Smt(42L, "test", None).asData
 
   "able to navigate the path" in {
-    root.add(somePath, ID("agent"), new Memory())
-    root.find(path).state should be (mutable.SeqMap.empty[ID, Thing])
+    space.add(somePath, ID("agent"), new Memory())
+    path.find.state should be (mutable.SeqMap.empty[ID, Thing])
   }
 
   "NotFound by ID" in {
-    root(path, Read(id)) should be (NotFound(id))
+    path(Read(id)) should be (NotFound(id))
   }
 
   "can Create" in {
-    root(path, Create(id, data)) should be (Created(id, data))
+    path(Create(id, data)) should be (Created(id, data))
   }
 
   "can Read existing ID" in {
-    root(path, Read(id)) should be (Readen(id, data))
+    path(Read(id)) should be (Readen(id, data))
   }
 
   private val elseData = Smt(31, "sample", Some("thing")).asData
   "can Update" in {
-    root(path, Update(id, elseData))
+    path(Update(id, elseData))
   }
 
   "can Read updated ID" in {
-    root(path, Read(id)) should be (Readen(id, elseData))
+    path(Read(id)) should be (Readen(id, elseData))
   }
 
   "can Delete" in {
-    root(path, Delete(id)) should be (Deleted(id, elseData))
+    path(Delete(id)) should be (Deleted(id, elseData))
   }
 
   "NotFound after Delete" in {
-    root(path, Read(id)) should be (NotFound(id)) // or Deleted(id, elseData) ?
+    path(Read(id)) should be (NotFound(id)) // or Deleted(id, elseData) ?
   }
 
   private val wrongId = ID(666)
   "NotFound if Update with wrong ID" in {
-    root(path, Update(wrongId, data)) should be (NotFound(wrongId))
+    path(Update(wrongId, data)) should be (NotFound(wrongId))
   }
 
   "NotFound if Delete with wrong ID" in {
-    root(path, Delete(wrongId)) should be (NotFound(wrongId))
+    path(Delete(wrongId)) should be (NotFound(wrongId))
   }
 
   "can Apply bunch of commands" in {
-    root( path,
+    path(
       Apply( Seq(
         Create(ID(1L), Smt(1, "1", None).asData),
         Create(ID(2L), Smt(2, "2", None).asData),
@@ -77,7 +77,7 @@ class RootSpec extends AnyWordSpec with Matchers {
       ))
     )
 
-    root(path,
+    path(
       Apply( Seq(
         Update(ID(1L), Smt(12, "12", None).asData),
         Delete(ID(2L)),

@@ -9,7 +9,7 @@ import test.dev.rudiments.Smt
 
 @RunWith(classOf[JUnitRunner])
 class MemorySpec extends AnyWordSpec with Matchers {
-  private val agent = new Memory(Type.build[In], Type.build[Out])
+  private val agent = new Memory()
   private val data = Smt(13, "test", None).asData
   private val id = ID(42)
 

@@ -4,18 +4,17 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import dev.rudiments.hardcore._
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, KeyEncoder}
 
 import scala.reflect.runtime.universe.TypeTag
 
-class ScalaRouter[T : TypeTag : Encoder : Decoder](
+class ScalaRouter[T : TypeTag](
   override val path: Path,
   val id: Predicate,
   val agent: Agent
-) extends Router with CirceSupport {
-  implicit val de: Decoder[Data] = implicitly[Decoder[T]].map(raw => Data.apply[T](raw))
-  implicit val en: Encoder[Data] = implicitly[Encoder[T]].contramap(_.reconstruct[T]())
-  implicit val idEncoder: Encoder[ID] = Encoder.encodeString.contramap(id => id.k.toString)
+)(implicit en: Encoder[Thing], de: Decoder[Thing]) extends Router with CirceSupport {
+  implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.k.toString)
+  implicit val valEncoder: Encoder[Map[ID, Thing]] = Encoder.encodeMap[ID, Thing]
 
   override val routes: Route = {
       plainId(id) { id =>
@@ -23,7 +22,7 @@ class ScalaRouter[T : TypeTag : Encoder : Decoder](
           responseWith(agent(Read(id)))
         } ~ delete {
           responseWith(agent(Delete(id)))
-        } ~ entity(as[Data]) { data =>
+        } ~ entity(as[Thing]) { data =>
           post {
             responseWith(agent(Create(id, data)))
           } ~ put {
@@ -36,12 +35,12 @@ class ScalaRouter[T : TypeTag : Encoder : Decoder](
     }
 
   def responseWith(event: Out): StandardRoute = event match {
-    case Created(_, value: Data) =>       complete(StatusCodes.Created, value)
-    case Readen(_, value: Data) =>        complete(StatusCodes.OK, value)
-    case Updated(_, _, newValue: Data) => complete(StatusCodes.OK, newValue)
+    case Created(_, value: Thing) =>       complete(StatusCodes.Created, value)
+    case Readen(_, value: Thing) =>        complete(StatusCodes.OK, value)
+    case Updated(_, _, newValue: Thing) => complete(StatusCodes.OK, newValue)
     case Deleted(_, _) =>                 complete(StatusCodes.NoContent)
 
-    case Found(_, values: Map[ID, Data]) => complete(StatusCodes.OK, values.values)
+    case Found(_, values: Map[ID, Thing]) => complete(StatusCodes.OK, values)
 
     case NotFound(_) =>        complete(StatusCodes.NotFound)
     case AlreadyExist(_, _) => complete(StatusCodes.Conflict)

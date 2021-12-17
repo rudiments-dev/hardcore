@@ -3,7 +3,7 @@ package dev.rudiments.hardcore
 import dev.rudiments.hardcore.ScalaTypes._
 import dev.rudiments.hardcore.Size.{NegativeInfinity, PositiveInfinity}
 
-import scala.reflect.runtime.universe.{Type => SysType, _}
+import scala.reflect.runtime.universe.{Type => SysType, Apply => Appl, _}
 
 sealed trait Thing {}
 
@@ -15,6 +15,9 @@ final case class ID(k: Any) extends Ref {
 final case class Path(ids: ID*) extends Ref {
   def /(id: ID): Path = Path(ids :+ id :_*)
   def /(path: Path): Path = Path(ids :++ path.ids :_*)
+
+  def find(implicit space: Space): Memory = space.find(this)
+  def apply(in: In)(implicit space: Space): Out = space.find(this).apply(in)
 }
 final case class Data(p: Predicate, v: Any) extends Ref {
   def apply(cmd: Command): Event = ???
@@ -49,9 +52,46 @@ object Data {
 }
 
 abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] with Ref {
-  val f: PartialFunction[In, Out]
+  val skill: RW
+  val f: PartialFunction[In, Out] = {
+    case in: In =>
+      skill.act(in) match {
+        case evt: Event =>
+          skill.commit(evt)
+          evt
+        case other => other
+      }
+  }
+
   override def isDefinedAt(x: In): Boolean = f.isDefinedAt(x)
   override def apply(x: In): Out = f.apply(x)
+
+  val commit: RW = Skill(
+    act = {
+      case Apply(commands) =>
+        val result: Seq[(In, Out)] = Apply.collapse(commands).values.map { cmd =>
+          cmd -> skill.act(cmd)
+        }.toSeq
+        Commit(result)
+    },
+    commit = {
+      case Commit(delta, extra) =>
+        val data = delta.map {
+          case (id, evt) => id -> skill.commit(evt)
+        }
+        extra.foreach {
+          case (_, evt: Event) => skill.commit(evt) //TODO log? ignore?
+        }
+        new Data(Index(Type.build[ID], Type.build[Data]), data)
+    }
+  )
+}
+
+abstract class AgentRead(
+  override val in: Predicate,
+  override val out: Predicate
+) extends Agent(in, out) {
+  def read(id: ID): Out
 }
 
 class Instruction(f: Any => Any) extends Thing {}
@@ -67,6 +107,7 @@ object Skill {
   def apply(skills: Skill*): RW = {
     val groupped = skills.groupBy {
       case _: RW => "cmd"
+      case _: WO => "cmd"
       case _: RO => "evt"
     }
       RW(
@@ -75,12 +116,24 @@ object Skill {
           case c: RW => c.act
         }.reduce(_ orElse _),
 
-        commit = groupped("cmd").map { case c: RW => c.commit }.reduce(_ orElse _)
+        commit = groupped("cmd").map {
+          case c: RW => c.commit
+          case c: WO => c.commit
+        }.reduce(_ orElse _)
       )
   }
 }
 case class RO(act: PartialFunction[In, Out]) extends Skill {}
 case class RW(act: PartialFunction[In, Out], commit: PartialFunction[Out, Thing]) extends Skill {}
+case class WO(commit: PartialFunction[Out, Thing]) extends Skill {}
+object NoSkill extends RW(
+  act = {
+    case in => NotImplemented(in)
+  },
+  commit = {
+    case _ => throw new IllegalArgumentException("Not implemented")
+  }
+)
 
 final case class List(item: Predicate) extends Predicate {
   override def validate(value: Any): Boolean = true //TODO fix

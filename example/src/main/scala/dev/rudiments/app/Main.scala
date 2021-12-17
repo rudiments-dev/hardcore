@@ -9,5 +9,8 @@ object Main extends App {
 
   implicit val actorSystem: ActorSystem = ActorSystem()
 
-  new RootRouter(config, new Example().router).bind()
+  new RootRouter( config,
+    new Example().router,
+    new ExampleFile().router
+  ).bind()
 }
