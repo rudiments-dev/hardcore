@@ -65,26 +65,6 @@ abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunct
 
   override def isDefinedAt(x: In): Boolean = f.isDefinedAt(x)
   override def apply(x: In): Out = f.apply(x)
-
-  val commit: RW = Skill(
-    act = {
-      case Apply(commands) =>
-        val result: Seq[(In, Out)] = Apply.collapse(commands).values.map { cmd =>
-          cmd -> skill.act(cmd)
-        }.toSeq
-        Commit(result)
-    },
-    commit = {
-      case Commit(delta, extra) =>
-        val data = delta.map {
-          case (id, evt) => id -> skill.commit(evt)
-        }
-        extra.foreach {
-          case (_, evt: Event) => skill.commit(evt) //TODO log? ignore?
-        }
-        new Data(Index(Type.build[ID], Type.build[Data]), data)
-    }
-  )
 }
 
 abstract class AgentRead(
