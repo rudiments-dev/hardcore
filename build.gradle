@@ -1,101 +1,21 @@
 buildscript {
     repositories {
-        jcenter()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
     }
-    dependencies {
-        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
-        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.21.2'
-        classpath 'gradle.plugin.org.scoverage:gradle-scoverage:5.0.0'
-        classpath 'com.palantir.gradle.gitversion:gradle-git-version:0.12.3'
-    }
 }
 
-apply plugin: 'com.palantir.git-version'
-
 def base_version = '0.4-SNAPSHOT'
-def details = versionDetails()
-ext.calculated_version = project.hasProperty("tagged-build") ? details.lastTag + "-" + base_version: base_version
 
 allprojects {
-    apply plugin: 'org.scoverage'
-
-    scoverage {
-        scoverageScalaVersion = "2.13"
-    }
-
     group 'dev.rudiments'
-    version rootProject.ext.calculated_version
+    version base_version
 
     repositories {
         mavenLocal()
         mavenCentral()
     }
-}
-
-subprojects {
-    apply plugin: 'maven'
-    apply plugin: 'scala'
-    apply plugin: 'com.bmuschko.nexus'
-
-    modifyPom {
-        project {
-            name 'Rudiments'
-            description 'Research project and bootstrap library.'
-            url 'https://github.com/rudiments-dev/hardcore'
-
-            scm {
-                url "https://github.com/rudiments-dev/hardcore"
-                connection "git@github.com:rudiments-dev/hardcore.git"
-            }
-
-            licenses {
-                license {
-                    name 'The Apache Software License, Version 2.0'
-                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    distribution 'repo'
-                }
-            }
-
-            description "${parent.project.description}"
-            groupId "${parent.project.group}"
-            name "${project.name}"
-            packaging 'jar'
-            url "https://github.com/rudiments-dev/hardcore"
-            version "${parent.project.version}"
-            developers {
-                developer {
-                    id 'gennady-lebedev'
-                    name 'Gennady Lebedev'
-                }
-            }
-        }
-    }
-
-    extraArchive {
-        sources = true
-        tests = true
-        javadoc = true
-    }
-
-    nexus {
-        repositoryUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-        snapshotRepositoryUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
-    }
-
-    signing {
-        ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-        required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
-    }
-}
-
-apply plugin: 'io.codearte.nexus-staging'
-
-nexusStaging {
-    stagingProfileId = "cf3280f3d7f7cd"
-    packageGroup = "dev.rudiments"
 }
 
 def scalaModules() {
@@ -106,8 +26,8 @@ configure(scalaModules()) {
     apply plugin: 'java'
     apply plugin: 'scala'
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 17
+    targetCompatibility = 17
 
     test {
         reports {
