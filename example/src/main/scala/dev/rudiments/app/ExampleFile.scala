@@ -7,6 +7,7 @@ import dev.rudiments.hardcore.http.ScalaRORouter
 import io.circe.{Encoder, Json}
 
 class ExampleFile extends LazyLogging {
+  private implicit val space: Space = new Space()
   private implicit val fileEn: Encoder[Thing] = Encoder.instance {
     case dir: Dir => Json.obj(
       "type" -> Json.fromString("dir"),

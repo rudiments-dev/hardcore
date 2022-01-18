@@ -20,7 +20,7 @@ class RootSpec extends AnyWordSpec with Matchers {
   private val data = Smt(42L, "test", None).asData
 
   "able to navigate the path" in {
-    space.add(somePath, ID("agent"), new Memory())
+    space.add(somePath, ID("agent"), new Memory(All, All))
     path.find.state should be (mutable.SeqMap.empty[ID, Thing])
   }
 

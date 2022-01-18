@@ -15,7 +15,8 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with CirceSupport {
-  private val memory = new Memory()
+  private implicit val space: Space = new Space()
+  private val memory = new Memory(All, All)
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
   private implicit val en: Encoder[Thing] = deriveEncoder[Smt].contramap { case d: Data => d.reconstruct[Smt]() }

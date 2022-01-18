@@ -1,14 +1,16 @@
 package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.ScalaTypes._
+import dev.rudiments.hardcore.{Apply => DevApply}
 import dev.rudiments.hardcore.Size.{NegativeInfinity, PositiveInfinity}
 
-import scala.reflect.runtime.universe.{Type => SysType, Apply => Appl, _}
+import scala.reflect.runtime.universe.{Type => SysType, _}
 
 sealed trait Thing {}
 
 sealed trait Ref extends Thing {}
 final case class ID(k: Any) extends Ref {
+  def asPath: Path = Path(this)
   def /(id: ID): Path = Path(this, id)
   def /(path: Path): Path = Path(this +: path.ids :_*)
 }
@@ -18,6 +20,9 @@ final case class Path(ids: ID*) extends Ref {
 
   def find(implicit space: Space): Memory = space.find(this)
   def apply(in: In)(implicit space: Space): Out = space.find(this).apply(in)
+}
+object Path {
+  val empty: Path = Path()
 }
 final case class Data(p: Predicate, v: Any) extends Ref {
   def apply(cmd: Command): Event = ???
@@ -35,12 +40,12 @@ final case class Data(p: Predicate, v: Any) extends Ref {
   }
 }
 object Data {
-  def build[T : TypeTag](args: Any*): Data = {
+  def build[T : TypeTag](args: Any*)(implicit space: Space): Data = {
     val t = Type.build[T]
     Data(t, args)
   }
 
-  def apply[T : TypeTag](value: T): Data = value match {
+  def apply[T : TypeTag](value: T)(implicit space: Space): Data = value match {
     case s: String => Data(Plain.Text(s.size), s)
     case i: Int => Data(ScalaInt, i)
     case i: Long => Data(ScalaLong, i)
@@ -144,33 +149,67 @@ final case class Type(fields: Seq[Field] = Seq.empty, fullName: Option[String] =
 }
 
 object Type {
-  def build[A : TypeTag]: Predicate = make(typeOf[A])
+  def init(implicit space: Space): Unit = {
+    space.root(Create(ID("types"), new Memory(All, All))) match {
+      case Created(_, mem: Memory) =>       initSequence(mem)
+      case AlreadyExist(_, mem: Memory) =>  initSequence(mem)
+    }
+  }
 
-  def make(sysType: SysType): Predicate = {
+  private def initSequence(mem: Memory)(implicit space: Space): Unit = {
+    mem(DevApply(plain.map { case (name, t) => Create(ID(name), t) }.toSeq))
+    build[Thing]
+  }
+
+  def getType[A : TypeTag](implicit space: Space): Type = space(
+    ID("types").asPath,
+    Read(ID(this.name(typeOf[A].typeSymbol)))
+  ) match {
+    case Readen(_, t: Type) => t
+    case other => ???
+  }
+
+  def build[A : TypeTag](implicit space: Space): Predicate = make(typeOf[A])
+
+  def make(sysType: SysType)(implicit space: Space): Predicate = {
     val symbol = sysType.typeSymbol
     val name = this.name(symbol)
 
-    plain.getOrElse(this.fullName(symbol), if (sysType <:< typeOf[Any]) {
+    plain.getOrElse(this.name(symbol), if (sysType <:< typeOf[Any]) {
       makeAlgebraic(symbol)
     } else {
       throw new IllegalArgumentException(s"Scala type not supported: $name")
     })
   }
 
-  def makeAlgebraic(symbol: Symbol): Predicate = {
+  def makeAlgebraic(symbol: Symbol)(implicit space: Space): Predicate = {
     val t = symbol.asType
-    if(t.isAbstract) {
-      Abstract(fieldsOf(t), Some(fullName(t)))
-    } else if(t.isModuleClass) {
-      AllOf(fieldsOf(t): _*)
-    } else if(t.isClass) {
-      Type(fieldsOf(t), Some(fullName(t)))
-    } else {
-      throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
+    val nameOfT = this.name(t)
+    ID("types").asPath.apply(Read(ID(nameOfT))) match {
+      case Readen(_, existing: Predicate) => existing
+      case NotFound(_) =>
+        if(t.isAbstract) {
+          val a = Abstract(fieldsOf(t), Some(fullName(t)))
+          ID("types").asPath.apply(Create(ID(this.name(t)), a))
+          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
+          a
+        } else if(t.isModuleClass) {
+          val a = new Data(AllOf(fieldsOf(t): _*), None)
+          ID("types").asPath.apply(Create(ID(this.name(t)), a))
+          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
+          a.p
+        } else if(t.isClass) {
+          val a = Type(fieldsOf(t), Some(fullName(t)))
+          ID("types").asPath.apply(Create(ID(this.name(t)), a))
+          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
+          a
+        } else {
+          throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
+        }
     }
   }
 
-  def fieldsOf(t: TypeSymbol): Seq[Field] = {
+  def fieldsOf(t: TypeSymbol)(implicit space: Space): Seq[Field] = {
     val paramLists = t.asClass.primaryConstructor.typeSignature.paramLists
     if(paramLists.isEmpty) {
       Seq.empty
@@ -179,7 +218,7 @@ object Type {
     }
   }
 
-  def ifOption(ts: TermSymbol): Field = {
+  def ifOption(ts: TermSymbol)(implicit space: Space): Field = {
     if(ts.typeSignature <:< typeOf[Option[_]]) {
       Field(this.name(ts), make(ts.typeSignature.typeArgs.head), required = false)
     } else {

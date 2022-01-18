@@ -1,9 +1,11 @@
 package dev.rudiments.hardcore
 
-class Space() extends Agent(Type.build[In], Type.build[Out]) {
-  val root: Memory = new Memory()
+class Space() extends Agent(All, All) { //TODO fix by using separate predicates, not based on space types
+  val root: Memory = new Memory(All, All)
   override val f: PartialFunction[In, Out] = root.f
   override val skill: RW = root.skill
+
+  Type.init(this)
 
   def find(path: Path): Memory = { //TODO Thing or at least agent instead of memory
     path.ids.foldLeft(root) { (dir, id) =>
@@ -21,7 +23,7 @@ class Space() extends Agent(Type.build[In], Type.build[Out]) {
       dir.read(id) match {
         case Readen(_, memory: Memory) => memory
         case NotFound(_) =>
-          val m = new Memory()
+          val m = new Memory(All, All)
           dir(Create(i, m))
           m
       }

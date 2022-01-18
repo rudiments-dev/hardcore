@@ -24,7 +24,7 @@ object ScalaTypes {
     typeOf[Date] ->       Plain.Date,
     typeOf[Time] ->       Plain.Time,
     typeOf[Timestamp] ->  Plain.Timestamp
-  ).map { case (k, v) => k.typeSymbol.fullName.trim -> v }
+  ).map { case (k, v) => k.typeSymbol.name.toTypeName.toString -> v }
 
   object ScalaString extends Plain.Text(MaxInt)
   object ScalaByte   extends Plain.Number(MinByte,  MaxByte,   NumberFormat.Integer)

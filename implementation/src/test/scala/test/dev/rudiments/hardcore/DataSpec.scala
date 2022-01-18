@@ -9,6 +9,7 @@ import test.dev.rudiments.Smt
 
 @RunWith(classOf[JUnitRunner])
 class DataSpec extends AnyWordSpec with Matchers {
+  private implicit val space: Space = new Space()
   private val data1: Data = Smt(42, "sample", Some("example")).asData
   private val data2 = Smt(13, "test", None).asData
 

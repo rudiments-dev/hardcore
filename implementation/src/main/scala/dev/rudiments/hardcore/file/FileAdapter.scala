@@ -1,17 +1,17 @@
 package dev.rudiments.hardcore.file
 
 import dev.rudiments.hardcore
-import dev.rudiments.hardcore.{Agent, Create, Data, Find, Found, ID, In, Index, Memory, NoSkill, Out, RW, Read, Readen, ScalaTypes, Skill, Thing, Type}
+import dev.rudiments.hardcore.{Agent, All, Create, Data, Find, Found, ID, In, Index, Memory, NoSkill, Out, RW, Read, Readen, ScalaTypes, Skill, Space, Thing, Type}
 
 import java.io.{File => JavaFile}
 import java.nio.file.{Files, Paths}
 import scala.io.Source
 
-sealed abstract class FileAdapter(val absolutePath: String) extends Agent(Type.build[In], Type.build[Out]) {}
+sealed abstract class FileAdapter(val absolutePath: String) extends Agent(All, All) {}
 case class Dir(
   override val absolutePath: String
-) extends FileAdapter(absolutePath) {
-  val cache: Memory = new Memory
+)(implicit space: Space) extends FileAdapter(absolutePath) {
+  val cache: Memory = new Memory(All, All)
   var totalRecursive = 0L
   private val textFiles = Seq("txt", "scala", "java", "gradle", "yml", "sql", "md", "conf", "xml", "http")
   private def isTextFile(name: String): Boolean = textFiles.exists(name.endsWith)
@@ -46,7 +46,7 @@ case class Dir(
         }
         cache.skill.act(Find()) match {
           case Found(_, found: Map[ID, Thing]) => Data(
-            Index(Type.build[ID], Type.build[Data]),
+            Index(All, All),
             found.collect {
               case (id, file: Dir) => id -> Data.build[Dir](file.absolutePath)
               case (id, file: TextFile) => id -> Data.build[TextFile](file.absolutePath)

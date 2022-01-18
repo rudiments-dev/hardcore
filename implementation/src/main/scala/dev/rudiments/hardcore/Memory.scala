@@ -2,7 +2,7 @@ package dev.rudiments.hardcore
 
 import scala.collection.mutable
 
-class Memory() extends Agent(Type.build[In], Type.build[Out]) {
+class Memory(idIs: Predicate, dataIs: Predicate) extends Agent(idIs, dataIs) {
   val state: mutable.SeqMap[ID, Thing] = mutable.SeqMap.empty
 
   def read(id: ID): Out = Memory.read(this).act(Read(id))
@@ -102,7 +102,7 @@ object Memory {
         extra.foreach {
           case (_, evt: Event) => ctx.skill.commit(evt) //TODO log? ignore?
         }
-        new Data(Index(Type.build[ID], Type.build[Data]), data)
+        new Data(Index(All, All), data)
     }
   )
 }

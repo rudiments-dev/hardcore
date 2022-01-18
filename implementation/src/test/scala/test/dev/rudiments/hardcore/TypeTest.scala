@@ -9,6 +9,7 @@ import test.dev.rudiments.{Blah, Smt}
 
 @RunWith(classOf[JUnitRunner])
 class TypeTest extends AnyWordSpec with Matchers {
+  private implicit val space: Space = new Space()
 
   "can build type from case class" in {
     Type.build[Smt] should be (

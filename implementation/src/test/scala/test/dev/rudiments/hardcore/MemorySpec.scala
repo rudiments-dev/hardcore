@@ -9,7 +9,8 @@ import test.dev.rudiments.Smt
 
 @RunWith(classOf[JUnitRunner])
 class MemorySpec extends AnyWordSpec with Matchers {
-  private val agent = new Memory()
+  private implicit val space: Space = new Space
+  private val agent = new Memory(All, All)
   private val data = Smt(13, "test", None).asData
   private val id = ID(42)
 
