@@ -2,11 +2,12 @@ package dev.rudiments.hardcore.http
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, Directive1, Route}
-import dev.rudiments.hardcore.{ID, Path, Plain, Predicate, ScalaTypes}
+import dev.rudiments.hardcore.{Agent, All, ID, NoSkill, Path, Plain, Predicate, RW, ScalaTypes}
 
 import java.sql.Date
 
-trait Router {
+abstract class Router extends Agent(All, All) {
+  override val skill: RW = NoSkill
   val routes: Route
   val path: Path
 

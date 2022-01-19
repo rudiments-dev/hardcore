@@ -1,0 +1,12 @@
+GET http://localhost:8080/api/types/
+Accept: application/json
+
+###
+
+PUT http://localhost:8080/api/example/some-data
+Content-Type: application/json
+
+{
+  "name": "some else data",
+  "strings": ["blah", "blah-blah", "blah-blah-blah-blah!"]
+}

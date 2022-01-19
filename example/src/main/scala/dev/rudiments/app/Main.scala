@@ -13,6 +13,7 @@ object Main extends App {
 
   new RootRouter( config,
     new Example().router,
-    new ExampleFile().router
+    new ExampleFile().router,
+    new Types().router
   ).bind()
 }
