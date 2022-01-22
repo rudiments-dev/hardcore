@@ -19,8 +19,8 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   private val memory = new Memory(All, All)
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
-  private implicit val en: Encoder[Thing] = deriveEncoder[Smt].contramap { case d: Data => d.reconstruct[Smt]() }
-  private implicit val dataEncoder: Encoder[Data] = deriveEncoder[Smt].contramap { case d: Data => d.reconstruct[Smt]() }
+  private implicit val en: Encoder[Thing] = deriveEncoder[Smt].contramap { case d: Data => d.reconstruct[Smt] }
+  private implicit val dataEncoder: Encoder[Data] = deriveEncoder[Smt].contramap { d: Data => d.reconstruct[Smt] }
   private implicit val de: Decoder[Thing] = deriveDecoder[Smt].map(_.asData)
 
   private val router = new ScalaRouter[Smt](Path(ID("example")), ScalaLong, memory)

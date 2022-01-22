@@ -8,13 +8,12 @@ import scala.reflect.runtime.universe.{Type => SysType, _}
 
 sealed trait Thing {}
 
-sealed trait Ref extends Thing {}
-final case class ID(k: Any) extends Ref {
+final case class ID(k: Any) extends Thing {
   def asPath: Path = Path(this)
   def /(id: ID): Path = Path(this, id)
   def /(path: Path): Path = Path(this +: path.ids :_*)
 }
-final case class Path(ids: ID*) extends Ref {
+final case class Path(ids: ID*) extends Thing {
   def /(id: ID): Path = Path(ids :+ id :_*)
   def /(path: Path): Path = Path(ids :++ path.ids :_*)
 
@@ -24,13 +23,16 @@ final case class Path(ids: ID*) extends Ref {
 object Path {
   val empty: Path = Path()
 }
-final case class Data(p: Predicate, v: Any) extends Ref {
+final case class Data(p: Predicate, v: Any) extends Thing {
   def apply(cmd: Command): Event = ???
   def apply(evt: Event): Data = ???
 
-  def reconstruct[T](): T = {
+  def reconstruct[T](implicit space: Space): T = {
     p match {
       case _: Plain => v.asInstanceOf[T] // validate?
+      case Ref(_, Type(_, Some(fullName)), _) =>
+        Class.forName(fullName).getConstructors()(0) //TODO internal classes via $
+          .newInstance(v.asInstanceOf[Seq[Object]]: _*).asInstanceOf[T]
       case Type(_, Some(fullName)) =>
         Class.forName(fullName).getConstructors()(0) //TODO internal classes via $
           .newInstance(v.asInstanceOf[Seq[Object]]: _*).asInstanceOf[T]
@@ -56,7 +58,11 @@ object Data {
   }
 }
 
-abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] with Ref {
+case class Ref(path: Path, p: Predicate, v: Option[Any] = None) extends Predicate {
+  override def validate(value: Any): Boolean = ???
+}
+
+abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] with Thing {
   val skill: RW
   val f: PartialFunction[In, Out] = {
     case in: In =>
@@ -169,13 +175,13 @@ object Type {
     case other => ???
   }
 
-  def build[A : TypeTag](implicit space: Space): Predicate = make(typeOf[A])
+  def build[A : TypeTag](implicit space: Space): Predicate = getOrMake(typeOf[A])
 
-  def make(sysType: SysType)(implicit space: Space): Predicate = {
+  def getOrMake(sysType: SysType)(implicit space: Space): Predicate = {
     val symbol = sysType.typeSymbol
     val name = this.name(symbol)
 
-    plain.getOrElse(this.name(symbol), if (sysType <:< typeOf[Any]) {
+    plain.getOrElse(name, if (sysType <:< typeOf[Any]) {
       makeAlgebraic(symbol)
     } else {
       throw new IllegalArgumentException(s"Scala type not supported: $name")
@@ -185,26 +191,33 @@ object Type {
   def makeAlgebraic(symbol: Symbol)(implicit space: Space): Predicate = {
     val t = symbol.asType
     val nameOfT = this.name(t)
-    ID("types").asPath.apply(Read(ID(nameOfT))) match {
-      case Readen(_, existing: Predicate) => existing
+    val id = ID(nameOfT)
+    val path = ID("types") / id
+    ID("types").asPath(Read(id)) match {
+      case Readen(_, existing: Predicate) => Ref(path, existing)
+      case Readen(_, Data(Nothing, v)) => Ref(path, Nothing, None)
+      case Readen(_, Data(p, v)) => Ref(path, p, Some(v))
       case NotFound(_) =>
-        if(t.isAbstract) {
-          val a = Abstract(fieldsOf(t), Some(fullName(t)))
-          ID("types").asPath.apply(Create(ID(this.name(t)), a))
-          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
-          a
-        } else if(t.isModuleClass) {
-          val a = new Data(AllOf(fieldsOf(t): _*), None)
-          ID("types").asPath.apply(Create(ID(this.name(t)), a))
-          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
-          a.p
-        } else if(t.isClass) {
-          val a = Type(fieldsOf(t), Some(fullName(t)))
-          ID("types").asPath.apply(Create(ID(this.name(t)), a))
-          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
-          a
+        if(t.isModuleClass) {
+          val f = fieldsOf(t)
+          val a = if(f.isEmpty) {
+            new Data(Nothing, Nothing)
+          } else {
+            new Data(AllOf(f: _*), f.map(_ => Nothing))
+          }
+          ID("types").asPath(Create(id, a))
+          Ref(path, a.p, Some(a.v))
         } else {
-          throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
+          val a = if (t.isAbstract) {
+            Abstract(fieldsOf(t), Some(fullName(t)))
+          } else if (t.isClass) {
+            Type(fieldsOf(t), Some(fullName(t)))
+          } else {
+            throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
+          }
+          ID("types").asPath(Create(id, a))
+          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
+          Ref(path, a)
         }
     }
   }
@@ -220,9 +233,9 @@ object Type {
 
   def ifOption(ts: TermSymbol)(implicit space: Space): Field = {
     if(ts.typeSignature <:< typeOf[Option[_]]) {
-      Field(this.name(ts), make(ts.typeSignature.typeArgs.head), required = false)
+      Field(this.name(ts), getOrMake(ts.typeSignature.typeArgs.head), required = false)
     } else {
-      Field(this.name(ts), make(ts.typeSignature), required = true)
+      Field(this.name(ts), getOrMake(ts.typeSignature), required = true)
     }
   }
 
@@ -232,7 +245,7 @@ object Type {
 
 case class Field(name: String, p: Predicate, required: Boolean) extends Predicate {
   override def validate(value: Any): Boolean = {
-    ???
+    ??? // get value by ID(name) and validate with p
   }
 }
 
@@ -318,6 +331,10 @@ object NumberFormat {
 
 case object All extends Predicate {
   override def validate(value: Any): Boolean = true
+}
+case object Nothing extends Predicate {
+  override def validate(value: Any): Boolean =
+    value == Nothing
 }
 
 sealed trait CompositePredicate extends Predicate {}

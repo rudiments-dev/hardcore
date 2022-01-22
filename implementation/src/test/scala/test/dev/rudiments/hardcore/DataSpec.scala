@@ -23,8 +23,8 @@ class DataSpec extends AnyWordSpec with Matchers {
   }
 
   "can rebuild scala instance from data" in {
-    data1.reconstruct[Smt]() should be (Smt(42, "sample", Some("example")))
-    data2.reconstruct[Smt]() should be (Smt(13, "test", None))
+    data1.reconstruct[Smt] should be (Smt(42, "sample", Some("example")))
+    data2.reconstruct[Smt] should be (Smt(13, "test", None))
   }
 
   "Update required field" ignore {
