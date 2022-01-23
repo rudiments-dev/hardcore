@@ -2,6 +2,7 @@ package test.dev.rudiments.app
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.app.{Body, Example}
 import dev.rudiments.hardcore._
@@ -18,7 +19,7 @@ class ExampleSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with
   private implicit val space: Space = new Space()
   private val example = new Example()
   private val router = example.router
-  private val routes = router.routes
+  private val routes = Route.seal(router.routes)
   private implicit val en: Encoder[Thing] = example.encoder
   private implicit val de: Decoder[Thing] = example.decoder
 

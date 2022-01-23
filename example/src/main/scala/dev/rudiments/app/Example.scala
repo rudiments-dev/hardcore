@@ -2,15 +2,14 @@ package dev.rudiments.app
 
 import com.typesafe.scalalogging.LazyLogging
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.ScalaRouter
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
+import io.circe.generic.semiauto.deriveDecoder
 import io.circe.{Decoder, Encoder}
 
 class Example(implicit space: Space) extends LazyLogging {
-  val en: Encoder[Body] = deriveEncoder[Body]
   val de: Decoder[Body] = deriveDecoder[Body]
 
-  implicit val encoder: Encoder[Thing] = en.contramap { case d: Data => d.reconstruct[Body] }
+  implicit val encoder: Encoder[Thing] = CirceSupport.encode
   implicit val decoder: Decoder[Thing] = de.map(_.asData)
 
   private val exampleAgent = new Memory(All, All)

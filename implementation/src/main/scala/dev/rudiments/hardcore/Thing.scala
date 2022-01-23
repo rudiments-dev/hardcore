@@ -6,12 +6,15 @@ import dev.rudiments.hardcore.Size.{NegativeInfinity, PositiveInfinity}
 
 import scala.reflect.runtime.universe.{Type => SysType, _}
 
-sealed trait Thing {}
+trait ADT {}
+sealed trait Thing extends ADT {}
 
 final case class ID(k: Any) extends Thing {
   def asPath: Path = Path(this)
   def /(id: ID): Path = Path(this, id)
   def /(path: Path): Path = Path(this +: path.ids :_*)
+
+  override def toString: String = "#" + k.toString
 }
 final case class Path(ids: ID*) extends Thing {
   def /(id: ID): Path = Path(ids :+ id :_*)
@@ -19,6 +22,8 @@ final case class Path(ids: ID*) extends Thing {
 
   def find(implicit space: Space): Memory = space.find(this)
   def apply(in: In)(implicit space: Space): Out = space.find(this).apply(in)
+
+  override def toString: String = ids.map(_.k).mkString("/", "/", "")
 }
 object Path {
   val empty: Path = Path()
@@ -31,14 +36,16 @@ final case class Data(p: Predicate, v: Any) extends Thing {
     p match {
       case _: Plain => v.asInstanceOf[T] // validate?
       case Ref(_, Type(_, Some(fullName)), _) =>
-        Class.forName(fullName).getConstructors()(0) //TODO internal classes via $
-          .newInstance(v.asInstanceOf[Seq[Object]]: _*).asInstanceOf[T]
+        reconstruct(fullName, v.asInstanceOf[Seq[Object]]:_*)
       case Type(_, Some(fullName)) =>
-        Class.forName(fullName).getConstructors()(0) //TODO internal classes via $
-          .newInstance(v.asInstanceOf[Seq[Object]]: _*).asInstanceOf[T]
+        reconstruct(fullName, v.asInstanceOf[Seq[Object]]:_*)
       case other => throw new IllegalArgumentException(s"Can't reconstruct from $other")
     }
+  }
 
+  def reconstruct[T](fullName: String, args: Object*): T = {
+    Class.forName(fullName).getConstructors()(0) //TODO internal classes via $
+      .newInstance(args: _*).asInstanceOf[T]
   }
 }
 object Data {
@@ -181,10 +188,17 @@ object Type {
     val symbol = sysType.typeSymbol
     val name = this.name(symbol)
 
-    plain.getOrElse(name, if (sysType <:< typeOf[Any]) {
+    plain.getOrElse(name, if (sysType <:< typeOf[Map[_, _]]) {
+      Index(getOrMake(sysType.typeArgs.head), getOrMake(sysType.typeArgs.last))
+    } else if (sysType <:< typeOf[Iterable[_]]) {
+      List(getOrMake(sysType.typeArgs.head))
+    } else if (sysType <:< typeOf[ADT]) {
       makeAlgebraic(symbol)
+    } else if (sysType =:= typeOf[Any]) {
+      All
     } else {
-      throw new IllegalArgumentException(s"Scala type not supported: $name")
+      makeAlgebraic(symbol)
+      //throw new IllegalArgumentException(s"Scala type not supported: $name")
     })
   }
 

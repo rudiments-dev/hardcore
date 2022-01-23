@@ -6,7 +6,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.ScalaTypes.ScalaLong
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.generic.semiauto.deriveDecoder
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -19,8 +19,8 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   private val memory = new Memory(All, All)
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
-  private implicit val en: Encoder[Thing] = deriveEncoder[Smt].contramap { case d: Data => d.reconstruct[Smt] }
-  private implicit val dataEncoder: Encoder[Data] = deriveEncoder[Smt].contramap { d: Data => d.reconstruct[Smt] }
+  private implicit val en: Encoder[Thing] = CirceSupport.encode
+  private implicit val dataEncoder: Encoder[Data] = CirceSupport.encode
   private implicit val de: Decoder[Thing] = deriveDecoder[Smt].map(_.asData)
 
   private val router = new ScalaRouter[Smt](Path(ID("example")), ScalaLong, memory)
