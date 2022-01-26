@@ -7,7 +7,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.app.{Body, Example}
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.CirceSupport
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.{Decoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -20,13 +20,12 @@ class ExampleSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with
   private val example = new Example()
   private val router = example.router
   private val routes = Route.seal(router.routes)
-  private implicit val en: Encoder[Thing] = example.encoder
   private implicit val de: Decoder[Thing] = example.decoder
 
   private val sample: Data = Body("some name", Seq("some data")).asData
 
   "InstanceEncoder can encode" in {
-    en(sample) should be (Json.obj(
+    thingEncoder(sample) should be (Json.obj(
       "name" -> Json.fromString("some name"),
       "strings" -> Json.arr(Json.fromString("some data"))
     ))

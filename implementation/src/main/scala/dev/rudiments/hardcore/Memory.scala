@@ -84,6 +84,7 @@ object Memory {
 
   def find(implicit ctx: Memory): RO = RO {
     case Find(All) => Found(All, ctx.state.toMap) //TODO filter predicate
+      //TODO compare Agents?
   }
 
   def commit(implicit ctx: Memory): RW = RW (

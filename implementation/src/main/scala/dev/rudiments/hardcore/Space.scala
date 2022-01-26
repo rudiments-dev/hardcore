@@ -16,6 +16,8 @@ class Space() extends Agent(All, All) { //TODO fix by using separate predicates,
     }
   }
 
+  def apply(path: String): Memory = find(Path(path))
+
   def apply(path: Path, what: In): Out = find(path).apply(what)
 
   def add(path: Path, id: ID, what: Thing): Unit = path.ids.foldLeft(root.asInstanceOf[Agent]) {

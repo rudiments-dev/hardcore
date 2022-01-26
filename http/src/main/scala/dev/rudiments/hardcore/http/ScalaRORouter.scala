@@ -1,24 +1,23 @@
 package dev.rudiments.hardcore.http
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives.{path => pAth, _}
-import akka.http.scaladsl.server.{Directive, Directive1, Route, StandardRoute}
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.{Route, StandardRoute}
 import dev.rudiments.hardcore._
 import io.circe.{Encoder, KeyEncoder}
 
 import scala.reflect.runtime.universe.TypeTag
 
 class ScalaRORouter[T : TypeTag](
-  override val path: Path,
   val id: Predicate,
   val agent: Agent
-)(implicit en: Encoder[Thing]) extends Router with CirceSupport {
+) extends Router with CirceSupport {
   implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.k.toString)
   implicit val valEncoder: Encoder[Map[ID, Thing]] = Encoder.encodeMap[ID, Thing]
 
 
   override val routes: Route = {
-    pAth(Segments(1, 128) ~ Slash) { segments =>
+    path(Segments(1, 128) ~ Slash) { segments =>
       val (a, id) = searchSegment(segments)
       get {
         pathEnd {
@@ -30,7 +29,7 @@ class ScalaRORouter[T : TypeTag](
           )
         }
       }
-    } ~ pAth(Segments(1, 128)) { segments =>
+    } ~ path(Segments(1, 128)) { segments =>
       val (a, id) = searchSegment(segments)
       get {
         pathEnd {

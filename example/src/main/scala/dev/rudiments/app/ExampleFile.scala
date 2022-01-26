@@ -6,8 +6,7 @@ import dev.rudiments.hardcore.file.{Dir, FileAdapter, TextFile, UnknownFile}
 import dev.rudiments.hardcore.http.ScalaRORouter
 import io.circe.{Encoder, Json}
 
-class ExampleFile extends LazyLogging {
-  private implicit val space: Space = new Space()
+class ExampleFile(implicit val space: Space) extends LazyLogging {
   private implicit val fileEn: Encoder[Thing] = Encoder.instance {
     case dir: Dir => Json.obj(
       "type" -> Json.fromString("dir"),
@@ -28,7 +27,6 @@ class ExampleFile extends LazyLogging {
   }
   private val exampleFile = Dir(".")
   val router = new ScalaRORouter[FileAdapter](
-    Path(ID("file")),
     ScalaTypes.ScalaString,
     exampleFile
   )

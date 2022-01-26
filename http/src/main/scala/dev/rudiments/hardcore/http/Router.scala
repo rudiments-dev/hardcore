@@ -8,15 +8,16 @@ import java.sql.Date
 
 abstract class Router extends Agent(All, All) {
   override val skill: RW = NoSkill
-  val routes: Route
-  val path: Path
+  def routes: Route
+}
 
-  lazy val pathDirective: Directive0 = path.ids.map {
+object PathOps {
+  def pathDirective(path: Path): Directive0 = path.ids.map {
     case ID(None) => pathSingleSlash
     case ID(a) => pathPrefix(a.toString)
   }.reduce(_ and _)
 
-  def seal(): Route = Route.seal(pathDirective { routes })
+  def seal(path: Path, routes: Route): Route = Route.seal(pathDirective(path) { routes })
 
   def plainId(p: Predicate): Directive1[ID] = p match {
     case ScalaTypes.ScalaLong =>    pathPrefix(LongNumber).map(l => ID(l))

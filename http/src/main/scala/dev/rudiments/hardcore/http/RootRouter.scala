@@ -5,40 +5,36 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.server.Directives._
-import akka.stream.Materializer
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
-import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
-import dev.rudiments.hardcore.{ID, Path}
+import dev.rudiments.hardcore._
+import dev.rudiments.hardcore.http.RootRouter.RootConfig
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-class RootRouter(
-  config: Config,
-  routers: Router*
-)(implicit actorSystem: ActorSystem) extends Router with StrictLogging {
-
+class RootRouter(config: RootConfig)(implicit actorSystem: ActorSystem) extends Router with StrictLogging {
   private implicit val ec: ExecutionContext = actorSystem.getDispatcher
-  private val prefixExists = config.hasPath(RootRouter.prefixPath)
-  private val prefix = if(prefixExists) Some(config.getString(RootRouter.prefixPath)) else None
-  override val path: Path = prefix.map(p => Path(ID(p))).getOrElse(Path(ID("api")))
+  val cache = new Memory(All, All) //TODO String, Router
 
-  override val routes: Route =
-    CorsDirectives.cors(CorsSettings(config.getConfig(RootRouter.rootPath))) {
-      prefix match {
-        case Some(pre)  => Directives.pathPrefix(pre) { routers.map(r => r.pathDirective { r.routes }).reduce(_ ~ _) }
-        case None       => routers.map(r => r.pathDirective { r.routes }).reduce(_ ~ _)
+  override def routes: Route =
+    CorsDirectives.cors(config.cors) {
+      Directives.pathPrefix(config.prefix) {
+        cache(Find(All)) match {
+          case Found(_, items) => items.collect {
+            case (id, router: Router) => Directives.pathPrefix(id.k.toString) { router.routes }
+          }.reduce(_ ~ _)
+        }
       }
     }
 
   def bind(): Done = {
     Http().newServerAt(
-      config.getString(RootRouter.hostPath),
-      config.getInt(RootRouter.portPath)
+      config.host,
+      config.port
     ).bind(routes).onComplete {
-      case Success(b) => logger.info("Bound http:/{}{}", b.localAddress.toString, prefix.map("/" + _).getOrElse(""))
+      case Success(b) => logger.info("Bound http:/{}/{}", b.localAddress.toString, config.prefix)
       case Failure(e) => throw e
     }
     Done
@@ -50,4 +46,19 @@ object RootRouter {
   val prefixPath = s"$rootPath.prefix"
   val hostPath = s"$rootPath.host"
   val portPath = s"$rootPath.port"
+
+  case class RootConfig(
+    host: String,
+    port: Int,
+    prefix: String = "api",
+    cors: CorsSettings
+  )
+
+  import com.typesafe.config.Config
+  def config(c: Config): RootConfig = RootConfig(
+    c.getString(hostPath),
+    c.getInt(portPath),
+    if(c.hasPath(prefixPath)) c.getString(prefixPath) else "api",
+    CorsSettings(c.getConfig(rootPath))
+  )
 }
