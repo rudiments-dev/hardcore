@@ -42,7 +42,7 @@ object ThingEncoder {
 
   def encode(data: Data): Json = data match {
     case Data(List(of), data: Seq[Any]) => Json.arr(data.map(d => encode(of, d)):_*)
-    case Data(Index(of, over), data: Map[Any, Any]) => Json.obj(
+    case Data(Index(of, over), data: Map[_, _]) => Json.obj(
       data.map { case (k, v) => k.toString -> encode(over, v) }.toSeq :_*
     )
     case Data(t: Type, data: Any) => encode(t, data)
@@ -53,7 +53,7 @@ object ThingEncoder {
   def encode(predicate: Predicate, value: Any): Json = (predicate, value) match {
     case (t: Type, d: Seq[Any]) => encode(t.fields, d)
     case (l: List, d: Seq[Any]) => Json.arr(d.map(item => encode(l.item, item)):_*)
-    case (i: Index, d: Map[Any, Any]) => Json.obj(d.map { case (k, v) => k.toString -> encode(i.over, v) }.toSeq:_*)
+    case (i: Index, d: Map[_, _]) => Json.obj(d.map { case (k, v) => k.toString -> encode(i.over, v) }.toSeq:_*)
     case (Ref(_, t: Type, _), d: Seq[Any]) => encode(t.fields, d)
     case (Ref(_, t: Abstract, _), d: Seq[Any]) => encode(t.fields, d)
     case (ScalaTypes.ScalaInt, i: Int) => Json.fromInt(i)
@@ -68,4 +68,6 @@ object ThingEncoder {
       field.name -> (if(field.required && v != None) encode(field.p, v) else Json.Null)
     } :_*
   )
+
+  def encode(a: Agent)(implicit space: Space): Json = ???
 }

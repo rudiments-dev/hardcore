@@ -6,11 +6,9 @@ import akka.http.scaladsl.server.{Route, StandardRoute}
 import dev.rudiments.hardcore._
 import io.circe.{Encoder, KeyEncoder}
 
-import scala.reflect.runtime.universe.TypeTag
-
-class ScalaRORouter[T : TypeTag](
-  val id: Predicate,
-  val agent: Agent
+case class ScalaRORouter(
+  id: Predicate,
+  agent: Agent
 ) extends Router with CirceSupport {
   implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.k.toString)
   implicit val valEncoder: Encoder[Map[ID, Thing]] = Encoder.encodeMap[ID, Thing]

@@ -1,17 +1,17 @@
 package dev.rudiments.hardcore.http
 
-import java.sql.{Date, Timestamp}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import dev.rudiments.hardcore._
 import enumeratum._
 import io.circe.Decoder.Result
 import io.circe._
-import io.circe.generic.extras.{AutoDerivation, Configuration}
+import io.circe.generic.extras.Configuration
 import io.circe.syntax._
 
+import java.sql.{Date, Timestamp}
 import scala.language.implicitConversions
 
-trait CirceSupport extends AutoDerivation with FailFastCirceSupport {
+trait CirceSupport extends FailFastCirceSupport {
   implicit val configuration: Configuration = Configuration.default.withDefaults
   implicit val printer: Printer = Printer.noSpaces.copy(dropNullValues = true)
 
@@ -25,13 +25,13 @@ trait CirceSupport extends AutoDerivation with FailFastCirceSupport {
     override def apply(c: HCursor): Result[Date] = Decoder.decodeString.map(Date.valueOf).apply(c)
   }
 
-  implicit def enumFormat[E <: EnumEntry](enum: Enum[E]): Encoder[E] with Decoder[E] = new Encoder[E] with Decoder[E] {
+  implicit def enumFormat[E <: EnumEntry](e: Enum[E]): Encoder[E] with Decoder[E] = new Encoder[E] with Decoder[E] {
     override def apply(a: E): Json = a.entryName.asJson
 
     override def apply(c: HCursor): Result[E] = implicitly[Decoder[String]].apply(c).flatMap { s =>
-      enum.withNameOption(s) match {
+      e.withNameOption(s) match {
         case Some(member) => Right(member)
-        case _ => Left(DecodingFailure(s"'$s' is not a member of enum $enum", c.history))
+        case _ => Left(DecodingFailure(s"'$s' is not a member of enum $e", c.history))
       }
     }
   }

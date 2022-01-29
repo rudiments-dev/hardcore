@@ -22,7 +22,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   private implicit val dataEncoder: Encoder[Data] = ThingEncoder.encode
   private implicit val de: Decoder[Thing] = deriveDecoder[Smt].map(_.asData)
 
-  private val routes = PathOps.seal(ID("example").asPath, new ScalaRouter[Smt](ScalaLong, memory).routes)
+  private val routes = PathOps.seal(ID("example").asPath, new ScalaRouter(ScalaLong, memory).routes)
   private val sample: Data = Smt(42, "sample", None).asData
 
   "InstanceEncoder can encode" in {

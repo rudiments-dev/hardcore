@@ -12,7 +12,7 @@ object Main extends App {
   val root = new RootRouter(RootRouter.config(ConfigFactory.load()))
   root.cache(Create(ID("example"), new Example().router))
   root.cache(Create(ID("file"), new ExampleFile().router))
-  root.cache(Create(ID("types"), new ScalaRORouter[Thing](ScalaTypes.ScalaString, space("types"))))
+  root.cache(Create(ID("types"), new ScalaRORouter(ScalaTypes.ScalaString, space("types"))))
 
   root.bind()
 }

@@ -26,7 +26,7 @@ class ExampleFile(implicit val space: Space) extends LazyLogging {
     )
   }
   private val exampleFile = Dir(".")
-  val router = new ScalaRORouter[FileAdapter](
+  val router: ScalaRORouter = ScalaRORouter(
     ScalaTypes.ScalaString,
     exampleFile
   )

@@ -7,9 +7,7 @@ import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.PathOps.plainId
 import io.circe.{Decoder, Encoder, KeyEncoder}
 
-import scala.reflect.runtime.universe.TypeTag
-
-class ScalaRouter[T : TypeTag](
+class ScalaRouter(
   val id: Predicate,
   val agent: Agent
 )(implicit de: Decoder[Thing]) extends Router with CirceSupport {

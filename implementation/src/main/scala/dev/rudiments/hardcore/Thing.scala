@@ -27,7 +27,7 @@ final case class Path(ids: ID*) extends Thing {
 }
 object Path {
   val empty: Path = Path()
-  def apply(s: String): Path = new Path(s.trim.split("/").map(ID):_*)
+  def apply(s: String): Path = new Path(s.trim.split("/").map(ID).toIndexedSeq:_*)
 }
 final case class Data(p: Predicate, v: Any) extends Thing {
   def apply(cmd: Command): Event = ???

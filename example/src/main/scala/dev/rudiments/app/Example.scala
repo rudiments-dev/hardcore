@@ -8,7 +8,7 @@ import io.circe.generic.semiauto.deriveDecoder
 
 class Example(implicit space: Space) extends LazyLogging {
   implicit val decoder: Decoder[Thing] = deriveDecoder[Body].map(_.asData)
-  val router = new ScalaRouter[Body](
+  val router = new ScalaRouter(
     ScalaTypes.ScalaString,
     new Memory(All, All)
   )
