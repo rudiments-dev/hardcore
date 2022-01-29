@@ -2,7 +2,7 @@ package dev.rudiments.hardcore.http
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, Directive1, Route}
-import dev.rudiments.hardcore.{Agent, All, ID, NoSkill, Path, Plain, Predicate, RW, ScalaTypes}
+import dev.rudiments.hardcore.{Agent, All, ID, NoSkill, Path, Plain, RW, ScalaTypes}
 
 import java.sql.Date
 
@@ -19,7 +19,7 @@ object PathOps {
 
   def seal(path: Path, routes: Route): Route = Route.seal(pathDirective(path) { routes })
 
-  def plainId(p: Predicate): Directive1[ID] = p match {
+  def plainId(p: Plain): Directive1[ID] = p match {
     case ScalaTypes.ScalaLong =>    pathPrefix(LongNumber).map(l => ID(l))
     case ScalaTypes.ScalaInt =>     pathPrefix(IntNumber) .map(i => ID(i))
     case ScalaTypes.ScalaString =>  pathPrefix(Segment)   .map(i => ID(i))

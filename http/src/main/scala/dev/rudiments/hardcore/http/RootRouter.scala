@@ -16,12 +16,12 @@ import scala.util.{Failure, Success}
 
 class RootRouter(config: RootConfig)(implicit actorSystem: ActorSystem) extends Router with StrictLogging {
   private implicit val ec: ExecutionContext = actorSystem.getDispatcher
-  val cache = new Memory(All, All) //TODO String, Router
+  val routers = new Memory(All, All) //TODO String, Router
 
   override def routes: Route =
     CorsDirectives.cors(config.cors) {
       Directives.pathPrefix(config.prefix) {
-        cache(Find(All)) match {
+        routers(Find(All)) match {
           case Found(_, items) => items.collect {
             case (id, router: Router) => Directives.pathPrefix(id.k.toString) { router.routes }
           }.reduce(_ ~ _)

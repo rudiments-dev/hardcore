@@ -8,14 +8,17 @@ import dev.rudiments.hardcore.http.PathOps.plainId
 import io.circe.{Decoder, Encoder, KeyEncoder}
 
 class ScalaRouter(
-  val id: Predicate,
+  val keyIs: Plain,
+  val dataIs: Ref,
   val agent: Agent
-)(implicit de: Decoder[Thing]) extends Router with CirceSupport {
+) extends Router with CirceSupport {
+  implicit val thingDecoder: Decoder[Thing] = ThingDecoder.decoder(dataIs).map(_.asInstanceOf[Thing])
   implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.k.toString)
   implicit val valEncoder: Encoder[Map[ID, Thing]] = Encoder.encodeMap[ID, Thing]
 
+
   override val routes: Route = {
-      plainId(id) { id =>
+      plainId(keyIs) { id =>
         get {
           responseWith(agent(Read(id)))
         } ~ delete {

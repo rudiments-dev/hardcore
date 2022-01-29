@@ -5,8 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.ScalaTypes.ScalaLong
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.{CirceSupport, PathOps, ScalaRouter, ThingEncoder}
-import io.circe.generic.semiauto.deriveDecoder
+import dev.rudiments.hardcore.http.{CirceSupport, PathOps, ScalaRouter, ThingDecoder, ThingEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -16,13 +15,14 @@ import org.scalatestplus.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with CirceSupport {
   private implicit val space: Space = new Space()
-  private val memory = new Memory(All, All)
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
-  private implicit val dataEncoder: Encoder[Data] = ThingEncoder.encode
-  private implicit val de: Decoder[Thing] = deriveDecoder[Smt].map(_.asData)
+  private val memory = new Memory(All, All)
 
-  private val routes = PathOps.seal(ID("example").asPath, new ScalaRouter(ScalaLong, memory).routes)
+  private val router = new ScalaRouter(ScalaLong, Type.build[Smt].asInstanceOf[Ref], memory)
+  private val routes = PathOps.seal(ID("example").asPath, router.routes)
+  private implicit val de: Decoder[Thing] = router.thingDecoder
+  private implicit val en: Encoder[Data] = ThingEncoder.encode
   private val sample: Data = Smt(42, "sample", None).asData
 
   "InstanceEncoder can encode" in {
@@ -34,7 +34,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   }
 
   "InstanceDecoder can decode" in {
-    val decoded = de.decodeJson(Json.obj(
+    val decoded = router.thingDecoder.decodeJson(Json.obj(
       "id" -> Json.fromLong(42),
       "name" -> Json.fromString("sample"),
       "comment" -> Json.Null

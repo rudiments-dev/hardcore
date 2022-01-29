@@ -27,7 +27,7 @@ final case class Path(ids: ID*) extends Thing {
 }
 object Path {
   val empty: Path = Path()
-  def apply(s: String): Path = new Path(s.trim.split("/").map(ID).toIndexedSeq:_*)
+  def apply(s: String): Path = new Path(s.split("/").map(_.trim).map(ID).toIndexedSeq:_*)
 }
 final case class Data(p: Predicate, v: Any) extends Thing {
   def apply(cmd: Command): Event = ???
@@ -175,12 +175,15 @@ object Type {
     build[Thing]
   }
 
-  def getType[A : TypeTag](implicit space: Space): Type = space(
+  def getRef[A : TypeTag](implicit space: Space): Ref = space(
     ID("types").asPath,
     Read(ID(this.name(typeOf[A].typeSymbol)))
   ) match {
-    case Readen(_, t: Type) => t
-    case other => ???
+    case Readen(id, t: Type) => Ref(ID("types") / id, t, None)
+    case Readen(id, Data(Nothing, Nothing)) => Ref(ID("types") / id, Nothing, None)
+    case Readen(id, Data(p, v)) => Ref(ID("types") / id, p, Some(v))
+    case NotFound(id) =>
+      throw new IllegalArgumentException(s"$id not initialized")
   }
 
   def build[A : TypeTag](implicit space: Space): Predicate = getOrMake(typeOf[A])
@@ -210,7 +213,7 @@ object Type {
     val path = ID("types") / id
     ID("types").asPath(Read(id)) match {
       case Readen(_, existing: Predicate) => Ref(path, existing)
-      case Readen(_, Data(Nothing, v)) => Ref(path, Nothing, None)
+      case Readen(_, Data(Nothing, Nothing)) => Ref(path, Nothing, None)
       case Readen(_, Data(p, v)) => Ref(path, p, Some(v))
       case NotFound(_) =>
         if(t.isModuleClass) {
