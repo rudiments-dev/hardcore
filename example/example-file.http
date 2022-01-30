@@ -23,7 +23,7 @@ Accept: application/json
 
 ###
 
-GET http://localhost:8080/api/file/http/src/main/scala/dev/rudiments/hardcore/http/Router.scala
+GET http://localhost:8080/api/file/example/src/main/scala/dev/rudiments/app/Main.scala
 Accept: application/json
 
 ###

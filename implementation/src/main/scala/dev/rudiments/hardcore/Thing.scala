@@ -4,6 +4,7 @@ import dev.rudiments.hardcore.ScalaTypes._
 import dev.rudiments.hardcore.{Apply => DevApply}
 import dev.rudiments.hardcore.Size.{NegativeInfinity, PositiveInfinity}
 
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{Type => SysType, _}
 
 trait ADT {}
@@ -16,12 +17,17 @@ final case class ID(k: Any) extends Thing {
 
   override def toString: String = "#" + k.toString
 }
+
 final case class Path(ids: ID*) extends Thing {
   def /(id: ID): Path = Path(ids :+ id :_*)
   def /(path: Path): Path = Path(ids :++ path.ids :_*)
 
-  def find(implicit space: Space): Memory = space.find(this)
-  def apply(in: In)(implicit space: Space): Out = space.find(this).apply(in)
+  def find[T <: Thing : ClassTag](implicit space: Space): T =
+    space
+      .find[T](
+        this
+      )
+  def ->(in: In)(implicit space: Space): Out = space.find[Agent](this).apply(in)
 
   override def toString: String = ids.map(_.k).mkString("/", "/", "")
 }
@@ -29,6 +35,7 @@ object Path {
   val empty: Path = Path()
   def apply(s: String): Path = new Path(s.split("/").map(_.trim).map(ID).toIndexedSeq:_*)
 }
+
 final case class Data(p: Predicate, v: Any) extends Thing {
   def apply(cmd: Command): Event = ???
   def apply(evt: Event): Data = ???
@@ -93,7 +100,13 @@ abstract class AgentRead(
   def read(id: ID): Out
 }
 
-class Instruction(f: Any => Any) extends Thing {}
+case class Volatile(p: Predicate, v: Any) extends Thing {
+  def as[T : ClassTag]: T = v match {
+    case t: T => t
+    case other => throw new IllegalArgumentException(s"'$other' is not ${implicitly[ClassTag[T]].runtimeClass.getName}")
+  }
+}
+
 sealed trait Expression extends Thing {}
 sealed trait Predicate extends Expression {
   def validate(value: Any): Boolean
@@ -211,7 +224,7 @@ object Type {
     val nameOfT = this.name(t)
     val id = ID(nameOfT)
     val path = ID("types") / id
-    ID("types").asPath(Read(id)) match {
+    ID("types").asPath -> Read(id) match {
       case Readen(_, existing: Predicate) => Ref(path, existing)
       case Readen(_, Data(Nothing, Nothing)) => Ref(path, Nothing, None)
       case Readen(_, Data(p, v)) => Ref(path, p, Some(v))
@@ -223,7 +236,7 @@ object Type {
           } else {
             new Data(AllOf(f: _*), f.map(_ => Nothing))
           }
-          ID("types").asPath(Create(id, a))
+          ID("types").asPath -> Create(id, a)
           Ref(path, a.p, Some(a.v))
         } else {
           val a = if (t.isAbstract) {
@@ -233,7 +246,7 @@ object Type {
           } else {
             throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
           }
-          ID("types").asPath(Create(id, a))
+          ID("types").asPath -> Create(id, a)
           t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
           Ref(path, a)
         }

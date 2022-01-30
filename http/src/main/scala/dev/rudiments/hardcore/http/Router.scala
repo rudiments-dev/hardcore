@@ -2,13 +2,16 @@ package dev.rudiments.hardcore.http
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, Directive1, Route}
-import dev.rudiments.hardcore.{Agent, All, ID, NoSkill, Path, Plain, RW, ScalaTypes}
+import dev.rudiments.hardcore.{Agent, All, ID, NoSkill, Path, Plain, RW, ScalaTypes, Space, Thing, Volatile}
+import io.circe.Encoder
 
 import java.sql.Date
 
-abstract class Router extends Agent(All, All) {
+abstract class Router(implicit val space: Space) extends Agent(All, All) with CirceSupport {
   override val skill: RW = NoSkill
   def routes: Route
+
+  implicit val thingEncoder: Encoder[Thing] = Path("encoders/Thing").find[Volatile].as[Encoder[Thing]]
 }
 
 object PathOps {

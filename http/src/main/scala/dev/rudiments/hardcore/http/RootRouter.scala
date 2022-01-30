@@ -14,7 +14,7 @@ import dev.rudiments.hardcore.http.RootRouter.RootConfig
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-class RootRouter(config: RootConfig)(implicit actorSystem: ActorSystem) extends Router with StrictLogging {
+class RootRouter(config: RootConfig)(implicit space: Space, actorSystem: ActorSystem) extends Router with StrictLogging {
   private implicit val ec: ExecutionContext = actorSystem.getDispatcher
   val routers = new Memory(All, All) //TODO String, Router
 

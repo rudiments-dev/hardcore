@@ -11,7 +11,7 @@ class ScalaRouter(
   val keyIs: Plain,
   val dataIs: Ref,
   val agent: Agent
-) extends Router with CirceSupport {
+)(implicit space: Space) extends Router {
   implicit val thingDecoder: Decoder[Thing] = ThingDecoder.decoder(dataIs).map(_.asInstanceOf[Thing])
   implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.k.toString)
   implicit val valEncoder: Encoder[Map[ID, Thing]] = Encoder.encodeMap[ID, Thing]

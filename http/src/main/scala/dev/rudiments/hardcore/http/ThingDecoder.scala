@@ -5,6 +5,13 @@ import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
 object ThingDecoder {
   val discriminator: String = "type"
+  val id: ID = ID("decoders")
+  val path: Path = id.asPath
+
+  def init(implicit space: Space): Unit = {
+    space(Create(id, new Memory(All, All)))
+    path -> Apply(Seq()) //TODO?
+  }
 
   def decoder(thing: Thing): Decoder[_] =
     thing match {

@@ -15,6 +15,7 @@ import org.scalatestplus.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with CirceSupport {
   private implicit val space: Space = new Space()
+  ThingEncoder.init
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
   private val memory = new Memory(All, All)
@@ -23,6 +24,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   private val routes = PathOps.seal(ID("example").asPath, router.routes)
   private implicit val de: Decoder[Thing] = router.thingDecoder
   private implicit val en: Encoder[Data] = ThingEncoder.encode
+  private implicit val thingEncoder: Encoder[Thing] = router.thingEncoder
   private val sample: Data = Smt(42, "sample", None).asData
 
   "InstanceEncoder can encode" in {

@@ -35,6 +35,4 @@ trait CirceSupport extends FailFastCirceSupport {
       }
     }
   }
-
-  implicit val thingEncoder: Encoder[Thing] = ThingEncoder.encode
 }
