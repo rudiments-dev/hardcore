@@ -23,6 +23,7 @@ object Main extends App {
   ))
   root.routers(Create(ID("file"), new ScalaRORouter(ScalaTypes.ScalaString, Dir("."))))
   root.routers(Create(ID("types"), new ScalaRORouter(ScalaTypes.ScalaString, space("types"))))
+  root.routers(Create(ID("routers"), new ScalaRORouter(ScalaTypes.ScalaString, root.routers)))
 
   root.bind()
 }

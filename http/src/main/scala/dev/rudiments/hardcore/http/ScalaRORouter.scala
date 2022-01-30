@@ -7,8 +7,8 @@ import dev.rudiments.hardcore._
 import io.circe.{Encoder, KeyEncoder}
 
 class ScalaRORouter(
-  id: Predicate,
-  agent: Agent
+  val id: Predicate,
+  val agent: Agent
 )(implicit space: Space) extends Router {
   implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.k.toString)
   implicit val valEncoder: Encoder[Map[ID, Thing]] = Encoder.encodeMap[ID, Thing]

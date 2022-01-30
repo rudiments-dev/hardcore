@@ -2,7 +2,7 @@ package dev.rudiments.hardcore
 
 import scala.collection.mutable
 
-class Memory(idIs: Predicate, dataIs: Predicate) extends Agent(idIs, dataIs) {
+class Memory(val idIs: Predicate, val dataIs: Predicate) extends Agent(idIs, dataIs) {
   val state: mutable.SeqMap[ID, Thing] = mutable.SeqMap.empty
 
   def read(id: ID): Out = Memory.read(this).act(Read(id))

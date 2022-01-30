@@ -11,7 +11,28 @@ object ThingEncoder {
   def init(implicit space: Space): Unit = {
     space(Create(id, new Memory(All, All)))
     path -> Apply(Seq(
-      Create(ID("Thing"), Volatile(All, Encoder[Thing](encode)))
+      Create(ID("Thing"), Volatile(All, Encoder[Thing](encode))),
+      Create(ID("Memory"), Volatile(All, Encoder.instance[Thing] {
+        case m: Memory => Json.obj(
+          "type" -> Json.fromString("memory"),
+          "data-is" -> encode(m.dataIs),
+          "key-is" -> encode(m.idIs)
+        )
+      })),
+      Create(ID("ScalaRouter"), Volatile(All, Encoder.instance[Thing] {
+        case sr: ScalaRouter => Json.obj(
+          "type" -> Json.fromString("rw-router"),
+          "data-is" -> encode(sr.dataIs),
+          "key-is" -> encode(sr.keyIs),
+          "mount" -> encode(sr.agent)
+        )
+      })),
+      Create(ID("ScalaRORouter"), Volatile(All, Encoder.instance[Thing] {
+        case sr: ScalaRORouter => Json.obj(
+          "type" -> Json.fromString("ro-router"),
+          "mount" -> encode(sr.agent)
+        )
+      }))
     ))
   }
 

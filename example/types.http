@@ -3,10 +3,10 @@ Accept: application/json
 
 ###
 
-PUT http://localhost:8080/api/example/some-data
-Content-Type: application/json
+GET http://localhost:8080/api/routers/
+Accept: application/json
 
-{
-  "name": "some else data",
-  "strings": ["blah", "blah-blah", "blah-blah-blah-blah!"]
-}
+###
+
+GET http://localhost:8080/api/routers/types
+Accept: application/json
