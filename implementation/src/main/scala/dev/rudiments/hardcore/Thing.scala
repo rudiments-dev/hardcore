@@ -81,7 +81,7 @@ object Data {
 }
 
 case class Ref(path: Path, p: Predicate, v: Option[Any] = None) extends Predicate {
-  override def validate(value: Any): Boolean = ???
+  override def validate(value: Any): Boolean = ??? //TODO implicit space?
 }
 
 abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] with Thing {
@@ -98,6 +98,8 @@ abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunct
 
   override def isDefinedAt(x: In): Boolean = f.isDefinedAt(x)
   override def apply(x: In): Out = f.apply(x)
+
+  def ->(in: In): Out = f.apply(in)
 }
 
 abstract class AgentRead(
@@ -147,7 +149,9 @@ case class RW(act: PartialFunction[In, Out], commit: PartialFunction[Out, Thing]
 case class WO(commit: PartialFunction[Out, Thing]) extends Skill {}
 object NoSkill extends RW(
   act = {
-    case in => NotImplemented(in)
+    case in =>
+      NotImplemented(in)
+      throw new IllegalArgumentException("Not implemented")
   },
   commit = {
     case _ => throw new IllegalArgumentException("Not implemented")
@@ -184,26 +188,17 @@ final case class Type(fields: Seq[Field] = Seq.empty, fullName: Option[String] =
 
 object Type {
   def init(implicit space: Space): Unit = {
-    space.root(Create(ID("types"), new Memory(All, All))) match {
+    space -> Create(ID("types"), new Memory(ScalaString, All)) match {
       case Created(_, mem: Memory) =>       initSequence(mem)
       case AlreadyExist(_, mem: Memory) =>  initSequence(mem)
     }
   }
 
   private def initSequence(mem: Memory)(implicit space: Space): Unit = {
-    mem(DevApply(plain.map { case (name, t) => Create(ID(name), t) }.toSeq))
+    mem -> DevApply(
+      plain.map { case (name, t) => Create(ID(name), t) }.toSeq
+    )
     build[Thing]
-  }
-
-  def getRef[A : TypeTag](implicit space: Space): Ref = space(
-    ID("types").asPath,
-    Read(ID(this.name(typeOf[A].typeSymbol)))
-  ) match {
-    case Readen(id, t: Type) => Ref(ID("types") / id, t, None)
-    case Readen(id, Data(Nothing, Nothing)) => Ref(ID("types") / id, Nothing, None)
-    case Readen(id, Data(p, v)) => Ref(ID("types") / id, p, Some(v))
-    case NotFound(id) =>
-      throw new IllegalArgumentException(s"$id not initialized")
   }
 
   def build[A : TypeTag](implicit space: Space): Predicate = getOrMake(typeOf[A])
@@ -282,9 +277,7 @@ object Type {
 }
 
 case class Field(name: String, p: Predicate, required: Boolean) extends Predicate {
-  override def validate(value: Any): Boolean = {
-    ??? // get value by ID(name) and validate with p
-  }
+  override def validate(value: Any): Boolean = p.validate(value)
 }
 
 sealed trait Plain extends Predicate {}

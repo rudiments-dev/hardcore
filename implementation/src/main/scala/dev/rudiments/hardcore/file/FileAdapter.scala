@@ -1,17 +1,20 @@
 package dev.rudiments.hardcore.file
 
 import dev.rudiments.hardcore
-import dev.rudiments.hardcore.{Agent, All, Create, Data, Find, Found, ID, In, Index, Memory, NoSkill, Out, RW, Read, Readen, ScalaTypes, Skill, Space, Thing, Type}
+import dev.rudiments.hardcore.ScalaTypes.ScalaString
+import dev.rudiments.hardcore.{Agent, All, Create, Data, Find, Found, ID, In, Index, Memory, NoSkill, Out, Path, RW, Read, Readen, ScalaTypes, Skill, Space, Thing, Type}
 
 import java.io.{File => JavaFile}
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 import scala.io.Source
+import scala.util.Using
 
 sealed abstract class FileAdapter(val absolutePath: String) extends Agent(All, All) {}
 case class Dir(
   override val absolutePath: String
 )(implicit space: Space) extends FileAdapter(absolutePath) {
-  val cache: Memory = new Memory(All, All)
+  val cache: Memory = new Memory(ScalaString, Path("types/FileAdapter").ref)
   var totalRecursive = 0L
   private val textFiles = Seq("txt", "scala", "java", "gradle", "yml", "sql", "md", "conf", "xml", "http")
   private def isTextFile(name: String): Boolean = textFiles.exists(name.endsWith)
@@ -38,15 +41,16 @@ case class Dir(
       case ReadenStructure(files) =>
         files.foreach {
           case (id, dir: Dir) =>
-            cache.apply(Create(id, dir))
+            cache -> Create(id, dir)
             totalRecursive += dir.totalRecursive
           case (id, file) =>
-            cache.apply(Create(id, file))
+            cache -> Create(id, file)
+            file -> ReadFile
             totalRecursive += 1
         }
         cache.skill.act(Find()) match {
           case Found(_, found: Map[ID, Thing]) => Data(
-            Index(All, All),
+            Index(ScalaString, All),
             found.collect {
               case (id, file: Dir) => id -> Data.build[Dir](file.absolutePath)
               case (id, file: TextFile) => id -> Data.build[TextFile](file.absolutePath)
@@ -108,10 +112,12 @@ case class TextFile(
   override val absolutePath: String
 ) extends FileAdapter(absolutePath) {
   var cache: Seq[String] = Seq.empty
-  override val skill: RW = RW(
+  val readFile: RW = RW(
     act = {
       case ReadFile =>
-        ReadenTextFile(Source.fromFile(absolutePath).getLines().toSeq)
+        Using(Source.fromFile(absolutePath)) { f =>
+          ReadenTextFile(f.getLines().toSeq)
+        }.getOrElse(FileError(s"Failed to read $absolutePath"))
     },
     commit = {
       case ReadenTextFile(commit) =>
@@ -119,6 +125,23 @@ case class TextFile(
         new Data(hardcore.List(ScalaTypes.ScalaString), cache)
     }
   )
+
+  val writeFile: RW = RW(
+    act = {
+      case WriteTextFile(content) => WrittenTextFile(content)
+    },
+    commit = {
+      case WrittenTextFile(content) =>
+        cache = content
+        Files.write(
+          Paths.get(absolutePath),
+          content.mkString("\n").getBytes(StandardCharsets.UTF_8)
+        )
+        new Data(hardcore.List(ScalaTypes.ScalaString), cache)
+    }
+  )
+
+  override val skill: RW = Skill(readFile, writeFile)
 }
 
 case class UnknownFile(
@@ -128,7 +151,9 @@ case class UnknownFile(
   override val skill: RW = RW(
     act = {
       case ReadFile =>
-        ReadenBinaryFile(Files.readAllBytes(Paths.get(absolutePath)))
+        ReadenBinaryFile(
+          Files.readAllBytes(Paths.get(absolutePath))
+        )
     },
     commit = {
       case ReadenBinaryFile(commit) =>

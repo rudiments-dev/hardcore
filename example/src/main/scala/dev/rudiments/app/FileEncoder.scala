@@ -1,12 +1,14 @@
 package dev.rudiments.app
 
-import dev.rudiments.hardcore.file.{Dir, TextFile, UnknownFile}
+import dev.rudiments.hardcore.file.{Dir, FileAdapter, TextFile, UnknownFile}
 import dev.rudiments.hardcore.http.ThingEncoder
-import dev.rudiments.hardcore.{All, Create, ID, Space, Thing, Volatile}
+import dev.rudiments.hardcore.{All, Create, ID, Space, Thing, Type, Volatile}
 import io.circe.{Encoder, Json}
 
 object FileEncoder {
   def init(implicit space: Space): Unit = {
+    Type.build[FileAdapter]
+
     ThingEncoder.path -> Create(ID("Dir"), Volatile(All, Encoder.instance[Thing] {
       case dir: Dir => Json.obj(
         "type" -> Json.fromString("dir"),

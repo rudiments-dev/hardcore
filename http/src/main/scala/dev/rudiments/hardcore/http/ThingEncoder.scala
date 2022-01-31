@@ -12,6 +12,7 @@ object ThingEncoder {
     Type.build[Router]
     Type.build[ScalaRORouter]
     Type.build[ScalaRouter]
+    Type.build[RootRouter]
 
     space -> Create(id, new Memory(All, All))
     path -> Apply(Seq(
@@ -33,6 +34,12 @@ object ThingEncoder {
         case sr: ScalaRORouter => Json.obj(
           "type" -> Json.fromString("ro-router"),
           "mount" -> Json.fromString(sr.mount.toString)
+        )
+      })),
+      Create(ID("RootRouter"), Volatile(All, Encoder.instance[Thing] {
+        case sr: RootRouter => Json.obj(
+          "type" -> Json.fromString("root-router"),
+          "routers" -> encode(sr.routers)
         )
       }))
     ))

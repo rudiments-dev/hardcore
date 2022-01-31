@@ -19,5 +19,8 @@ case class ReadenTextFile(content: Seq[String]) extends Event with FileIO
 case class ReadenBinaryFile(content: Array[Byte]) extends Event with FileIO
 case class FileReaden(id: ID, evt: Event with FileIO) extends Event with FileIO
 
+case class WriteTextFile(content: Seq[String]) extends Command with FileIO
+case class WrittenTextFile(content: Seq[String]) extends Event with FileIO
+
 
 case class FileError(message: String) extends Error with FileSystemIO

@@ -11,23 +11,23 @@ import dev.rudiments.hardcore.http.{RootRouter, ScalaRORouter, ScalaRouter, Thin
 object Main extends App {
   implicit val actorSystem: ActorSystem = ActorSystem()
   implicit val space : Space = new Space()
-  space -> Create(ID("project-files"), Dir("."))
-  space -> Create(ID("example"), new Memory(All, All))
+  init
+  Path("router").find[RootRouter].bind()
 
-  Type.build[Body]
 
-  ThingEncoder.init
-  FileEncoder.init
+  def init(implicit space: Space): Unit = {
+    ThingEncoder.init
+    FileEncoder.init
+    space -> Create(ID("project-files"), Dir("."))
+    space -> Create(ID("example"), new Memory(ScalaString, Type.build[Body]))
 
-  val root = new RootRouter(RootRouter.config(ConfigFactory.load()))
-  space -> Create(ID("router-memory"), root.routers)
-  val rm = Path("router-memory")
+    space -> Create(ID("router"), new RootRouter(RootRouter.config(ConfigFactory.load())))
 
-  rm -> Create(ID("example"), new ScalaRouter(ScalaString, Path("types/Body").ref, Path("example")))
-  rm -> Create(ID("file"), new ScalaRORouter(ScalaString, Path("project-files")))
-  rm -> Create(ID("types"), new ScalaRORouter(ScalaString, Path("types")))
-  rm -> Create(ID("routers"), new ScalaRORouter(ScalaString, rm))
-  rm -> Create(ID("all"), new ScalaRORouter(ScalaString, / ))
-
-  root.bind()
+    val rm = Path("router")
+    rm -> Create(ID("example"), new ScalaRouter(ScalaString, Path("types/Body").ref, Path("example")))
+    rm -> Create(ID("file"), new ScalaRORouter(ScalaString, Path("project-files")))
+    rm -> Create(ID("types"), new ScalaRORouter(ScalaString, Path("types")))
+    rm -> Create(ID("routers"), new ScalaRORouter(ScalaString, rm))
+    rm -> Create(ID("all"), new ScalaRORouter(ScalaString, / ))
+  }
 }

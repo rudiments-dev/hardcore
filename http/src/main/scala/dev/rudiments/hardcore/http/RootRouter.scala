@@ -18,6 +18,7 @@ import scala.util.{Failure, Success}
 class RootRouter(config: RootConfig)(implicit space: Space, actorSystem: ActorSystem) extends Router with StrictLogging {
   private implicit val ec: ExecutionContext = actorSystem.getDispatcher
   val routers = new Memory(ScalaString, Path("types/Router").ref)
+  override val skill: RW = routers.skill
 
   override def routes: Route =
     CorsDirectives.cors(config.cors) {
@@ -36,7 +37,9 @@ class RootRouter(config: RootConfig)(implicit space: Space, actorSystem: ActorSy
       config.port
     ).bind(routes).onComplete {
       case Success(b) => logger.info("Bound http:/{}/{}", b.localAddress.toString, config.prefix)
-      case Failure(e) => throw e
+      case Failure(e) =>
+        actorSystem.terminate()
+        throw e
     }
     Done
   }

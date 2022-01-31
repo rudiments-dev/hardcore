@@ -32,8 +32,6 @@ class Space() extends Agent(All, All) { //TODO fix by using separate predicates,
 
   def apply(path: Path, what: In): Out = find[Agent](path).apply(what)
 
-  def ->(what: In): Out = root(what)
-
   def add(path: Path, id: ID, what: Thing): Unit = path.ids.foldLeft(root.asInstanceOf[Agent]) {
     case (dir: Memory, i) =>
       dir.read(id) match {
