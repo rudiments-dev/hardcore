@@ -10,8 +10,9 @@ import io.circe.{Decoder, Encoder, KeyEncoder}
 class ScalaRouter(
   val keyIs: Plain,
   val dataIs: Ref,
-  val agent: Agent
+  val mount: Path
 )(implicit space: Space) extends Router {
+  val agent: Agent = mount.find[Agent]
   implicit val thingDecoder: Decoder[Thing] = ThingDecoder.decoder(dataIs).map(_.asInstanceOf[Thing])
   implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.k.toString)
   implicit val valEncoder: Encoder[Map[ID, Thing]] = Encoder.encodeMap[ID, Thing]

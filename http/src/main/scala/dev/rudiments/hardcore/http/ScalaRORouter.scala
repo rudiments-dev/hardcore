@@ -8,8 +8,9 @@ import io.circe.{Encoder, KeyEncoder}
 
 class ScalaRORouter(
   val id: Predicate,
-  val agent: Agent
+  val mount: Path
 )(implicit space: Space) extends Router {
+  val agent: Agent = mount.find[Agent]
   implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.k.toString)
   implicit val valEncoder: Encoder[Map[ID, Thing]] = Encoder.encodeMap[ID, Thing]
 
@@ -37,6 +38,8 @@ class ScalaRORouter(
     } ~ get {
       rawPathPrefix(Slash ~ PathEnd) {
         responseWith(agent(Find(All)))
+      } ~ {
+        responseWith(Readen(ID("?"), agent))
       }
     }
   }

@@ -6,10 +6,14 @@ import io.circe.{Encoder, Json}
 
 object ThingEncoder {
   val id: ID = ID("encoders")
-  val path = id.asPath
+  val path: Path = id.asPath
 
   def init(implicit space: Space): Unit = {
-    space(Create(id, new Memory(All, All)))
+    Type.build[Router]
+    Type.build[ScalaRORouter]
+    Type.build[ScalaRouter]
+
+    space -> Create(id, new Memory(All, All))
     path -> Apply(Seq(
       Create(ID("Thing"), Volatile(All, Encoder[Thing](encode))),
       Create(ID("Memory"), Volatile(All, Encoder.instance[Thing] {
@@ -22,15 +26,13 @@ object ThingEncoder {
       Create(ID("ScalaRouter"), Volatile(All, Encoder.instance[Thing] {
         case sr: ScalaRouter => Json.obj(
           "type" -> Json.fromString("rw-router"),
-          "data-is" -> encode(sr.dataIs),
-          "key-is" -> encode(sr.keyIs),
-          "mount" -> encode(sr.agent)
+          "mount" -> Json.fromString(sr.mount.toString)
         )
       })),
       Create(ID("ScalaRORouter"), Volatile(All, Encoder.instance[Thing] {
         case sr: ScalaRORouter => Json.obj(
           "type" -> Json.fromString("ro-router"),
-          "mount" -> encode(sr.agent)
+          "mount" -> Json.fromString(sr.mount.toString)
         )
       }))
     ))

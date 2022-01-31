@@ -3,10 +3,15 @@ Accept: application/json
 
 ###
 
-GET http://localhost:8080/api/routers/
+GET http://localhost:8080/api/types
 Accept: application/json
 
 ###
 
-GET http://localhost:8080/api/routers/types
+GET http://localhost:8080/api/types/Type
+Accept: application/json
+
+###
+
+GET http://localhost:8080/api/types/Field
 Accept: application/json

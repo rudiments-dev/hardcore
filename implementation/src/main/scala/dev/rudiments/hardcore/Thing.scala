@@ -22,17 +22,24 @@ final case class Path(ids: ID*) extends Thing {
   def /(id: ID): Path = Path(ids :+ id :_*)
   def /(path: Path): Path = Path(ids :++ path.ids :_*)
 
-  def find[T <: Thing : ClassTag](implicit space: Space): T =
-    space
-      .find[T](
-        this
-      )
+  def find[T <: Thing : ClassTag](implicit space: Space): T = space.find[T](this)
+
+  def ref(implicit space: Space): Ref = {
+    this.find[Thing] match {
+      case t: Type => Ref(this, t, None)
+      case a: Abstract => Ref(this, a, None)
+      case Data(Nothing, Nothing) => Ref(this, Nothing, None)
+      case d: Data => Ref(this, d.p, Some(d.v))
+      case other => throw new IllegalArgumentException(s"Not supported as Ref: $other")
+    }
+  }
+
   def ->(in: In)(implicit space: Space): Out = space.find[Agent](this).apply(in)
 
   override def toString: String = ids.map(_.k).mkString("/", "/", "")
 }
 object Path {
-  val empty: Path = Path()
+  val / : Path = Path()
   def apply(s: String): Path = new Path(s.split("/").map(_.trim).map(ID).toIndexedSeq:_*)
 }
 

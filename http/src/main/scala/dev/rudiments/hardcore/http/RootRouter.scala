@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.Directives._
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import com.typesafe.scalalogging.StrictLogging
+import dev.rudiments.hardcore.ScalaTypes.ScalaString
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.RootRouter.RootConfig
 
@@ -16,7 +17,7 @@ import scala.util.{Failure, Success}
 
 class RootRouter(config: RootConfig)(implicit space: Space, actorSystem: ActorSystem) extends Router with StrictLogging {
   private implicit val ec: ExecutionContext = actorSystem.getDispatcher
-  val routers = new Memory(All, All) //TODO String, Router
+  val routers = new Memory(ScalaString, Path("types/Router").ref)
 
   override def routes: Route =
     CorsDirectives.cors(config.cors) {
