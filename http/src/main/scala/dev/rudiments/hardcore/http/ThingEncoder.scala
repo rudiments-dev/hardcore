@@ -21,7 +21,8 @@ object ThingEncoder {
         case m: Memory => Json.obj(
           "type" -> Json.fromString("memory"),
           "data-is" -> encode(m.dataIs),
-          "key-is" -> encode(m.idIs)
+          "key-is" -> encode(m.idIs),
+          "count" -> Json.fromInt(m.state.size)
         )
       })),
       Create(ID("ScalaRouter"), Volatile(All, Encoder.instance[Thing] {

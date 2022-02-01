@@ -211,6 +211,15 @@ object Type {
       plain.map { case (name, t) => Create(ID(name), t) }.toSeq
     )
     build[Thing]
+    build[Message]
+    build[In]
+    build[Command]
+    build[Query]
+    build[Out]
+    build[Event]
+    build[Report]
+    build[Error]
+    build[CRUD]
   }
 
   def ref[A : TypeTag](implicit space: Space): Ref =
