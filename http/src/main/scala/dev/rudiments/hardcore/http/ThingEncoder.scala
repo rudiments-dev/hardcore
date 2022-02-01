@@ -14,8 +14,8 @@ object ThingEncoder {
     Type.build[ScalaRouter]
     Type.build[RootRouter]
 
-    space -> Create(id, new Memory(All, All))
-    path -> Apply(Seq(
+    space << Create(id, new Memory(All, All))
+    path <<< (
       Create(ID("Thing"), Volatile(All, Encoder[Thing](encode))),
       Create(ID("Memory"), Volatile(All, Encoder.instance[Thing] {
         case m: Memory => Json.obj(
@@ -42,7 +42,7 @@ object ThingEncoder {
           "routers" -> encode(sr.routers)
         )
       }))
-    ))
+    )
   }
 
   def encode(thing: Thing)(implicit space: Space): Json = thing match {
@@ -62,6 +62,7 @@ object ThingEncoder {
     case Ref(path, _, _) => Json.fromString(path.ids.last.toString)
     case d: Data => encode(d)
     case a: Agent => encodeAgent(a)
+    case Nothing => Json.fromString("∅")
     case All => Json.fromString("∀")
   }
 
@@ -111,9 +112,8 @@ object ThingEncoder {
   )
 
   def encodeAgent(a: Agent)(implicit space: Space): Json = {
-    val p = id / ID(a.getClass.getName.split("\\.").toSeq.last)
-    val found = p.find[Volatile]
-    val ap = found.as[Encoder[Thing]].apply(a)
-    ap
+    val typeName = a.getClass.getName.split("\\.").toSeq.last
+    val p = id / ID(typeName)
+    p.find[Volatile].as[Encoder[Thing]].apply(a)
   }
 }

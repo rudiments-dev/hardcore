@@ -10,7 +10,7 @@ object ThingDecoder {
 
   def init(implicit space: Space): Unit = {
     space(Create(id, new Memory(All, All)))
-    path -> Apply(Seq()) //TODO?
+    path << Apply(Seq()) //TODO?
   }
 
   def decoder(thing: Thing): Decoder[_] =

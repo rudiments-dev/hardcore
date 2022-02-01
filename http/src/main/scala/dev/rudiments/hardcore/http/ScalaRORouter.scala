@@ -21,8 +21,8 @@ class ScalaRORouter(
       get {
         pathEnd {
           responseWith(
-            a(Read(id)) match {
-              case Readen(_, ag: Agent) => ag(Find(All))
+            a << Read(id) match {
+              case Readen(_, ag: Agent) => ag << Find(All)
               case other => other
             }
           )
@@ -32,12 +32,12 @@ class ScalaRORouter(
       val (a, id) = searchSegment(segments)
       get {
         pathEnd {
-          responseWith(a(Read(id)))
+          responseWith(a << Read(id))
         }
       }
     } ~ get {
       rawPathPrefix(Slash ~ PathEnd) {
-        responseWith(agent(Find(All)))
+        responseWith(agent << Find(All))
       } ~ {
         responseWith(Readen(ID("?"), agent))
       }
@@ -59,7 +59,7 @@ class ScalaRORouter(
     val id = ids.last
     val p = Path(ids.dropRight(1) :_*)
     val found = p.ids.foldLeft(agent) { (location, i) =>
-      location(Read(i)) match {
+      location << Read(i) match {
         case Readen(_, a: Agent) => a
       }
     }

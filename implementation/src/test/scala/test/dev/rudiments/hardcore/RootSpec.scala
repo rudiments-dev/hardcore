@@ -25,45 +25,45 @@ class RootSpec extends AnyWordSpec with Matchers {
   }
 
   "NotFound by ID" in {
-    path -> Read(id) should be (NotFound(id))
+    path << Read(id) should be (NotFound(id))
   }
 
   "can Create" in {
-    path -> Create(id, data) should be (Created(id, data))
+    path << Create(id, data) should be (Created(id, data))
   }
 
   "can Read existing ID" in {
-    path -> Read(id) should be (Readen(id, data))
+    path << Read(id) should be (Readen(id, data))
   }
 
   private val elseData = Smt(31, "sample", Some("thing")).asData
   "can Update" in {
-    path -> Update(id, elseData)
+    path << Update(id, elseData)
   }
 
   "can Read updated ID" in {
-    path -> Read(id) should be (Readen(id, elseData))
+    path << Read(id) should be (Readen(id, elseData))
   }
 
   "can Delete" in {
-    path -> Delete(id) should be (Deleted(id, elseData))
+    path << Delete(id) should be (Deleted(id, elseData))
   }
 
   "NotFound after Delete" in {
-    path -> Read(id) should be (NotFound(id)) // or Deleted(id, elseData) ?
+    path << Read(id) should be (NotFound(id)) // or Deleted(id, elseData) ?
   }
 
   private val wrongId = ID(666)
   "NotFound if Update with wrong ID" in {
-    path -> Update(wrongId, data) should be (NotFound(wrongId))
+    path << Update(wrongId, data) should be (NotFound(wrongId))
   }
 
   "NotFound if Delete with wrong ID" in {
-    path -> Delete(wrongId) should be (NotFound(wrongId))
+    path << Delete(wrongId) should be (NotFound(wrongId))
   }
 
   "can Apply bunch of commands" in {
-    path -> Apply( Seq(
+    path << Apply( Seq(
       Create(ID(1L), Smt(1, "1", None).asData),
       Create(ID(2L), Smt(2, "2", None).asData),
       Create(ID(3L), Smt(3, "3", None).asData)
@@ -75,7 +75,7 @@ class RootSpec extends AnyWordSpec with Matchers {
       ))
     )
 
-    path -> Apply( Seq(
+    path << Apply( Seq(
       Update(ID(1L), Smt(12, "12", None).asData),
       Delete(ID(2L)),
       Create(ID(4L), Smt(4, "4", None).asData),

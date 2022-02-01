@@ -9,7 +9,7 @@ object FileEncoder {
   def init(implicit space: Space): Unit = {
     Type.build[FileAdapter]
 
-    ThingEncoder.path -> Create(ID("Dir"), Volatile(All, Encoder.instance[Thing] {
+    ThingEncoder.path << Create(ID("Dir"), Volatile(All, Encoder.instance[Thing] {
       case dir: Dir => Json.obj(
         "type" -> Json.fromString("dir"),
         "path" -> Json.fromString(dir.absolutePath),
@@ -18,7 +18,7 @@ object FileEncoder {
       )
     }))
 
-    ThingEncoder.path -> Create(ID("TextFile"), Volatile(All, Encoder.instance[Thing] {
+    ThingEncoder.path << Create(ID("TextFile"), Volatile(All, Encoder.instance[Thing] {
       case txt: TextFile => Json.obj(
         "type" -> Json.fromString("txt"),
         "path" -> Json.fromString(txt.absolutePath),
@@ -26,7 +26,7 @@ object FileEncoder {
       )
     }))
 
-    ThingEncoder.path -> Create(ID("UnknownFile"), Volatile(All, Encoder.instance[Thing] {
+    ThingEncoder.path << Create(ID("UnknownFile"), Volatile(All, Encoder.instance[Thing] {
       case unk: UnknownFile => Json.obj(
         "type" -> Json.fromString("unknown"),
         "path" -> Json.fromString(unk.absolutePath),

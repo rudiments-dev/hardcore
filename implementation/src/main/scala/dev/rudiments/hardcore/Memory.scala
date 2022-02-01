@@ -2,10 +2,10 @@ package dev.rudiments.hardcore
 
 import scala.collection.mutable
 
-class Memory(val idIs: Predicate, val dataIs: Predicate) extends Agent(idIs, dataIs) {
+class Memory(val idIs: Predicate, val dataIs: Predicate) extends AgentRead(idIs, dataIs) {
   val state: mutable.SeqMap[ID, Thing] = mutable.SeqMap.empty
 
-  def read(id: ID): Out = Memory.read(this).act(Read(id))
+  override def read(id: ID): Out = Memory.read(this).query(Read(id))
 
   override val skill: RW = Skill(
     Memory.create(this),
@@ -26,13 +26,13 @@ object Memory {
   }
 
   def create(implicit ctx: Memory): RW = RW (
-    act = {
-      case Create(id, data) => ctx.read(id) match {
+    query = {
+      case Create(id, data) => ctx >> id match {
         case Readen(i, found) => AlreadyExist(i, found)
         case NotFound(i) => Created(i, data)
       }
     },
-    commit = {
+    write = {
       case Created(id, data) =>
         ctx.state.get(id) match {
           case None =>
@@ -44,13 +44,13 @@ object Memory {
   )
 
   def update(implicit ctx: Memory): RW = RW (
-    act = {
-      case Update(id, data) => ctx.read(id) match {
+    query = {
+      case Update(id, data) => ctx >> id match {
         case Readen(i, found) => Updated(i, found, data)
         case e: Error => e
       }
     },
-    commit = {
+    write = {
       case Updated(id, oldData, newData) =>
         ctx.state.get(id) match {
           case Some(v) if v == oldData =>
@@ -63,13 +63,13 @@ object Memory {
   )
 
   def delete(implicit ctx: Memory): RW = RW (
-    act = {
-      case Delete(id) => ctx.read(id) match {
+    query = {
+      case Delete(id) => ctx >> id match {
         case Readen(i, found) => Deleted(i, found)
         case e: Error => e
       }
     },
-    commit = {
+    write = {
       case Deleted(id, data) =>
         ctx.state.get(id) match {
           case Some(v) if v == data =>
@@ -83,25 +83,26 @@ object Memory {
   )
 
   def find(implicit ctx: Memory): RO = RO {
-    case Find(All) => Found(All, ctx.state.toMap) //TODO filter predicate
+    case Find(All) => Found(All, ctx.state.toMap)
+    case Find(p) => Found(p, ctx.state.filter { case (_, v) => p.validate(v) }.toMap)
       //TODO compare Agents?
   }
 
   def commit(implicit ctx: Memory): RW = RW (
-    act = {
+    query = {
       case Apply(commands) =>
         val result: Seq[(In, Out)] = Apply.collapse(commands).values.map { cmd =>
-          cmd -> ctx.skill.act(cmd)
+          cmd -> (ctx <<? cmd)
         }.toSeq
         Commit(result)
     },
-    commit = {
+    write = {
       case Commit(delta, extra) =>
         val data = delta.map {
-          case (id, evt) => id -> ctx.skill.commit(evt)
+          case (id, evt) => id -> (ctx <<! evt)
         }
         extra.foreach {
-          case (_, evt: Event) => ctx.skill.commit(evt) //TODO log? ignore?
+          case (_, evt: Event) => ctx <<! evt //TODO log? ignore?
         }
         new Data(Index(All, All), data)
     }

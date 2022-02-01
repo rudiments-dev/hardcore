@@ -1,13 +1,16 @@
 package dev.rudiments.hardcore
 
 trait Message {}
-trait In extends Message {}
-trait Command extends In {}
-trait Query extends In {}
-trait Out extends Message {}
-trait Event extends Out {}
-trait Report extends Out {}
-trait Error extends Out {}
+trait In extends Message { // input
+  def >>(path: Path)(implicit space: Space): Out = path << this
+}
+trait Command extends In {} // mutator input
+trait Query extends In {} // read-only input
+
+trait Out extends Message {} // output
+trait Event extends Out {} // mutation happened, state transferred
+trait Report extends Out {} // response to query, no mutation
+trait Error extends Out {} // failed response, mutation possible under circumstances
 
 sealed abstract class CRUD(val id: ID) {}
 case class Create(override val id: ID, data: Thing) extends CRUD(id) with Command

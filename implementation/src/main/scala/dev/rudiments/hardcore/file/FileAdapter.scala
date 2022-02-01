@@ -16,11 +16,10 @@ case class Dir(
 )(implicit space: Space) extends FileAdapter(absolutePath) {
   val cache: Memory = new Memory(ScalaString, Path("types/FileAdapter").ref)
   var totalRecursive = 0L
-  private val textFiles = Seq("txt", "scala", "java", "gradle", "yml", "sql", "md", "conf", "xml", "http")
-  private def isTextFile(name: String): Boolean = textFiles.exists(name.endsWith)
+  private def isTextFile(name: String): Boolean = Dir.textFiles.exists(name.endsWith)
 
   private val enlist: Skill = RW (
-    act = {
+    query = {
       case ReadStructure =>
         try {
           val file = new JavaFile(absolutePath)
@@ -37,18 +36,18 @@ case class Dir(
           case e: Exception => FileError(e.getMessage)
         }
     },
-    commit = {
+    write = {
       case ReadenStructure(files) =>
         files.foreach {
           case (id, dir: Dir) =>
-            cache -> Create(id, dir)
+            cache << Create(id, dir)
             totalRecursive += dir.totalRecursive
           case (id, file) =>
-            cache -> Create(id, file)
-            file -> ReadFile
+            cache << Create(id, file)
+            file << ReadFile
             totalRecursive += 1
         }
-        cache.skill.act(Find()) match {
+        cache.skill.query(Find()) match {
           case Found(_, found: Map[ID, Thing]) => Data(
             Index(ScalaString, All),
             found.collect {
@@ -62,14 +61,14 @@ case class Dir(
   )
 
   private val readContent: RW = RW (
-    act = {
+    query = {
       case Read(id) =>
         cache.read(id) match {
           case r@Readen(_, _: Dir) =>
             r
           case r@Readen(i, txt: TextFile) =>
             if(txt.cache.isEmpty) {
-              txt.skill.act(ReadFile) match {
+              txt.skill.query(ReadFile) match {
                 case readen: ReadenTextFile => FileReaden(i, readen)
                 case out: Out => out
               }
@@ -78,7 +77,7 @@ case class Dir(
             }
           case r@Readen(i, unk: UnknownFile) =>
             if(unk.cache.isEmpty) {
-              unk.skill.act(ReadFile) match {
+              unk.skill.query(ReadFile) match {
                 case readen: ReadenBinaryFile => FileReaden(i, readen)
                 case out: Out => out
               }
@@ -87,15 +86,15 @@ case class Dir(
             }
         }
     },
-    commit = {
+    write = {
       case Readen(_, file: FileAdapter) => file
       case FileReaden(id, readen) =>
         cache.read(id) match {
           case Readen(_, txt: TextFile) =>
-            txt.skill.commit(readen)
+            txt.skill.write(readen)
             txt
           case Readen(_, unk: UnknownFile) =>
-            unk.skill.commit(readen)
+            unk.skill.write(readen)
             unk
         }
     }
@@ -104,8 +103,12 @@ case class Dir(
   override val skill: RW = Skill(readContent, enlist, cache.skill)
 
   { // init
-    this.apply(ReadStructure)
+    this << ReadStructure
   }
+}
+
+object Dir {
+  val textFiles = Seq("txt", "scala", "java", "gradle", "yml", "sql", "md", "conf", "xml", "http")
 }
 
 case class TextFile(
@@ -113,13 +116,13 @@ case class TextFile(
 ) extends FileAdapter(absolutePath) {
   var cache: Seq[String] = Seq.empty
   val readFile: RW = RW(
-    act = {
+    query = {
       case ReadFile =>
         Using(Source.fromFile(absolutePath)) { f =>
           ReadenTextFile(f.getLines().toSeq)
         }.getOrElse(FileError(s"Failed to read $absolutePath"))
     },
-    commit = {
+    write = {
       case ReadenTextFile(commit) =>
         cache = commit
         new Data(hardcore.List(ScalaTypes.ScalaString), cache)
@@ -127,10 +130,10 @@ case class TextFile(
   )
 
   val writeFile: RW = RW(
-    act = {
+    query = {
       case WriteTextFile(content) => WrittenTextFile(content)
     },
-    commit = {
+    write = {
       case WrittenTextFile(content) =>
         cache = content
         Files.write(
@@ -149,13 +152,13 @@ case class UnknownFile(
 ) extends FileAdapter(absolutePath) {
   var cache: Array[Byte] = Array.empty
   override val skill: RW = RW(
-    act = {
+    query = {
       case ReadFile =>
         ReadenBinaryFile(
           Files.readAllBytes(Paths.get(absolutePath))
         )
     },
-    commit = {
+    write = {
       case ReadenBinaryFile(commit) =>
         cache = commit
         new Data(hardcore.List(ScalaTypes.ScalaString), cache)

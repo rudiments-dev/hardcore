@@ -23,7 +23,7 @@ class RootRouter(config: RootConfig)(implicit space: Space, actorSystem: ActorSy
   override def routes: Route =
     CorsDirectives.cors(config.cors) {
       Directives.pathPrefix(config.prefix) {
-        routers(Find(All)) match {
+        routers << Find(All) match {
           case Found(_, items) => items.collect {
             case (id, router: Router) => Directives.pathPrefix(id.k.toString) { router.routes }
           }.reduce(_ ~ _)

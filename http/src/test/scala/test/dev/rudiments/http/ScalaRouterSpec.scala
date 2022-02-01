@@ -18,18 +18,17 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   ThingEncoder.init
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
-  space -> Create(ID("something"), new Memory(All, All))
+  space << Create(ID("something"), new Memory(All, All))
   Type.build[Smt]
 
   private val router = new ScalaRouter(ScalaLong, Path("types/Smt").ref, Path("something"))
   private val routes = PathOps.seal(ID("example").asPath, router.routes)
   private implicit val de: Decoder[Thing] = router.thingDecoder
   private implicit val en: Encoder[Data] = ThingEncoder.encode
-  private implicit val thingEncoder: Encoder[Thing] = router.thingEncoder
   private val sample: Data = Smt(42, "sample", None).asData
 
   "InstanceEncoder can encode" in {
-    thingEncoder(sample) should be (Json.obj(
+    router.thingEncoder(sample) should be (Json.obj(
       "id" -> Json.fromLong(42),
       "name" -> Json.fromString("sample"),
       "comment" -> Json.Null

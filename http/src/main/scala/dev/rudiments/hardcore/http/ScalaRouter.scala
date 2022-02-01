@@ -21,18 +21,18 @@ class ScalaRouter(
   override val routes: Route = {
       plainId(keyIs) { id =>
         get {
-          responseWith(agent(Read(id)))
+          responseWith(agent << Read(id))
         } ~ delete {
-          responseWith(agent(Delete(id)))
+          responseWith(agent << Delete(id))
         } ~ entity(as[Thing]) { data =>
           post {
-            responseWith(agent(Create(id, data)))
+            responseWith(agent << Create(id, data))
           } ~ put {
-            responseWith(agent(Update(id, data)))
+            responseWith(agent << Update(id, data))
           }
         }
       } ~ get {
-        responseWith(agent(Find(All)))
+        responseWith(agent << Find(All))
       }
     }
 
@@ -40,7 +40,7 @@ class ScalaRouter(
     case Created(_, value: Thing) =>       complete(StatusCodes.Created, value)
     case Readen(_, value: Thing) =>        complete(StatusCodes.OK, value)
     case Updated(_, _, newValue: Thing) => complete(StatusCodes.OK, newValue)
-    case Deleted(_, _) =>                 complete(StatusCodes.NoContent)
+    case Deleted(_, _) =>                  complete(StatusCodes.NoContent)
 
     case Found(_, values: Map[ID, Thing]) => complete(StatusCodes.OK, values)
 

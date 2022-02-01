@@ -34,7 +34,9 @@ final case class Path(ids: ID*) extends Thing {
     }
   }
 
-  def ->(in: In)(implicit space: Space): Out = space.find[Agent](this).apply(in)
+  def <<(in: In)(implicit space: Space): Out = this.find[Agent] << in
+  def <<<(in: In*)(implicit space: Space): Out = this.find[Agent] << DevApply(in)
+  def >>(id: ID)(implicit space: Space): Out = this.find[AgentRead] >> id
 
   override def toString: String = ids.map(_.k).mkString("/", "/", "")
 }
@@ -81,25 +83,27 @@ object Data {
 }
 
 case class Ref(path: Path, p: Predicate, v: Option[Any] = None) extends Predicate {
-  override def validate(value: Any): Boolean = ??? //TODO implicit space?
+  override def validate(value: Any): Boolean = ???
 }
 
 abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] with Thing {
   val skill: RW
   val f: PartialFunction[In, Out] = {
     case in: In =>
-      skill.act(in) match {
+      skill.query(in) match {
         case evt: Event =>
-          skill.commit(evt)
+          skill.write(evt)
           evt
         case other => other
       }
   }
 
+  def <<(what: In): Out = f.apply(what)
+  def <<?(in: In): Out = skill.query(in)
+  def <<!(out: Out): Thing = skill.write(out)
+
   override def isDefinedAt(x: In): Boolean = f.isDefinedAt(x)
   override def apply(x: In): Out = f.apply(x)
-
-  def ->(in: In): Out = f.apply(in)
 }
 
 abstract class AgentRead(
@@ -107,6 +111,8 @@ abstract class AgentRead(
   override val out: Predicate
 ) extends Agent(in, out) {
   def read(id: ID): Out
+
+  def >>(id: ID): Out = read(id)
 }
 
 case class Volatile(p: Predicate, v: Any) extends Thing {
@@ -122,9 +128,9 @@ sealed trait Predicate extends Expression {
 }
 trait Skill extends Expression {}
 object Skill {
-  def apply(act: PartialFunction[In, Out]): RO = RO(act)
-  def apply(act: PartialFunction[In, Out], commit: PartialFunction[Out, Thing]): RW = RW(act, commit)
-  def apply(roSkills: RO*): RO = RO(roSkills.map(_.act).reduce(_ orElse _))
+  def apply(query: PartialFunction[In, Out]): RO = RO(query)
+  def apply(query: PartialFunction[In, Out], write: PartialFunction[Out, Thing]): RW = RW(query, write)
+  def apply(roSkills: RO*): RO = RO(roSkills.map(_.query).reduce(_ orElse _))
   def apply(skills: Skill*): RW = {
     val groupped = skills.groupBy {
       case _: RW => "cmd"
@@ -132,37 +138,43 @@ object Skill {
       case _: RO => "evt"
     }
       RW(
-        act = skills.map {
-          case q: RO => q.act
-          case c: RW => c.act
+        query = skills.map {
+          case q: RO => q.query
+          case c: RW => c.query
         }.reduce(_ orElse _),
 
-        commit = groupped("cmd").map {
-          case c: RW => c.commit
-          case c: WO => c.commit
+        write = groupped("cmd").map {
+          case c: RW => c.write
+          case c: WO => c.write
         }.reduce(_ orElse _)
       )
   }
 }
-case class RO(act: PartialFunction[In, Out]) extends Skill {}
-case class RW(act: PartialFunction[In, Out], commit: PartialFunction[Out, Thing]) extends Skill {}
-case class WO(commit: PartialFunction[Out, Thing]) extends Skill {}
+case class RO(query: PartialFunction[In, Out]) extends Skill {}
+case class RW(query: PartialFunction[In, Out], write: PartialFunction[Out, Thing]) extends Skill {}
+case class WO(write: PartialFunction[Out, Thing]) extends Skill {}
 object NoSkill extends RW(
-  act = {
+  query = {
     case in =>
       NotImplemented(in)
       throw new IllegalArgumentException("Not implemented")
   },
-  commit = {
+  write = {
     case _ => throw new IllegalArgumentException("Not implemented")
   }
 )
 
 final case class List(item: Predicate) extends Predicate {
-  override def validate(value: Any): Boolean = true //TODO fix
+  override def validate(value: Any): Boolean = value match {
+    case i: Iterable[_] => i.forall(item.validate)
+    case _ => false
+  }
 }
 final case class Index(of: Predicate, over: Predicate) extends Predicate {
-  override def validate(value: Any): Boolean = true //TODO fix
+  override def validate(value: Any): Boolean = value match {
+    case m: Map[_, _] => m.forall { case (k, v) => of.validate(k) && over.validate(v) }
+    case _ => false
+  }
 }
 
 final case class Abstract(fields: Seq[Field] = Seq.empty, fullName: Option[String] = None) extends Predicate {
@@ -188,18 +200,27 @@ final case class Type(fields: Seq[Field] = Seq.empty, fullName: Option[String] =
 
 object Type {
   def init(implicit space: Space): Unit = {
-    space -> Create(ID("types"), new Memory(ScalaString, All)) match {
+    space << Create(ID("types"), new Memory(ScalaString, All)) match {
       case Created(_, mem: Memory) =>       initSequence(mem)
       case AlreadyExist(_, mem: Memory) =>  initSequence(mem)
     }
   }
 
   private def initSequence(mem: Memory)(implicit space: Space): Unit = {
-    mem -> DevApply(
+    mem << DevApply(
       plain.map { case (name, t) => Create(ID(name), t) }.toSeq
     )
     build[Thing]
   }
+
+  def ref[A : TypeTag](implicit space: Space): Ref =
+    Path("types") >> ID(this.name(typeOf[A].typeSymbol)) match {
+      case Readen(id, t: Type) => Ref(ID("types") / id, t, None)
+      case Readen(id, Data(Nothing, Nothing)) => Ref(ID("types") / id, Nothing, None)
+      case Readen(id, Data(p, v)) => Ref(ID("types") / id, p, Some(v))
+      case NotFound(id) =>
+        throw new IllegalArgumentException(s"$id not initialized")
+    }
 
   def build[A : TypeTag](implicit space: Space): Predicate = getOrMake(typeOf[A])
 
@@ -226,7 +247,7 @@ object Type {
     val nameOfT = this.name(t)
     val id = ID(nameOfT)
     val path = ID("types") / id
-    ID("types").asPath -> Read(id) match {
+    Path("types") >> id match {
       case Readen(_, existing: Predicate) => Ref(path, existing)
       case Readen(_, Data(Nothing, Nothing)) => Ref(path, Nothing, None)
       case Readen(_, Data(p, v)) => Ref(path, p, Some(v))
@@ -238,7 +259,7 @@ object Type {
           } else {
             new Data(AllOf(f: _*), f.map(_ => Nothing))
           }
-          ID("types").asPath -> Create(id, a)
+          Path("types") << Create(id, a)
           Ref(path, a.p, Some(a.v))
         } else {
           val a = if (t.isAbstract) {
@@ -248,7 +269,7 @@ object Type {
           } else {
             throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
           }
-          ID("types").asPath -> Create(id, a)
+          Path("types") << Create(id, a)
           t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
           Ref(path, a)
         }
@@ -365,7 +386,7 @@ case object All extends Predicate {
 }
 case object Nothing extends Predicate {
   override def validate(value: Any): Boolean =
-    value == Nothing
+    value == Nothing || value == None
 }
 
 sealed trait CompositePredicate extends Predicate {}
