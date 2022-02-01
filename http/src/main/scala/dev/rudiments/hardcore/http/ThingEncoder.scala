@@ -63,6 +63,8 @@ object ThingEncoder {
     case Ref(path, _, _) => Json.fromString(path.ids.last.toString)
     case d: Data => encode(d)
     case a: Agent => encodeAgent(a)
+    case p: Path => Json.fromString(p.toString)
+    case i: ID => Json.fromString(i.toString)
     case Nothing => Json.fromString("∅")
     case All => Json.fromString("∀")
   }

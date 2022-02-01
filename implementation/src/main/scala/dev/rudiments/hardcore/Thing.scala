@@ -4,6 +4,7 @@ import dev.rudiments.hardcore.ScalaTypes._
 import dev.rudiments.hardcore.{Apply => DevApply}
 import dev.rudiments.hardcore.Size.{NegativeInfinity, PositiveInfinity}
 
+import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{Type => SysType, _}
 
@@ -24,17 +25,10 @@ final case class Path(ids: ID*) extends Thing {
 
   def find[T <: Thing : ClassTag](implicit space: Space): T = space.find[T](this)
 
-  def ref(implicit space: Space): Ref = {
-    this.find[Thing] match {
-      case t: Type => Ref(this, t, None)
-      case a: Abstract => Ref(this, a, None)
-      case Data(Nothing, Nothing) => Ref(this, Nothing, None)
-      case d: Data => Ref(this, d.p, Some(d.v))
-      case other => throw new IllegalArgumentException(s"Not supported as Ref: $other")
-    }
-  }
+  def ref(implicit space: Space): Ref = Ref(this.find[Thing], this)
 
   def <<(in: In)(implicit space: Space): Out = this.find[Agent] << in
+  def <<!(out: Out)(implicit space: Space): Thing = this.find[Agent] <<! out
   def <<<(in: In*)(implicit space: Space): Out = this.find[Agent] << DevApply(in)
   def >>(id: ID)(implicit space: Space): Out = this.find[AgentRead] >> id
 
@@ -84,6 +78,16 @@ object Data {
 
 case class Ref(path: Path, p: Predicate, v: Option[Any] = None) extends Predicate {
   override def validate(value: Any): Boolean = ???
+}
+object Ref {
+  def apply(thing: Thing, path: Path): Ref = thing match { //TODO ref cache?
+    case t: Type => new Ref(path, t, None)
+    case a: Abstract => new Ref(path, a, None)
+    case Data(Nothing, Nothing) => new Ref(path, Nothing, None)
+    case d: Data => new Ref(path, d.p, Some(d.v))
+    case p: Plain => new Ref(path, p, None)
+    case other => throw new IllegalArgumentException(s"Not supported as Ref: $other")
+  }
 }
 
 abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] with Thing {
@@ -199,17 +203,13 @@ final case class Type(fields: Seq[Field] = Seq.empty, fullName: Option[String] =
 }
 
 object Type {
+  val types: Path = Path("types")
+  val relations: Path = Path("types/relations") //TODO protect from access by type name
   def init(implicit space: Space): Unit = {
-    space << Create(ID("types"), new Memory(ScalaString, All)) match {
-      case Created(_, mem: Memory) =>       initSequence(mem)
-      case AlreadyExist(_, mem: Memory) =>  initSequence(mem)
-    }
-  }
+    space << Create(ID("types"), new Memory(ScalaString, All))
+    types << Create(ID("relations"), new Memory(All, List(All))) // ID -> Set[ID] or Seq[ID]
 
-  private def initSequence(mem: Memory)(implicit space: Space): Unit = {
-    mem << DevApply(
-      plain.map { case (name, t) => Create(ID(name), t) }.toSeq
-    )
+    types <<< (plain.map { case (name, t) => Create(ID(name), t) }.toSeq:_*)
     build[Thing]
     build[Message]
     build[In]
@@ -255,21 +255,19 @@ object Type {
     val t = symbol.asType
     val nameOfT = this.name(t)
     val id = ID(nameOfT)
-    val path = ID("types") / id
-    Path("types") >> id match {
-      case Readen(_, existing: Predicate) => Ref(path, existing)
-      case Readen(_, Data(Nothing, Nothing)) => Ref(path, Nothing, None)
-      case Readen(_, Data(p, v)) => Ref(path, p, Some(v))
+    val path = types / id
+
+    types >> id match {
+      case Readen(_, thing: Thing) => Ref(thing, path)
       case NotFound(_) =>
         if(t.isModuleClass) {
           val f = fieldsOf(t)
           val a = if(f.isEmpty) {
-            new Data(Nothing, Nothing)
+            new Data(Nothing, Nothing) //TODO search extends of case classes
           } else {
             new Data(AllOf(f: _*), f.map(_ => Nothing))
           }
-          Path("types") << Create(id, a)
-          Ref(path, a.p, Some(a.v))
+          types << Create(id, a)
         } else {
           val a = if (t.isAbstract) {
             Abstract(fieldsOf(t), Some(fullName(t)))
@@ -278,10 +276,16 @@ object Type {
           } else {
             throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
           }
-          Path("types") << Create(id, a)
-          t.asClass.knownDirectSubclasses.map { s => makeAlgebraic(s) }
-          Ref(path, a)
+          types << Create(id, a)
+          t.asClass.knownDirectSubclasses.foreach { s =>
+            makeAlgebraic(s) match {
+              case Ref(pa, _, _) => relations << Create(pa.ids.last, path)
+              case other => throw new IllegalArgumentException(s"Failed to gather $other ref")
+            }
+
+          }
         }
+        path.ref
     }
   }
 

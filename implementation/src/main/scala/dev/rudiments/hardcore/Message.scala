@@ -1,9 +1,7 @@
 package dev.rudiments.hardcore
 
 trait Message {}
-trait In extends Message { // input
-  def >>(path: Path)(implicit space: Space): Out = path << this
-}
+trait In extends Message {} // input
 trait Command extends In {} // mutator input
 trait Query extends In {} // read-only input
 
