@@ -38,13 +38,13 @@ jobs:
         displayName: 'Run unit tests and publish report'
         inputs:
           gradleWrapperFile: 'gradlew'
-          tasks: 'build test aggregateScoverage'
+          tasks: 'build test'
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'
           testRunTitle: 'Unit tests report for develop'
-      - script: |
-           bash <(curl -s https://codecov.io/bash)
-        displayName: 'Publish code coverage report to codecov.io'
+#      - script: |
+#           bash <(curl -s https://codecov.io/bash)
+#        displayName: 'Publish code coverage report to codecov.io'
 
   - job: push_snapshots
     displayName: 'Push latest Rudiments snapshots to Maven Snapshots repo'
