@@ -37,7 +37,7 @@ configure(scalaModules()) {
         maxHeapSize = "2048m"
         testLogging {
             events "skipped", "failed"
-            exceptionFormat "short"
+            exceptionFormat "full"
         }
     }
 

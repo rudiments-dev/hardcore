@@ -44,6 +44,7 @@ object ThingDecoder {
 
   def dataDecoder(ref: Ref): Decoder[Data] = ref.p match {
     case t: Type => dataValuesDecoder(t).map(values => Data(ref, values))
+    case other => throw new IllegalArgumentException(s"Not supported: $other")
   }
 
   def dataValuesDecoder(t: Type): Decoder[scala.List[_]] = (c: HCursor) => t.fields.map {
@@ -77,5 +78,6 @@ object ThingDecoder {
     case Plain.Timestamp => Decoder.decodeString.map(java.sql.Timestamp.valueOf)
 
     case Plain.UUID => Decoder.decodeUUID
+    case other => throw new IllegalArgumentException(s"Not supported: $other")
   }
 }

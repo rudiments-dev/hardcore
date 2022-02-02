@@ -16,6 +16,7 @@ object FileEncoder {
         "inside" -> Json.fromInt(dir.cache.state.size),
         "recursive" -> Json.fromLong(dir.totalRecursive)
       )
+      case other => throw new IllegalArgumentException(s"Not supported: $other")
     }))
 
     ThingEncoder.path << Create(ID("TextFile"), Volatile(All, Encoder.instance[Thing] {
@@ -24,6 +25,7 @@ object FileEncoder {
         "path" -> Json.fromString(txt.absolutePath),
         "content" -> Json.arr(txt.cache.map(s => Json.fromString(s)):_*)
       )
+      case other => throw new IllegalArgumentException(s"Not supported: $other")
     }))
 
     ThingEncoder.path << Create(ID("UnknownFile"), Volatile(All, Encoder.instance[Thing] {
@@ -32,6 +34,7 @@ object FileEncoder {
         "path" -> Json.fromString(unk.absolutePath),
         "contentSize" -> Json.fromInt(unk.cache.size)
       )
+      case other => throw new IllegalArgumentException(s"Not supported: $other")
     }))
   }
 }

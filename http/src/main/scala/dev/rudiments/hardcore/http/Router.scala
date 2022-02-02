@@ -28,5 +28,6 @@ object PathOps {
     case ScalaTypes.ScalaString =>  pathPrefix(Segment)   .map(i => ID(i))
     case Plain.UUID =>              pathPrefix(JavaUUID)  .map(uuid => ID(uuid))
     case Plain.Date =>              pathPrefix(Segment)   .map(s => ID(Seq(Date.valueOf(s))))
+    case other => throw new IllegalArgumentException(s"Not supported: $other")
   }
 }

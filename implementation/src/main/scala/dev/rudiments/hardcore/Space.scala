@@ -34,15 +34,4 @@ class Space() extends AgentRead(All, All) { //TODO fix by using separate predica
   }
 
   def apply(path: Path, what: In): Out = find[Agent](path).apply(what)
-
-  def add(path: Path, id: ID, what: Thing): Unit = path.ids.foldLeft(root.asInstanceOf[Agent]) {
-    case (dir: Memory, i) =>
-      dir >> id match {
-        case Readen(_, memory: Memory) => memory
-        case NotFound(_) =>
-          val m = new Memory(All, All)
-          dir << Create(i, m)
-          m
-      }
-  } << Create(id, what)
 }

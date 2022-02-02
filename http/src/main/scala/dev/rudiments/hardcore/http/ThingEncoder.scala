@@ -24,24 +24,28 @@ object ThingEncoder {
           "key-is" -> encode(m.idIs),
           "count" -> Json.fromInt(m.state.size)
         )
+        case other => throw new IllegalArgumentException(s"Not supported: $other")
       })),
       Create(ID("ScalaRouter"), Volatile(All, Encoder.instance[Thing] {
         case sr: ScalaRouter => Json.obj(
           "type" -> Json.fromString("rw-router"),
           "mount" -> Json.fromString(sr.mount.toString)
         )
+        case other => throw new IllegalArgumentException(s"Not supported: $other")
       })),
       Create(ID("ScalaRORouter"), Volatile(All, Encoder.instance[Thing] {
         case sr: ScalaRORouter => Json.obj(
           "type" -> Json.fromString("ro-router"),
           "mount" -> Json.fromString(sr.mount.toString)
         )
+        case other => throw new IllegalArgumentException(s"Not supported: $other")
       })),
       Create(ID("RootRouter"), Volatile(All, Encoder.instance[Thing] {
         case sr: RootRouter => Json.obj(
           "type" -> Json.fromString("root-router"),
           "routers" -> encode(sr.routers)
         )
+        case other => throw new IllegalArgumentException(s"Not supported: $other")
       }))
     )
   }
@@ -67,6 +71,7 @@ object ThingEncoder {
     case i: ID => Json.fromString(i.toString)
     case Nothing => Json.fromString("∅")
     case All => Json.fromString("∀")
+    case other => throw new IllegalArgumentException(s"Not supported: $other")
   }
 
   def encode(n: Plain.Number)(implicit space: Space): Json = n match {
@@ -93,6 +98,7 @@ object ThingEncoder {
     case Data(t: Type, data: Any) => encode(t, data)
     case Data(Ref(_, t: Type, _), data: Any) => encode(t, data)
     case Data(Nothing, Nothing) => Json.fromString("∅") //TODO think
+    case other => throw new IllegalArgumentException(s"Not supported: $other")
   }
 
   def encode(predicate: Predicate, value: Any)(implicit space: Space): Json = (predicate, value) match {
