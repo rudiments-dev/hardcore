@@ -130,6 +130,17 @@ sealed trait Expression extends Thing {}
 sealed trait Predicate extends Expression {
   def validate(value: Any): Boolean
 }
+object Predicate {
+  case object AnyThing extends Predicate {
+    override def validate(value: Any): Boolean = value.isInstanceOf[Thing]
+  }
+  case object AnyWhere extends Predicate {
+    override def validate(value: Any): Boolean = value.isInstanceOf[Path]
+  }
+  case object SomeWhere extends Predicate {
+    override def validate(value: Any): Boolean = value.isInstanceOf[ID]
+  }
+}
 trait Skill extends Expression {}
 object Skill {
   def apply(query: PartialFunction[In, Out]): RO = RO(query)
@@ -207,7 +218,7 @@ object Type {
   val relations: Path = Path("types/relations") //TODO protect from access by type name
   def init(implicit space: Space): Unit = {
     space << Create(ID("types"), new Memory(ScalaString, All))
-    types << Create(ID("relations"), new Memory(All, List(All))) // ID -> Set[ID] or Seq[ID]
+    types << Create(ID("relations"), new Relation(ScalaString))
 
     types <<< (plain.map { case (name, t) => Create(ID(name), t) }.toSeq:_*)
     build[Thing]
@@ -256,6 +267,7 @@ object Type {
     val nameOfT = this.name(t)
     val id = ID(nameOfT)
     val path = types / id
+    val rel = relations.find[Relation]
 
     types >> id match {
       case Readen(_, thing: Thing) => Ref(thing, path)
@@ -279,10 +291,22 @@ object Type {
           types << Create(id, a)
           t.asClass.knownDirectSubclasses.foreach { s =>
             makeAlgebraic(s) match {
-              case Ref(pa, _, _) => relations << Create(pa.ids.last, path)
+              case Ref(pa, _, _) =>
+                rel << AddRelation(pa.ids.last, path)
               case other => throw new IllegalArgumentException(s"Failed to gather $other ref")
             }
-
+          }
+          val ts = t.typeSignature
+          ts.baseClasses
+            .map(i => ts.baseType(i))
+            .filter { i =>
+              !(i =:= ts || i =:= typeOf[Any] || i =:= typeOf[Serializable] || i =:= typeOf[Product] || i =:= typeOf[Equals] || i =:= typeOf[Object])
+            }.foreach { p =>
+            makeAlgebraic(p.typeSymbol) match {
+              case Ref(pa, _, _) =>
+                if(id != pa.ids.last) rel << AddRelation(id, pa)
+              case other => throw new IllegalArgumentException(s"Failed to gather $other ref")
+            }
           }
         }
         path.ref

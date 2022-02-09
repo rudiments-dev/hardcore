@@ -46,6 +46,14 @@ object ThingEncoder {
           "routers" -> encode(sr.routers)
         )
         case other => throw new IllegalArgumentException(s"Not supported: $other")
+      })),
+      Create(ID("Relation"), Volatile(All, Encoder.instance[Thing] {
+        case r: Relation => Json.obj(
+          "type" -> Json.fromString("relation"),
+          "key-is" -> encode(r.idIs),
+          "count" -> Json.fromInt(r.relations.size)
+        )
+        case other => throw new IllegalArgumentException(s"Not supported: $other")
       }))
     )
   }
@@ -92,6 +100,7 @@ object ThingEncoder {
 
   def encode(data: Data)(implicit space: Space): Json = data match {
     case Data(List(of), data: Seq[Any]) => Json.arr(data.map(d => encode(of, d)):_*)
+    case Data(List(of), data: Set[Any]) => Json.arr(data.toSeq.map(d => encode(of, d)):_*)
     case Data(Index(of, over), data: Map[_, _]) => Json.obj(
       data.map { case (k, v) => k.toString -> encode(over, v) }.toSeq :_*
     )
