@@ -7,17 +7,19 @@ class Memory(val idIs: Predicate, val dataIs: Predicate) extends AgentRead(idIs,
 
   override def read(id: ID): Out = Memory.read(this).query(Read(id))
 
-  override val skill: RW = Skill(
-    Memory.create(this),
-    Memory.read(this),
-    Memory.update(this),
-    Memory.delete(this),
-    Memory.find(this),
-    Memory.commit(this)
-  )
+  override val skill: RW = Memory.skill(this)
 }
 
 object Memory {
+  def skill(implicit ctx: Memory): RW = Skill(
+    Memory.create(ctx),
+    Memory.read(ctx),
+    Memory.update(ctx),
+    Memory.delete(ctx),
+    Memory.find(ctx),
+    Memory.commit(ctx)
+  )
+
   def read(implicit ctx: Memory): RO = RO {
     case Read(id) => ctx.state.get(id) match {
       case Some(found) => Readen(id, found)
@@ -91,16 +93,14 @@ object Memory {
   def commit(implicit ctx: Memory): RW = RW (
     query = {
       case Apply(commands) =>
-        val result: Seq[(In, Out)] = Apply.collapse(commands).values.map { cmd =>
-          cmd -> (ctx <<? cmd)
-        }.toSeq
+        val result: Seq[(In, Out)] =
+          Apply.collapse(commands).values
+            .map { cmd => cmd -> (ctx <<? cmd) }.toSeq
         Commit(result)
     },
     write = {
       case Commit(delta, extra) =>
-        val data = delta.map {
-          case (id, evt) => id -> (ctx <<! evt)
-        }
+        val data = delta.map { case (id, evt) => id -> (ctx <<! evt) }
         extra.foreach {
           case (_, evt: Event) => ctx <<! evt //TODO log? ignore?
         }
