@@ -16,6 +16,6 @@ dependencies {
 
 task runExample(type: JavaExec, dependsOn: classes) {
     classpath sourceSets.main.runtimeClasspath
-    main = 'dev.rudiments.app.Main'
+    mainClass = 'dev.rudiments.app.Main'
     standardInput = System.in
 }

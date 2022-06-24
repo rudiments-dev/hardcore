@@ -31,8 +31,8 @@ configure(scalaModules()) {
 
     test {
         reports {
-            html.enabled = true
-            junitXml.enabled = true
+            html.required = true
+            junitXml.required = true
         }
         maxHeapSize = "2048m"
         testLogging {

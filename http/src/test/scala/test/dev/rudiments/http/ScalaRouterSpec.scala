@@ -1,65 +1,60 @@
-//package test.dev.rudiments.http
-//
-//import akka.actor.ActorSystem
-//import akka.http.scaladsl.model.StatusCodes
-//import akka.http.scaladsl.testkit.ScalatestRouteTest
-//import dev.rudiments.hardcore.ScalaTypes.ScalaLong
-//import dev.rudiments.hardcore._
-//import dev.rudiments.hardcore.http.{CirceSupport, PathOps, ScalaRouter, ThingEncoder}
-//import io.circe.{Decoder, Encoder, Json}
-//import org.junit.runner.RunWith
-//import org.scalatest.matchers.should.Matchers
-//import org.scalatest.wordspec.AnyWordSpec
-//import org.scalatestplus.junit.JUnitRunner
-//
-//@RunWith(classOf[JUnitRunner])
-//class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with CirceSupport {
-//  private implicit val space: Space = new Space()
-//  ThingEncoder.init
-//  private implicit val actorSystem: ActorSystem = ActorSystem()
-//
-//  space << Create(ID("something"), new Memory(All, All))
-//  Type.build[Smt]
-//
-//  private val router = new ScalaRouter(ScalaLong, Path("types/Smt").ref, Path("something"))
-//  private val routes = PathOps.seal(ID("example").asPath, router.routes)
-//  private implicit val de: Decoder[Thing] = router.thingDecoder
-//  private implicit val en: Encoder[Data] = ThingEncoder.encode
-//  private val sample: Data = Smt(42, "sample", None).asData
-//
-//  "InstanceEncoder can encode" in {
-//    router.thingEncoder(sample) should be (Json.obj(
-//      "id" -> Json.fromLong(42),
-//      "name" -> Json.fromString("sample"),
-//      "comment" -> Json.Null
-//    ))
-//  }
-//
-//  "InstanceDecoder can decode" in {
-//    val decoded = router.thingDecoder.decodeJson(Json.obj(
-//      "id" -> Json.fromLong(42),
-//      "name" -> Json.fromString("sample"),
-//      "comment" -> Json.Null
-//    )).getOrElse(throw new IllegalArgumentException("should exist"))
-//    decoded should be (sample)
-//  }
-//
-//  "no element by ID" in {
-//    Get("/example/42") ~> routes ~> check {
-//      response.status should be (StatusCodes.NotFound)
-//    }
-//  }
-//
-//  "put item into repository" in {
+package test.dev.rudiments.http
+
+import akka.actor.ActorSystem
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives.pathPrefix
+import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.testkit.ScalatestRouteTest
+import dev.rudiments.hardcore._
+import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
+import io.circe.{Decoder, Encoder, Json}
+import org.junit.runner.RunWith
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.junit.JUnitRunner
+
+@RunWith(classOf[JUnitRunner])
+class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with CirceSupport {
+  private implicit val actorSystem: ActorSystem = ActorSystem()
+  private implicit val root: Memory = new Memory()
+
+  private val router = new ScalaRouter()
+  private val routes = Route.seal(pathPrefix("example") { router.routes })
+  private val t = Type(
+    Field("id", Number(Long.MinValue, Long.MaxValue)),
+    Field("name", Text(Int.MaxValue)),
+    Field("comment", Text(Int.MaxValue))
+  )
+  private val sample: Data = Data(t, Seq(42, "sample", None))
+
+  "dataEncoder can encode" in {
+    router.dataEncoder(sample) should be (Json.obj(
+      "id" -> Json.fromInt(42),
+      "name" -> Json.fromString("sample"),
+      "comment" -> Json.Null
+    ))
+  }
+
+  "no element by ID" in {
+    Get("/example/42") ~> routes ~> check {
+      response.status should be (StatusCodes.NotFound)
+    }
+  }
+
+  "put item into repository" in {
+    val c = Commit(
+      Map(ID("42") -> Created(sample)), null
+    )
+    root.execute(c) should be (Committed(c))
 //    Post("/example/42", sample) ~> routes ~> check {
 //      response.status should be (StatusCodes.Created)
-//      responseAs[Thing] should be (sample)
+//      responseAs[Data] should be (sample)
 //    }
-//    Get("/example/42") ~> routes ~> check {
-//      response.status should be (StatusCodes.OK)
-//      responseAs[Thing] should be (sample)
-//    }
-//  }
+    Get("/example/42") ~> routes ~> check {
+      response.status should be (StatusCodes.OK)
+//      responseAs[Data] should be (sample)
+    }
+  }
 //
 //  "update item in repository" in {
 //    Put("/example/42", Smt(42L, "test", None).asData) ~> routes ~> check {
@@ -77,13 +72,13 @@
 //      response.status should be (StatusCodes.Conflict)
 //    }
 //  }
-//
-//  "delete items from repository" in {
-//    Delete("/example/42") ~> routes ~> check {
-//      response.status should be (StatusCodes.NoContent)
-//    }
-//    Get("/example/42") ~> routes ~> check {
-//      response.status should be (StatusCodes.NotFound)
-//    }
-//  }
-//}
+
+  "delete items from repository" in {
+    Delete("/example/42") ~> routes ~> check {
+      response.status should be (StatusCodes.NoContent)
+    }
+    Get("/example/42") ~> routes ~> check {
+      response.status should be (StatusCodes.NotFound)
+    }
+  }
+}
