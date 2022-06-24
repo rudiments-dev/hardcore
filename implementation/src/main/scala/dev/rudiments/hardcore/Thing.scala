@@ -1,444 +1,48 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.ScalaTypes._
-import dev.rudiments.hardcore.{Apply => DevApply}
-import dev.rudiments.hardcore.Size.{NegativeInfinity, PositiveInfinity}
+sealed trait Thing {}
 
-import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.{Type => SysType, _}
+sealed trait Relation extends Thing {} // (obj, rel, subj) => obj -> (rel, subj), assuming rel or subj can be data and obj is always 'self'
+// usual relation: id -> (id, id)
+// data inside memory is a relation: id -> (predicate, any)
+// memory spec: id -> (Can, <Create, Read, Update, Delete>), id -> (Store, <Created, Updated, Deleted>), Q: CRUD events are also Relations?
+case object Can extends Relation {}
+case object Holds extends Relation {}
 
-trait ADT {}
-sealed trait Thing extends ADT {}
+final case class Link(where: Location, what: Predicate) extends Thing
+final case class Data(what: Predicate, data: Any) extends Thing
 
-final case class ID(k: Any) extends Thing {
-  def asPath: Path = Path(this)
-  def /(id: ID): Path = Path(this, id)
-  def /(path: Path): Path = Path(this +: path.ids :_*)
-
-  override def toString: String = "#" + k.toString
-}
-
-final case class Path(ids: ID*) extends Thing {
-  def /(id: ID): Path = Path(ids :+ id :_*)
-  def /(path: Path): Path = Path(ids :++ path.ids :_*)
-
-  def find[T <: Thing : ClassTag](implicit space: Space): T = space.find[T](this)
-
-  def ref(implicit space: Space): Ref = Ref(this.find[Thing], this)
-
-  def <<(in: In)(implicit space: Space): Out = this.find[Agent] << in
-  def <<!(out: Out)(implicit space: Space): Thing = this.find[Agent] <<! out
-  def <<<(in: In*)(implicit space: Space): Out = this.find[Agent] << DevApply(in)
-  def >>(id: ID)(implicit space: Space): Out = this.find[AgentRead] >> id
-
-  override def toString: String = ids.map(_.k).mkString("/", "/", "")
-}
-object Path {
-  val / : Path = Path()
-  def apply(s: String): Path = new Path(s.split("/").map(_.trim).map(ID).toIndexedSeq:_*)
-}
-
-final case class Data(p: Predicate, v: Any) extends Thing {
-  def apply(cmd: Command): Event = ???
-  def apply(evt: Event): Data = ???
-
-  def reconstruct[T](implicit space: Space): T = {
-    p match {
-      case _: Plain => v.asInstanceOf[T] // validate?
-      case Ref(_, Type(_, Some(fullName)), _) =>
-        reconstruct(fullName, v.asInstanceOf[Seq[Object]]:_*)
-      case Type(_, Some(fullName)) =>
-        reconstruct(fullName, v.asInstanceOf[Seq[Object]]:_*)
-      case other => throw new IllegalArgumentException(s"Can't reconstruct from $other")
-    }
-  }
-
-  def reconstruct[T](fullName: String, args: Object*): T = {
-    Class.forName(fullName).getConstructors()(0) //TODO internal classes via $
-      .newInstance(args: _*).asInstanceOf[T]
-  }
-}
-object Data {
-  def build[T : TypeTag](args: Any*)(implicit space: Space): Data = {
-    val t = Type.build[T]
-    Data(t, args)
-  }
-
-  def apply[T : TypeTag](value: T)(implicit space: Space): Data = value match {
-    case s: String => Data(Plain.Text(s.size), s)
-    case i: Int => Data(ScalaInt, i)
-    case i: Long => Data(ScalaLong, i)
-    case i: BigInt => Data(ScalaBigInteger, i)
-    case i: BigDecimal => Data(ScalaBigDecimal, i) //TODO think about level of construction between Data and Type
-
-    case p: Product => build[T](p.productIterator.toList: _*)
-  }
-}
-
-case class Ref(path: Path, p: Predicate, v: Option[Any] = None) extends Predicate {
-  override def validate(value: Any): Boolean = ???
-}
-object Ref {
-  def apply(thing: Thing, path: Path): Ref = thing match { //TODO ref cache?
-    case t: Type => new Ref(path, t, None)
-    case a: Abstract => new Ref(path, a, None)
-    case Data(Nothing, Nothing) => new Ref(path, Nothing, None)
-    case d: Data => new Ref(path, d.p, Some(d.v))
-    case p: Plain => new Ref(path, p, None)
-    case other => throw new IllegalArgumentException(s"Not supported as Ref: $other")
-  }
-}
-
-abstract class Agent(val in: Predicate, val out: Predicate) extends PartialFunction [In, Out] with Thing {
-  val skill: RW
-  val f: PartialFunction[In, Out] = {
-    case in: In =>
-      skill.query(in) match {
-        case evt: Event =>
-          skill.write(evt)
-          evt
-        case other => other
-      }
-  }
-
-  def <<(what: In): Out = f.apply(what)
-  def <<?(in: In): Out = skill.query(in)
-  def <<!(out: Out): Thing = skill.write(out)
-
-  override def isDefinedAt(x: In): Boolean = f.isDefinedAt(x)
-  override def apply(x: In): Out = f.apply(x)
-}
-
-abstract class AgentRead(
-  override val in: Predicate,
-  override val out: Predicate
-) extends Agent(in, out) {
-  def read(id: ID): Out
-
-  def >>(id: ID): Out = read(id)
-}
-
-case class Volatile(p: Predicate, v: Any) extends Thing {
-  def as[T : ClassTag]: T = v match {
-    case t: T => t
-    case other => throw new IllegalArgumentException(s"'$other' is not ${implicitly[ClassTag[T]].runtimeClass.getName}")
-  }
-}
-
-sealed trait Expression extends Thing {}
-sealed trait Predicate extends Expression {
-  def validate(value: Any): Boolean
-}
-object Predicate {
-  case object AnyThing extends Predicate {
-    override def validate(value: Any): Boolean = value.isInstanceOf[Thing]
-  }
-  case object AnyWhere extends Predicate {
-    override def validate(value: Any): Boolean = value.isInstanceOf[Path]
-  }
-  case object SomeWhere extends Predicate {
-    override def validate(value: Any): Boolean = value.isInstanceOf[ID]
-  }
-}
-trait Skill extends Expression {}
-object Skill {
-  def apply(query: PartialFunction[In, Out]): RO = RO(query)
-  def apply(query: PartialFunction[In, Out], write: PartialFunction[Out, Thing]): RW = RW(query, write)
-  def apply(roSkills: RO*): RO = RO(roSkills.map(_.query).reduce(_ orElse _))
-  def apply(skills: Skill*): RW = {
-    val groupped = skills.groupBy {
-      case _: RW => "cmd"
-      case _: WO => "cmd"
-      case _: RO => "evt"
-    }
-      RW(
-        query = skills.map {
-          case q: RO => q.query
-          case c: RW => c.query
-        }.reduce(_ orElse _),
-
-        write = groupped("cmd").map {
-          case c: RW => c.write
-          case c: WO => c.write
-        }.reduce(_ orElse _)
-      )
-  }
-}
-case class RO(query: PartialFunction[In, Out]) extends Skill {}
-case class RW(query: PartialFunction[In, Out], write: PartialFunction[Out, Thing]) extends Skill {}
-case class WO(write: PartialFunction[Out, Thing]) extends Skill {}
-object NoSkill extends RW(
-  query = {
-    case in =>
-      NotImplemented(in)
-      throw new IllegalArgumentException("Not implemented")
-  },
-  write = {
-    case _ => throw new IllegalArgumentException("Not implemented")
-  }
-)
-
-final case class List(item: Predicate) extends Predicate {
-  override def validate(value: Any): Boolean = value match {
-    case i: Iterable[_] => i.forall(item.validate)
-    case _ => false
-  }
-}
-final case class Index(of: Predicate, over: Predicate) extends Predicate {
-  override def validate(value: Any): Boolean = value match {
-    case m: Map[_, _] => m.forall { case (k, v) => of.validate(k) && over.validate(v) }
-    case _ => false
-  }
-}
-
-final case class Abstract(fields: Seq[Field] = Seq.empty, fullName: Option[String] = None) extends Predicate {
-  override def validate(value: Any): Boolean = {
-    (fullName, value) match {
-      case (Some(name), Data(Abstract(fields, Some(typeName)), _)) => this.fields == fields && name == typeName
-      case (None,       Data(Abstract(fields, None), _))           => this.fields == fields
-      //TODO compare with list of partners
-      case _ => false
-    }
-  }
-}
-final case class Type(fields: Seq[Field] = Seq.empty, fullName: Option[String] = None) extends Predicate {
-  override def validate(value: Any): Boolean = {
-    (fullName, value) match {
-      case (Some(name), Data(Type(fields, Some(typeName)), _)) => this.fields == fields && name == typeName
-      case (None,       Data(Type(fields, None), _))           => this.fields == fields
-      //TODO compare with list of partners
-      case _ => false
-    }
-  }
-}
-
-object Type {
-  val types: Path = Path("types")
-  val relations: Path = Path("types/relations") //TODO protect from access by type name
-  def init(implicit space: Space): Unit = {
-    space << Create(ID("types"), new Memory(ScalaString, All))
-    types << Create(ID("relations"), new Relation(ScalaString))
-
-    types <<< (plain.map { case (name, t) => Create(ID(name), t) }.toSeq:_*)
-    build[Thing]
-    build[Message]
-    build[In]
-    build[Command]
-    build[Query]
-    build[Out]
-    build[Event]
-    build[Report]
-    build[Error]
-    build[CRUD]
-  }
-
-  def ref[A : TypeTag](implicit space: Space): Ref =
-    Path("types") >> ID(this.name(typeOf[A].typeSymbol)) match {
-      case Readen(id, t: Type) => Ref(ID("types") / id, t, None)
-      case Readen(id, Data(Nothing, Nothing)) => Ref(ID("types") / id, Nothing, None)
-      case Readen(id, Data(p, v)) => Ref(ID("types") / id, p, Some(v))
-      case NotFound(id) =>
-        throw new IllegalArgumentException(s"$id not initialized")
-    }
-
-  def build[A : TypeTag](implicit space: Space): Predicate = getOrMake(typeOf[A])
-
-  def getOrMake(sysType: SysType)(implicit space: Space): Predicate = {
-    val symbol = sysType.typeSymbol
-    val name = this.name(symbol)
-
-    plain.getOrElse(name, if (sysType <:< typeOf[Map[_, _]]) {
-      Index(getOrMake(sysType.typeArgs.head), getOrMake(sysType.typeArgs.last))
-    } else if (sysType <:< typeOf[Iterable[_]]) {
-      List(getOrMake(sysType.typeArgs.head))
-    } else if (sysType <:< typeOf[ADT]) {
-      makeAlgebraic(symbol)
-    } else if (sysType =:= typeOf[Any]) {
-      All
-    } else {
-      makeAlgebraic(symbol)
-      //throw new IllegalArgumentException(s"Scala type not supported: $name")
-    })
-  }
-
-  def makeAlgebraic(symbol: Symbol)(implicit space: Space): Predicate = {
-    val t = symbol.asType
-    val nameOfT = this.name(t)
-    val id = ID(nameOfT)
-    val path = types / id
-    val rel = relations.find[Relation]
-
-    types >> id match {
-      case Readen(_, thing: Thing) => Ref(thing, path)
-      case NotFound(_) =>
-        if(t.isModuleClass) {
-          val f = fieldsOf(t)
-          val a = if(f.isEmpty) {
-            new Data(Nothing, Nothing) //TODO search extends of case classes
-          } else {
-            new Data(AllOf(f: _*), f.map(_ => Nothing))
-          }
-          types << Create(id, a)
-        } else {
-          val a = if (t.isAbstract) {
-            Abstract(fieldsOf(t), Some(fullName(t)))
-          } else if (t.isClass) {
-            Type(fieldsOf(t), Some(fullName(t)))
-          } else {
-            throw new IllegalArgumentException(s"Scala type ${t.name} not algebraic")
-          }
-          types << Create(id, a)
-          t.asClass.knownDirectSubclasses.foreach { s =>
-            makeAlgebraic(s) match {
-              case Ref(pa, _, _) =>
-                rel << AddRelation(pa.ids.last, path)
-              case other => throw new IllegalArgumentException(s"Failed to gather $other ref")
-            }
-          }
-          val ts = t.typeSignature
-          ts.baseClasses
-            .map(i => ts.baseType(i))
-            .filter { i =>
-              !(i =:= ts || i =:= typeOf[Any] || i =:= typeOf[Serializable] || i =:= typeOf[Product] || i =:= typeOf[Equals] || i =:= typeOf[Object])
-            }.foreach { p =>
-            makeAlgebraic(p.typeSymbol) match {
-              case Ref(pa, _, _) =>
-                if(id != pa.ids.last) rel << AddRelation(id, pa)
-              case other => throw new IllegalArgumentException(s"Failed to gather $other ref")
-            }
-          }
-        }
-        path.ref
-    }
-  }
-
-  def fieldsOf(t: TypeSymbol)(implicit space: Space): Seq[Field] = {
-    val paramLists = t.asClass.primaryConstructor.typeSignature.paramLists
-    if(paramLists.isEmpty) {
-      Seq.empty
-    } else {
-      Seq(paramLists.head.collect { case ts: TermSymbol => ifOption(ts) }: _*)
-    }
-  }
-
-  def ifOption(ts: TermSymbol)(implicit space: Space): Field = {
-    if(ts.typeSignature <:< typeOf[Option[_]]) {
-      Field(this.name(ts), getOrMake(ts.typeSignature.typeArgs.head), required = false)
-    } else {
-      Field(this.name(ts), getOrMake(ts.typeSignature), required = true)
-    }
-  }
-
-  def name(s: Symbol): String = s.name.toString.trim
-  def fullName(s: Symbol): String = s.fullName.trim
-}
-
-case class Field(name: String, p: Predicate, required: Boolean) extends Predicate {
-  override def validate(value: Any): Boolean = p.validate(value)
-}
+sealed trait Predicate extends Thing {}
+final case class Type(fields: Field*) extends Predicate
+final case class Field(name: String, of: Predicate) //TODO snapshot & restore for Memory[Text, Field] -> Type -> Memory[Text, Field]
 
 sealed trait Plain extends Predicate {}
+final case class Text(maxSize: Int) extends Plain
+final case class Number(from: AnyVal, upTo: AnyVal) extends Plain //TODO replace with more strict version
+case object Bool extends Plain {} // funny thing - in scala we can't extend object, so, or 'AnyBool' under trait, or no True and False under Bool object
 
-object Plain {
-  case object Bool extends Plain {
-    override def validate(value: Any): Boolean = value match {
-      case _: Boolean => true //TODO more checks?
-      case _ => false
-    }
-  }
+sealed trait Message extends Thing {} //TODO separate CRUD+ from Message
+sealed trait In extends Message {}
+sealed trait Out extends Message {}
+sealed trait Command extends In {}
+sealed trait Event extends Out {}
+sealed trait Query extends In {}
+sealed trait Report extends Out {}
+sealed trait Error extends Out {}
 
-  case class Text (
-    maxSize: Size
-  ) extends Plain {
-    override def validate(value: Any): Boolean = value match {
-      case _: String => true //TODO more checks?
-      case _ => false
-    }
-  }
+final case class Create(what: Data) extends Command
+case object Read extends Query
+final case class Update(what: Data) extends Command
+case object Delete extends Command
 
-  case class Number (
-    min: Size,
-    max: Size,
-    format: NumberFormat
-  ) extends Plain {
-    override def validate(value: Any): Boolean = value match {
-      case _: Byte if min == MinByte && max == MaxByte => true
-      case _: Short if min == MinShort && max == MaxShort => true
-      case _: Int if min == MinInt && max == MaxInt => true
-      case _: Long if min == MinLong && max == MaxLong => true
-      case _: BigInt if min == NegativeInfinity && max == PositiveInfinity => true
-      case _: BigDecimal if min == NegativeInfinity && max == PositiveInfinity => true //TODO more checks?
-      case _ => false
-    }
-  }
+final case class Created(data: Data) extends Event
+final case class Readen(data: Data) extends Report
+final case class Updated(old: Data, data: Data) extends Event
+final case class Deleted(old: Data) extends Event
 
-  sealed trait Temporal extends Plain {}
-  case object Date extends Temporal {
-    override def validate(value: Any): Boolean = value match {
-      case _: java.sql.Date => true
-      case _ => false
-    }
-  }
-  case object Time extends Temporal {
-    override def validate(value: Any): Boolean = value match {
-      case _:java.sql.Time => true
-      case _ => false
-    }
-  }
-  case object Timestamp extends Temporal {
-    override def validate(value: Any): Boolean = value match {
-      case _:java.sql.Timestamp => true
-      case _ => false
-    }
-  }
+case object NotExist extends Error
+final case class AlreadyExist(data: Data) extends Error
+final case class AlreadyNotExist(that: Message, other: Message) extends Error
+final case class Conflict(that: Message, other: Message) extends Error
 
-
-  case object UUID extends Plain {
-    override def validate(value: Any): Boolean = value match {
-      case _: java.util.UUID => true
-      case _ => false
-    }
-  }
-}
-
-
-sealed trait Size
-object Size {
-  case class  Big(size: BigDecimal) extends Size
-  case object Infinity              extends Size
-  case object PositiveInfinity      extends Size
-  case object NegativeInfinity      extends Size
-}
-
-sealed trait NumberFormat
-object NumberFormat {
-  case object Integer extends NumberFormat
-  case object Float   extends NumberFormat
-  case object Decimal extends NumberFormat
-}
-
-case object All extends Predicate {
-  override def validate(value: Any): Boolean = true
-}
-case object Nothing extends Predicate {
-  override def validate(value: Any): Boolean =
-    value == Nothing || value == None
-}
-
-sealed trait CompositePredicate extends Predicate {}
-case class AllOf(p: Predicate*) extends CompositePredicate {
-  override def validate(value: Any): Boolean = {
-    p.forall(_.validate(value))
-  }
-}
-case class AnyOf(p: Predicate*) extends CompositePredicate {
-  override def validate(value: Any): Boolean = {
-    p.exists(_.validate(value))
-  }
-}
-case class OneOf(p: Predicate*) extends CompositePredicate {
-  override def validate(value: Any): Boolean = {
-    p.count(_.validate(value)) != 1
-  }
-}
+final case class Commit() extends Out

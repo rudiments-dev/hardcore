@@ -1,71 +1,90 @@
 package dev.rudiments.hardcore
 
-class Tx {
+import scala.collection.mutable
 
-}
+class Tx(
+  ctx: Memory
+) {
+  val total: mutable.Map[Location, mutable.Seq[Out]] = mutable.Map.empty
+  val last: mutable.Map[Location, Out] = mutable.Map.empty
 
-object Tx {}
+  private def unsafeUpdateState(where: Location, what: Out): Out = {
+    last.get(where) match {
+      case Some(_) =>
+        last += where -> what
+        total(where).+:(what)
+        what
+      case None =>
+        last += where -> what
+        total += where -> mutable.Seq(what)
+        what
+    }
+  }
 
-//TODO naming
-case class Apply(log: Seq[In]) extends Command
-object Apply {
-  def plain(log: Seq[In]): Seq[(ID, In)] = {
-    log.foldLeft(Seq.empty[(ID, In)]) { (acc, cmd) =>
-      cmd match {
-        case c: CRUD => acc :+ c.id -> c
-        case c: Apply => acc ++ plain(c.log)
-        case _ => acc
+  def remember(subj: Location, via: Out): Out = {
+    (read(subj), via) match {
+      case (NotExist, NotExist)                              => unsafeUpdateState(subj, NotExist)
+      case (NotExist, c: Created)                            => unsafeUpdateState(subj, c)
+      case (NotExist, r: Readen)                             => unsafeUpdateState(subj, r)
+      case (Readen(found), Created(_))                       => AlreadyExist(found)
+      case (r@Readen(r1), Readen(r2)) if r1 == r2            => r
+      case (Readen(found), Updated(u2, data)) if found == u2 => unsafeUpdateState(subj, Updated(found, data))
+      case (Readen(found), Deleted(d2))       if found == d2 => unsafeUpdateState(subj, Deleted(found))
+      case (found, other)                                    => Conflict(found, other)
+    }
+  }
+
+  def recall(subj: Location): Seq[Out] = total.get(subj).map(_.toSeq).getOrElse(Seq.empty)
+
+  def read(where: Location): Out = last.get(where) match {
+    case Some(Created(found)) => Readen(found)
+    case Some(Updated(_, found)) => Readen(found)
+    case Some(Deleted(_)) => NotExist
+    case Some(NotExist) => NotExist
+    case None =>
+      ctx.read(where) match {
+        case r: Readen => unsafeUpdateState(where, r)
+        case NotExist => unsafeUpdateState(where, NotExist)
       }
+  }
+
+  def ask(about: Location, in: In): Out = {
+    (read(about), in) match {
+      case (NotExist, Create(data)) => Created(data)
+      case (NotExist, _) => NotExist
+      case (r: Readen, Read) => r
+      case (Readen(found), Create(_)) => AlreadyExist(found)
+      case (Readen(found), Update(data)) => Updated(found, data)
+      case (Readen(found), Delete) => Deleted(found)
     }
   }
 
-  def collapse(log: Seq[In]): Map[ID, In] = {
-    plain(log).groupMapReduce(_._1)(_._2) {
-      case (Create(id1, _), Update(id2, d2)) if id1 == id2 => Create(id1, d2)
-      case (Create(id1, _), Delete(id2))     if id1 == id2 => Delete(id1) //TODO do nothing, check NotFound?
-      case (Update(id1, _), Update(id2, d2)) if id1 == id2 => Update(id1, d2)
-      case (Update(id1, _), Delete(id2))     if id1 == id2 => Delete(id1)
-      case (Delete(id1),    Create(id2, d2)) if id1 == id2 => Update(id1, d2)
-      case (_, _) => throw new IllegalArgumentException("Conflict")
-    }
-  }
-}
+  val reducer: PartialFunction[(Out, Out), Out] = {
+    case (   NotExist,      c: Created)                    => c
+    case (   NotExist,      r: Readen)                     => Conflict(NotExist, r)
+    case (   NotExist,      u: Updated)                    => Conflict(NotExist, u)
+    case (   NotExist,      d: Deleted)                    => Conflict(NotExist, d)
 
-case class Commit(delta: Map[ID, Event], extra: Seq[(In, Out)] = Seq.empty) extends Event
+    case (   Created(c1),      Created(_))                 => AlreadyExist(c1)
+    case ( c@Created(c1),      Readen(r2))     if c1 == r2 => c
+    case (   Created(c1),    u@Updated(u2, _)) if c1 == u2 => u
+    case (   Created(c1),    d@Deleted(d2))    if c1 == d2 => d
 
-object Commit {
-  def apply(events: Seq[(In, Out)]): Commit = {
-    val data = collapse(events)
-    val filtered = events.filter {
-      case (_, _: Created) => false
-      case (_, _: Updated) => false
-      case (_, _: Deleted) => false
-      case (_, _: Commit) => false
-    }
-    new Commit(data, filtered)
-  }
+    case (   Readen(r1),       Created(_))                 => AlreadyExist(r1)
+    case ( r@Readen(r1),       Readen(r2))     if r1 == r2 => r
+    case (   Readen(r1),     u@Updated(u2, _)) if r1 == u2 => u
+    case (   Readen(r1),     d@Deleted(d2))    if r1 == d2 => d
 
-  def plain(events: Seq[(In, Out)]): Seq[(ID, Event)] = {
-    events.foldLeft(Seq.empty[(ID, Event)]) { (acc, cmdevt) =>
-      cmdevt._2 match {
-        case c: Created => acc :+ c.id -> c
-        case c: Updated => acc :+ c.id -> c
-        case c: Deleted => acc :+ c.id -> c
-        case c: Commit => acc ++ c.delta ++ plain(c.extra)
-        case _ => acc
-      }
-    }
-  }
+    case (   Updated(_, u1),   Created(_))                 => AlreadyExist(u1)
+    case ( u@Updated(_, u1),   Readen(r2))     if u1 == r2 => u
+    case (   Updated(_, u1), u@Updated(u2, _)) if u1 == u2 => u
+    case (   Updated(_, u1), d@Deleted(d2))    if u1 == d2 => d
 
-  def collapse(events: Seq[(In, Out)]): Map[ID, Event] = {
-    plain(events).groupMapReduce(_._1)(_._2) {
-      case (Created(id1, d1),       Updated(id2, d21, d22)) if id1 == id2 && d1 == d21  => Created(id1, d22)
-      case (Created(id1, d1),       Deleted(id2, d2))       if id1 == id2 && d1 == d2   => Deleted(id1, d1)
-      case (Updated(id1, d11, d12), Updated(id2, d21, d22)) if id1 == id2 && d12 == d21 => Updated(id1, d11, d22)
-      case (Updated(id1, _, d12),   Deleted(id2, d2))       if id1 == id2 && d12 == d2  => Deleted(id1, d12)
-      case (Deleted(id1, _),        Created(id2, d2))       if id1 == id2               => Created(id1, d2)
-      case (x1, x2) =>
-        throw new IllegalArgumentException(s"Conflict between $x1 and $x2")
-    }
+    case (   Deleted(_),    c: Created)                    => c
+    case ( d:Deleted,       r: Readen)                     => AlreadyNotExist(d, r)
+    case ( d:Deleted,       u: Updated)                    => AlreadyNotExist(d, u)
+    case (d1:Deleted,      d2: Deleted)                    => AlreadyNotExist(d1, d2)
+    case (that, other) /* unfitting updates */             => Conflict(that, other)
   }
 }
+

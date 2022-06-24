@@ -1,8 +1,6 @@
 package test.dev.rudiments
 
-import dev.rudiments.hardcore.ADT
-
-sealed trait Blah extends ADT {}
+sealed trait Blah {}
 
 case class Smt(
   id: Long,

@@ -2,109 +2,93 @@ package dev.rudiments.hardcore
 
 import scala.collection.mutable
 
-class Memory(val idIs: Predicate, val dataIs: Predicate) extends AgentRead(idIs, dataIs) {
-  val state: mutable.SeqMap[ID, Thing] = mutable.SeqMap.empty
+/*
+* keyIs: Predicate,
+  itemIs: Predicate,
+  canDo: Set[In],
+  canStore: Set[Event]
+* */
 
-  override def read(id: ID): Out = Memory.read(this).query(Read(id))
+class Memory {
+  val total: mutable.Map[Location, mutable.Seq[Event]] = mutable.Map.empty
+  val last: mutable.Map[Location, Event] = mutable.Map.empty
 
-  override val skill: RW = Memory.skill(this)
+  private def unsafeUpdateState(where: Location, what: Event): Event = {
+    last.get(where) match {
+      case Some(_) =>
+        last += where -> what
+        total(where).+:(what)
+        what
+      case None =>
+        last += where -> what
+        total += where -> mutable.Seq(what)
+        what
+    }
+  }
+
+  def remember(subj: Location, via: Event): Out = {
+    (read(subj), via) match {
+      case (NotExist, Created(data)) => unsafeUpdateState(subj, Created(data))
+      case (Readen(found), Created(_)) => AlreadyExist(found)
+      case (Readen(found), Updated(u2, data)) if found == u2 => unsafeUpdateState(subj, Updated(found, data))
+      case (Readen(found), Deleted(d2)) if found == d2 => unsafeUpdateState(subj, Deleted(found))
+      case (found, other) => Conflict(found, other)
+    }
+  }
+
+  def recall(subj: Location): Seq[Event] = total.get(subj).map(_.toSeq).getOrElse(Seq.empty)
+
+  def read(where: Location): Out = last.get(where) match {
+    case Some(Created(found)) => Readen(found)
+    case Some(Updated(_, found)) => Readen(found)
+    case Some(Deleted(_)) => NotExist
+    case None => NotExist
+  }
+
+  def ask(about: Location, in: In): Out = {
+    (read(about), in) match {
+      case (NotExist, Create(data)) => Created(data)
+      case (NotExist, _) => NotExist
+      case (r: Readen, Read) => r
+      case (Readen(found), Create(_)) => AlreadyExist(found)
+      case (Readen(found), Update(data)) => Updated(found, data)
+      case (Readen(found), Delete) => Deleted(found)
+    }
+  }
+
+  val reducer: PartialFunction[(Event, Event), Out] = {
+    case (   Created(c1),      Created(_))                 => AlreadyExist(c1)
+    case (   Created(c1),    u@Updated(u2, _)) if c1 == u2 => u
+    case (   Created(c1),    d@Deleted(d2))    if c1 == d2 => d
+
+    case (   Updated(_, u1),   Created(_))                 => AlreadyExist(u1)
+    case (   Updated(_, u1), u@Updated(u2, _)) if u1 == u2 => u
+    case (   Updated(_, u1), d@Deleted(d2))    if u1 == d2 => d
+
+    case (   Deleted(_),     c@Created(_))                 => c
+    case ( d@Deleted(_),     u@Updated(_, _))              => AlreadyNotExist(d, u)
+    case (d1@Deleted(_),    d2@Deleted(_))                 => AlreadyNotExist(d1, d2)
+    case (that, other) /* unfitting updates */             => Conflict(that, other)
+  }
 }
 
 object Memory {
-  def skill(implicit ctx: Memory): RW = Skill(
-    Memory.create(ctx),
-    Memory.read(ctx),
-    Memory.update(ctx),
-    Memory.delete(ctx),
-    Memory.find(ctx),
-    Memory.commit(ctx)
-  )
+  implicit class MemoryOps(where: Location)(implicit memory: Memory) {
+    def ?> : Out = memory.ask(where, Read)
+    def +>(data: Data) : Out = memory.ask(where, Create(data))
+    def *>(data: Data) : Out = memory.ask(where, Update(data))
+    def ->> : Out = memory.ask(where, Delete)
 
-  def read(implicit ctx: Memory): RO = RO {
-    case Read(id) => ctx.state.get(id) match {
-      case Some(found) => Readen(id, found)
-      case None => NotFound(id)
+    def <+(data: Data): Out = memory.remember(where, Created(data))
+    def <*(data: Data): Out = {
+      memory.read(where) match {
+        case Readen(found) => memory.remember(where, Updated(found, data))
+        case NotExist => NotExist
+      }
+    }
+    def <<- : Out = memory.read(where) match {
+      case Readen(found) => memory.remember(where, Deleted(found))
+      case NotExist => NotExist
     }
   }
-
-  def create(implicit ctx: Memory): RW = RW (
-    query = {
-      case Create(id, data) => ctx >> id match {
-        case Readen(i, found) => AlreadyExist(i, found)
-        case NotFound(i) => Created(i, data)
-      }
-    },
-    write = {
-      case Created(id, data) =>
-        ctx.state.get(id) match {
-          case None =>
-            ctx.state += id -> data
-            ctx.state(id)
-          case Some(_) => throw new IllegalArgumentException(s"Already exist $id")
-        }
-    }
-  )
-
-  def update(implicit ctx: Memory): RW = RW (
-    query = {
-      case Update(id, data) => ctx >> id match {
-        case Readen(i, found) => Updated(i, found, data)
-        case e: Error => e
-      }
-    },
-    write = {
-      case Updated(id, oldData, newData) =>
-        ctx.state.get(id) match {
-          case Some(v) if v == oldData =>
-            ctx.state += id -> newData
-            ctx.state(id)
-          case Some(_) => throw new IllegalArgumentException(s"Conflict data for update $id")
-          case None => throw new IllegalArgumentException(s"Not found $id")
-        }
-    }
-  )
-
-  def delete(implicit ctx: Memory): RW = RW (
-    query = {
-      case Delete(id) => ctx >> id match {
-        case Readen(i, found) => Deleted(i, found)
-        case e: Error => e
-      }
-    },
-    write = {
-      case Deleted(id, data) =>
-        ctx.state.get(id) match {
-          case Some(v) if v == data =>
-            ctx.state -= id
-            data
-          case Some(_) => throw new IllegalArgumentException(s"Conflict data for delete $id") // or just delete?
-          case None => throw new IllegalArgumentException(s"Not found $id")
-        }
-
-    }
-  )
-
-  def find(implicit ctx: Memory): RO = RO {
-    case Find(All) => Found(All, ctx.state.toMap)
-    case Find(p) => Found(p, ctx.state.filter { case (_, v) => p.validate(v) }.toMap)
-      //TODO compare Agents?
-  }
-
-  def commit(implicit ctx: Memory): RW = RW (
-    query = {
-      case Apply(commands) =>
-        val result: Seq[(In, Out)] =
-          Apply.collapse(commands).values
-            .map { cmd => cmd -> (ctx <<? cmd) }.toSeq
-        Commit(result)
-    },
-    write = {
-      case Commit(delta, extra) =>
-        val data = delta.map { case (id, evt) => id -> (ctx <<! evt) }
-        extra.foreach {
-          case (_, evt: Event) => ctx <<! evt //TODO log? ignore?
-        }
-        new Data(Index(All, All), data)
-    }
-  )
 }
