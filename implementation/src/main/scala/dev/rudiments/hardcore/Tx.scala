@@ -1,12 +1,14 @@
 package dev.rudiments.hardcore
 
+import dev.rudiments.hardcore.Memory.{I, O}
+
 import scala.collection.mutable
 
 class Tx(ctx: Memory) {
-  val total: mutable.Map[Location, mutable.Buffer[Out]] = mutable.Map.empty
-  val last: mutable.Map[Location, Out] = mutable.Map.empty
+  val total: mutable.Map[Location, mutable.Buffer[O]] = mutable.Map.empty
+  val last: mutable.Map[Location, O] = mutable.Map.empty
 
-  private def unsafeUpdateState(where: Location, what: Out): Out = {
+  private def unsafeUpdateState(where: Location, what: O): O = {
     last.get(where) match {
       case Some(_) =>
         last += where -> what
@@ -19,7 +21,7 @@ class Tx(ctx: Memory) {
     }
   }
 
-  def remember(subj: Location, via: Out): Out = {
+  def remember(subj: Location, via: O): O = {
     (read(subj), via) match {
       case (NotExist, NotExist)                              => unsafeUpdateState(subj, NotExist)
       case (NotExist, c: Created)                            => unsafeUpdateState(subj, c)
@@ -32,13 +34,13 @@ class Tx(ctx: Memory) {
     }
   }
 
-  def recall(subj: Location): Seq[Out] = total.get(subj).map(_.toSeq).getOrElse(Seq.empty)
+  def recall(subj: Location): Seq[O] = total.get(subj).map(_.toSeq).getOrElse(Seq.empty)
 
-  def verify(): Out = {
+  def verify(): O = {
     val reduced = prepare()
 
     val errors = reduced.keys.map { k =>
-      val v: Out = (reduced(k), last(k)) match {
+      val v: O = (reduced(k), last(k)) match {
         case (c@Created(c1), Created(c2)) if c1 == c2 => c
         case (u@Updated(_, u1), Updated(_, u2)) if u1 == u2 => u
         case (d@Deleted(_), Deleted(_)) => d
@@ -55,7 +57,7 @@ class Tx(ctx: Memory) {
     }
   }
 
-  def read(where: Location): Out = last.get(where) match {
+  def read(where: Location): O = last.get(where) match {
     case Some(Created(found)) => Readen(found)
     case Some(r: Readen) => r
     case Some(Updated(_, found)) => Readen(found)
@@ -65,7 +67,7 @@ class Tx(ctx: Memory) {
     case None => unsafeUpdateState(where, ctx.read(where))
   }
 
-  def ask(about: Location, in: In): Out = {
+  def ask(about: Location, in: I): O = {
     (read(about), in) match {
       case (NotExist, Create(data)) => Created(data)
       case (NotExist, _) => NotExist
@@ -77,7 +79,7 @@ class Tx(ctx: Memory) {
     }
   }
 
-  def report(in: In): Out = in match {
+  def report(in: I): O = in match {
     case Verify => this.verify()
     case Prepare =>
       this.verify() match {
@@ -87,15 +89,15 @@ class Tx(ctx: Memory) {
     case _ => NotImplemented
   }
 
-  def prepare(): Map[Location, Out] =
+  def prepare(): Map[Location, O] =
     total.view.mapValues(_.toSeq.reduce(Tx.reducer(_, _))).toMap
 
-  def >? : Out = this.report(Verify)
-  def >> : Out = this.report(Prepare)
+  def >? : O = this.report(Verify)
+  def >> : O = this.report(Prepare)
 }
 
 object Tx {
-  val reducer: PartialFunction[(Out, Out), Out] = {
+  val reducer: PartialFunction[(O, O), O] = {
     case (   NotExist,      c: Created)                    => c
     case (   NotExist,      r: Readen)                     => Conflict(NotExist, r)
     case (   NotExist,      u: Updated)                    => Conflict(NotExist, u)
@@ -124,20 +126,20 @@ object Tx {
   }
 
   implicit class TxOps(where: Location)(implicit tx: Tx) {
-    def ? : Out = tx.ask(where, Read)
-    def +(data: Data) : Out = tx.ask(where, Create(data))
-    def *(data: Data) : Out = tx.ask(where, Update(data))
-    def - : Out = tx.ask(where, Delete)
+    def ? : O = tx.ask(where, Read)
+    def +(data: Data) : O = tx.ask(where, Create(data))
+    def *(data: Data) : O = tx.ask(where, Update(data))
+    def - : O = tx.ask(where, Delete)
 
-    def +=(data: Data): Out = tx.remember(where, Created(data))
-    def *=(data: Data): Out = {
+    def +=(data: Data): O = tx.remember(where, Created(data))
+    def *=(data: Data): O = {
       tx.read(where) match {
         case Readen(found) => tx.remember(where, Updated(found, data))
         case NotExist => NotExist
         case _ => ???
       }
     }
-    def -= : Out = tx.read(where) match {
+    def -= : O = tx.read(where) match {
       case Readen(found) => tx.remember(where, Deleted(found))
       case NotExist => NotExist
       case _ => ???

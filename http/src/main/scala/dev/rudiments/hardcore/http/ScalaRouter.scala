@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import dev.rudiments.hardcore.Memory.MemoryOps
+import dev.rudiments.hardcore.Predicate.All
 import dev.rudiments.hardcore._
 
 class ScalaRouter(implicit val mount: Memory) extends CirceSupport {

@@ -8,7 +8,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.junit.JUnitRunner
 
-@Ignore //TODO mark as long-running tests for separate execution
 @RunWith(classOf[JUnitRunner])
 class BulkTest extends AnyWordSpec with Matchers {
   private val sampleSize: Int = 1*1000*1000 // 1M

@@ -1,13 +1,16 @@
 package dev.rudiments.hardcore
 
+import dev.rudiments.hardcore.Memory.{Evt, I, O}
+import dev.rudiments.hardcore.Predicate.All
+
 import scala.collection.mutable
 
 class Memory {
-  val total: mutable.Map[Location, mutable.Seq[Event]] = mutable.Map.empty
-  val last: mutable.Map[Location, Event] = mutable.Map.empty
+  val total: mutable.Map[Location, mutable.Seq[Evt]] = mutable.Map.empty
+  val last: mutable.Map[Location, Evt] = mutable.Map.empty
   val commits: mutable.Buffer[Commit] = mutable.Buffer.empty
 
-  private def unsafeUpdateState(where: Location, what: Event): Event = {
+  private def unsafeUpdateState(where: Location, what: Evt): Evt = {
     last.get(where) match {
       case Some(_) =>
         last += where -> what
@@ -20,7 +23,7 @@ class Memory {
     }
   }
 
-  def remember(subj: Location, via: Event): Out = {
+  def remember(subj: Location, via: Evt): O = {
     (read(subj), via) match {
       case (NotExist, c: Created)                  => unsafeUpdateState(subj, c)
       case (Readen(r), Created(_))                 => AlreadyExist(r)
@@ -30,9 +33,9 @@ class Memory {
     }
   }
 
-  def recall(subj: Location): Seq[Event] = total.get(subj).map(_.toSeq).getOrElse(Seq.empty)
+  def recall(subj: Location): Seq[Evt] = total.get(subj).map(_.toSeq).getOrElse(Seq.empty)
 
-  def read(where: Location): Out = last.get(where) match {
+  def read(where: Location): O = last.get(where) match {
     case Some(Created(found)) => Readen(found)
     case Some(Updated(_, found)) => Readen(found)
     case Some(Deleted(_)) => NotExist
@@ -40,7 +43,7 @@ class Memory {
     case None => NotExist
   }
 
-  def ask(about: Location, in: In): Out = {
+  def ask(about: Location, in: I): O = {
     (read(about), in) match {
       case (NotExist, Create(data)) => Created(data)
       case (NotExist, _) => NotExist
@@ -52,10 +55,10 @@ class Memory {
     }
   }
 
-  def execute(in: In): Out = in match {
+  def execute(in: I): O = in match {
     case c: Commit =>
       val errors = c.crud
-        .map { case (id, evt) => id -> remember(id, evt) }
+        .map { case (id, evt: Evt) => id -> remember(id, evt) }
         .collect { case (id, err: Error) => (id, err) }
 
       if(errors.isEmpty) {
@@ -74,7 +77,7 @@ class Memory {
     case _ => NotImplemented
   }
 
-  val reducer: PartialFunction[(Event, Event), Out] = {
+  val reducer: PartialFunction[(Evt, Evt), O] = {
     case (   Created(c1),      Created(_))                 => AlreadyExist(c1)
     case (   Created(c1),    u@Updated(u2, _)) if c1 == u2 => u
     case (   Created(c1),    d@Deleted(d2))    if c1 == d2 => d
@@ -89,32 +92,37 @@ class Memory {
     case (that, other) /* unfitting updates */             => Conflict(that, other)
   }
 
-  def << (in: In) : Out = this.execute(in)
+  def << (in: I) : O = this.execute(in)
 }
 
 object Memory {
+  type Evt = Event with CRUD
+  type Cmd = Command with CRUD
+  type O = Out with CRUD
+  type I = In with CRUD
+
   implicit class MemoryOps(where: Location)(implicit memory: Memory) {
     def ? : Out = memory.ask(where, Read)
-    def +(data: Data) : Out = memory.ask(where, Create(data))
-    def *(data: Data) : Out = memory.ask(where, Update(data))
+    def +(data: Data) : O = memory.ask(where, Create(data))
+    def *(data: Data) : O = memory.ask(where, Update(data))
     def - : Out = memory.ask(where, Delete)
 
-    def +=(data: Data): Out = memory.remember(where, Created(data))
-    def *=(data: Data): Out = {
+    def +=(data: Data): O = memory.remember(where, Created(data))
+    def *=(data: Data): O = {
       memory.read(where) match {
         case Readen(found) => memory.remember(where, Updated(found, data))
         case NotExist => NotExist
         case _ => ???
       }
     }
-    def -= : Out = memory.read(where) match {
+    def -= : O = memory.read(where) match {
       case Readen(found) => memory.remember(where, Deleted(found))
       case NotExist => NotExist
       case _ => ???
     }
 
-    def << (cmd: Command): Out = memory.ask(where, cmd) match {
-      case evt: Event => memory.remember(where, evt)
+    def << (cmd: Cmd): O = memory.ask(where, cmd) match {
+      case evt: Evt => memory.remember(where, evt)
       case other => other
     }
   }
