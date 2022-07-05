@@ -1,6 +1,5 @@
 package dev.rudiments.hardcore.file
 
-import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore._
 
 import java.io.{File => JavaFile}
@@ -9,7 +8,7 @@ import scala.collection.mutable
 import scala.io.Source
 import scala.util.Using
 
-class FileAgent(absolutePath: String) extends StrictLogging {
+class FileAgent(absolutePath: String) {
   val data: Memory = new Memory()
   val files: mutable.Map[Location, File] = mutable.Map.empty
 
@@ -50,7 +49,6 @@ class FileAgent(absolutePath: String) extends StrictLogging {
   def readFile(path: String, file: File): Out = {
     val f = new JavaFile(path)
     if(!f.exists()) {
-      logger.error("Can't open '{}' as File [{}]", path, file)
       NotExist
     } else {
       file match {
