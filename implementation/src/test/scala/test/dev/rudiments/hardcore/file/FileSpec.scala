@@ -1,7 +1,7 @@
 package test.dev.rudiments.hardcore.file
 
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.file.{File, FileAgent, Folder}
+import dev.rudiments.hardcore.file.{FileAgent, Folder, TextFile, UnknownFile}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -9,13 +9,39 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class FileSpec extends AnyWordSpec with Matchers {
-  private val fileAgent = new FileAgent(".")
+  private val fileAgent = new FileAgent("implementation/src/test/resources/file-test")
 
   "can read file in Agent" in {
-    fileAgent.read(Root) match {
-      case Readen(Data(_, values: Map[Location, File])) =>
-        values.groupBy(_._2).size should be (3)
-      case _ => fail("Expecting all kinds of files in WORKING_DIR")
-    }
+    fileAgent.read(Root) should be (
+      Readen(
+        Data(
+          Folder.typeOf,
+          Map(
+            ID("folder1") -> Folder,
+            ID("24.bin") -> UnknownFile,
+            ID("42.json") -> TextFile
+          )
+        )
+      )
+    )
+  }
+
+  "can prepare commit via Agent" in {
+    fileAgent.load(Root) should be(Prepared(Commit(
+      Map(
+        Root -> Created(Data(Folder.typeOf, Map(
+          ID("folder1") -> Folder,
+          ID("24.bin") -> UnknownFile,
+          ID("42.json") -> TextFile
+        ))),
+
+        ID("folder1") -> Created(Data(Folder.typeOf, Map(ID("folder2") -> Folder))),
+        ID("24.bin") -> Created(Data(Binary, Nothing)),
+        ID("42.json") -> Created(Data(TextFile.typeOf, Seq("{", "  \"a\": true", "}"))),
+
+        ID("folder1") / ID("folder2") -> Created(Data(Folder.typeOf, Map(ID("123.json") -> TextFile))),
+        ID("folder1") / ID("folder2") / ID("123.json") -> Created(Data(TextFile.typeOf, Seq("{", "  \"b\": false", "}"))),
+      ), null
+    )))
   }
 }

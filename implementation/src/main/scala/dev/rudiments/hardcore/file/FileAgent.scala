@@ -18,29 +18,67 @@ class FileAgent(absolutePath: String) {
     case path: Path => readFile(absolutePath + "/" + path.toString, files(path))
   }
 
-  def readFile(path: String, file: File): Out = file match {
-    case Folder =>
-      try {
-        val file = new JavaFile(path)
-        if(!file.isDirectory) throw new IllegalArgumentException(s"File $path should be directory")
+  def load(where: Location): Out = deltaTx(new Tx(data), where)
 
-        Readen(Data(Folder.typeOf,
-          file.listFiles().toSeq.map {
-            case f: JavaFile if f.isDirectory => ID(f.getName) -> Folder
-            case f: JavaFile if f.isFile && TextFile.isTextFile(f.getName) => ID(f.getName) -> TextFile
-            case f: JavaFile if f.isFile => ID(f.getName) -> UnknownFile
-          }.toMap
-        ))
-      } catch {
-        case e: Exception => FileError(e.getMessage)
+  def deltaTx(tx: Tx, where: Location): Out = (read(where), data.read(where)) match {
+    case (Readen(file), NotExist) =>
+      file match {
+        case Data(Folder.typeOf, fs: Map[ID, File]) =>
+          tx.remember(where, Created(file))
+          fs.foreach { case (id, f) =>
+            files += where / id -> f
+            deltaTx(tx, where / id)
+          }
+          tx.>>
+        case Data(TextFile.typeOf, _) => tx.remember(where, Created(file))
+        case Data(_, _) => tx.remember(where, Created(Data(Binary, Nothing)))
       }
+    case (Readen(file), Readen(found)) =>
+      (file, found) match {
+        case (Data(Folder.typeOf, incoming: Map[ID, File]), Data(Folder.typeOf, existing: Map[ID, File])) =>
+          val allKeys = existing.keys ++ incoming.keys
+          allKeys.foreach { k => deltaTx(tx, where / k) }
+          tx.>>
+        case (_, _) => tx.remember(where, Updated(found, file))
+      }
+    case (NotExist, Readen(found)) => Deleted(found)
+    case (NotExist, NotExist) => NotExist
+    case (that, other) => Conflict(that, other)
+  }
 
-    case TextFile =>
-      Using(Source.fromFile(path)) { f =>
-        Readen(Data(TextFile.ofType, f.getLines().toSeq))
-      }.getOrElse(FileError(s"Failed to read $path"))
+  def readFile(path: String, file: File): Out = {
+    val f = new JavaFile(path)
+    if(!f.exists()) {
+      NotExist
+    } else {
+      file match {
+        case Folder =>
+          try {
+            if(!f.isDirectory) throw new IllegalArgumentException(s"File $path should be directory")
 
-    case UnknownFile =>
-      Readen(Data(Binary, Files.readAllBytes(Paths.get(path))))
+            Readen(Data(Folder.typeOf,
+              f.listFiles().toSeq.map {
+                case f: JavaFile if f.isDirectory => ID(f.getName) -> Folder
+                case f: JavaFile if f.isFile && TextFile.isTextFile(f.getName) => ID(f.getName) -> TextFile
+                case f: JavaFile if f.isFile => ID(f.getName) -> UnknownFile
+              }.toMap
+            ))
+          } catch {
+            case e: Exception => FileError(e.getMessage)
+          }
+
+        case TextFile =>
+          Using(Source.fromFile(path)) { f =>
+            Readen(Data(TextFile.typeOf, f.getLines().toSeq))
+          }.getOrElse(FileError(s"Failed to read $path"))
+
+        case UnknownFile =>
+          try {
+            Readen(Data(Binary, Files.readAllBytes(Paths.get(path))))
+          } catch {
+            case e: Exception => FileError(e.getMessage)
+          }
+      }
+    }
   }
 }

@@ -14,10 +14,10 @@ case object Folder extends File {
 }
 
 case object TextFile extends File {
-  val ofType: Predicate = Enlist(Text(Int.MaxValue))
-  val empty: Data = Data(ofType, Nothing)
+  val typeOf: Predicate = Enlist(Text(Int.MaxValue))
+  val empty: Data = Data(typeOf, Nothing)
 
-  val textFileExtensions: Seq[String] = Seq(".txt", ".scala", ".java", ".gradle", ".yml", ".sql", ".md", ".conf", ".xml", ".http")
+  val textFileExtensions: Seq[String] = Seq(".txt", ".scala", ".java", ".gradle", ".yml", ".sql", ".md", ".conf", ".xml", ".http", ".json")
   def isTextFile(name: String): Boolean = textFileExtensions.exists(name.endsWith)
 }
 
