@@ -9,7 +9,7 @@ sealed trait Relation extends Thing {} // (obj, rel, subj) => obj -> (rel, subj)
 case object Can extends Relation {}
 case object Holds extends Relation {}
 
-final case class Link(where: Location, what: Predicate) extends Thing
+final case class Link(where: Location, what: Predicate) extends Predicate
 final case class Data(what: Predicate, data: Any) extends Thing
 
 sealed trait Predicate extends Thing {}
@@ -31,7 +31,7 @@ case object Bool extends Plain {} // funny thing - in scala we can't extend obje
 case object Binary extends Plain {} // Array[Byte]
 
 sealed trait Abstraction extends Thing {}
-case object Nothing extends Abstraction {}
+case object Nothing extends Predicate {}
 
 trait Message extends Thing {} //TODO separate CRUD+ from Message
 trait In extends Message {}

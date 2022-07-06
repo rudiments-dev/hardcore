@@ -19,23 +19,19 @@ trait CirceSupport extends FailFastCirceSupport {
 }
 
 object CirceSupport {
-  private def encodeData(data: Data): Json = (data.what, data.data) match {
-    case (t: Type, v: Seq[Any])  => encode(t, v)
-    case (Binary, Nothing) => Json.Null
-    case (Enlist(p), vs: Seq[Any]) => Json.arr(vs.map(v => encode(p, v)):_*)
-    case (Index(_, pv), vs: Map[ID, Any]) => Json.obj(
-      vs.toSeq.map { case (k, v) =>
-        k.key.toString -> encode(pv, v)
-      } :_*
-    )
-    case (other, another) =>
-      ???
-  }
+  private def encodeData(data: Data): Json = encode(data.what, data.data)
 
   private def encode(p: Predicate, v: Any): Json = (p, v) match {
     case (t: Type, values: Seq[Any]) =>
       Json.obj(t.fields.zip(values).map { case (f, v) => (f.name, encode(f.of, v)) }:_*)
     case (p: Plain, v: Any) => encodePlain(p, v)
+    case (Enlist(p), vs: Seq[Any]) => Json.arr(vs.map(v => encode(p, v)):_*)
+    case (Index(_, pv), vs: Map[Location, Any]) => Json.obj(
+      vs.toSeq.map { case (k, v) =>
+        k.toString -> encode(pv, v)
+      } :_*
+    )
+    case (a: AnyOf, v: Link) if a.p.contains(v) => Json.fromString(v.where.toString)
     case (other, another) =>
       Json.fromString(s"NOT IMPLEMENTED: $another")
   }
@@ -45,6 +41,7 @@ object CirceSupport {
     case (Number(_, _), i: Int) => Json.fromInt(i)
     case (Number(_, _), l: Long) => Json.fromLong(l)
     case (Bool, b: Boolean) => Json.fromBoolean(b)
+    case (Binary, Nothing) => Json.Null
     case (_, None) => Json.Null
     case (_, _) => throw new IllegalArgumentException(s"Can't encode [$v] of $p ")
   }

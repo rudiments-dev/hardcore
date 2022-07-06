@@ -11,7 +11,9 @@ sealed trait Location {
     case (_, _) => throw new IllegalArgumentException("/Root prohibited")
   }
 }
-final case class ID(key: Any) extends Location
+final case class ID(key: Any) extends Location {
+  override def toString: String = key.toString
+}
 final case class Path(ids: ID*) extends Location {
   override def toString: String = ids.map(_.key).mkString("/")
 }

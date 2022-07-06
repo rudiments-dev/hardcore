@@ -2,7 +2,7 @@ package test.dev.rudiments.hardcore.file
 
 import dev.rudiments.hardcore.Predicate.All
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.file.{FileAgent, Folder, TextFile, UnknownFile}
+import dev.rudiments.hardcore.file.{File, FileAgent, Folder, TextFile, UnknownFile}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -19,9 +19,9 @@ class FileSpec extends AnyWordSpec with Matchers {
         Data(
           Folder.typeOf,
           Map(
-            ID("folder1") -> Folder,
-            ID("24.bin") -> UnknownFile,
-            ID("42.json") -> TextFile
+            ID("folder1") -> File.folder,
+            ID("24.bin") -> File.unknownFile,
+            ID("42.json") -> File.textFile
           )
         )
       )
@@ -32,16 +32,16 @@ class FileSpec extends AnyWordSpec with Matchers {
     fileAgent.load(Root, mem) should be(Prepared(Commit(
       Map(
         Root -> Created(Data(Folder.typeOf, Map(
-          ID("folder1") -> Folder,
-          ID("24.bin") -> UnknownFile,
-          ID("42.json") -> TextFile
+          ID("folder1") -> File.folder,
+          ID("24.bin") -> File.unknownFile,
+          ID("42.json") -> File.textFile
         ))),
 
-        ID("folder1") -> Created(Data(Folder.typeOf, Map(ID("folder2") -> Folder))),
+        ID("folder1") -> Created(Data(Folder.typeOf, Map(ID("folder2") -> File.folder))),
         ID("24.bin") -> Created(Data(Binary, Nothing)),
         ID("42.json") -> Created(Data(TextFile.typeOf, Seq("{", "  \"a\": true", "}"))),
 
-        ID("folder1") / ID("folder2") -> Created(Data(Folder.typeOf, Map(ID("123.json") -> TextFile))),
+        ID("folder1") / ID("folder2") -> Created(Data(Folder.typeOf, Map(ID("123.json") -> File.textFile))),
         ID("folder1") / ID("folder2") / ID("123.json") -> Created(Data(TextFile.typeOf, Seq("{", "  \"b\": false", "}"))),
       ), null
     )))
@@ -55,16 +55,16 @@ class FileSpec extends AnyWordSpec with Matchers {
 
     mem << Find(All) should be (Found(All, Map(
       Root -> Data(Folder.typeOf, Map(
-        ID("folder1") -> Folder,
-        ID("24.bin") -> UnknownFile,
-        ID("42.json") -> TextFile
+        ID("folder1") -> File.folder,
+        ID("24.bin") -> File.unknownFile,
+        ID("42.json") -> File.textFile
       )),
 
-      ID("folder1") -> Data(Folder.typeOf, Map(ID("folder2") -> Folder)),
+      ID("folder1") -> Data(Folder.typeOf, Map(ID("folder2") -> File.folder)),
       ID("24.bin") -> Data(Binary, Nothing),
       ID("42.json") -> Data(TextFile.typeOf, Seq("{", "  \"a\": true", "}")),
 
-      ID("folder1") / ID("folder2") -> Data(Folder.typeOf, Map(ID("123.json") -> TextFile)),
+      ID("folder1") / ID("folder2") -> Data(Folder.typeOf, Map(ID("123.json") -> File.textFile)),
       ID("folder1") / ID("folder2") / ID("123.json") -> Data(TextFile.typeOf, Seq("{", "  \"b\": false", "}")),
     )))
   }

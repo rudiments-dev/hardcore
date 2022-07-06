@@ -49,9 +49,9 @@ class FileAgent(absolutePath: String) {
       if(f.isDirectory) {
         Readen(Data(Folder.typeOf,
           f.listFiles().toSeq.map {
-            case f: JavaFile if f.isDirectory => ID(f.getName) -> Folder
-            case f: JavaFile if f.isFile && TextFile.isTextFile(f.getName) => ID(f.getName) -> TextFile
-            case f: JavaFile if f.isFile => ID(f.getName) -> UnknownFile
+            case f: JavaFile if f.isDirectory => ID(f.getName) -> File.folder
+            case f: JavaFile if f.isFile && TextFile.isTextFile(f.getName) => ID(f.getName) -> File.textFile
+            case f: JavaFile if f.isFile => ID(f.getName) -> File.unknownFile
           }.toMap
         ))
       } else if (f.isFile) {
