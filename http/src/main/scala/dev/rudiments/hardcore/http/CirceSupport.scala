@@ -21,14 +21,23 @@ trait CirceSupport extends FailFastCirceSupport {
 object CirceSupport {
   private def encodeData(data: Data): Json = (data.what, data.data) match {
     case (t: Type, v: Seq[Any])  => encode(t, v)
-    case (other, another) => ???
+    case (Binary, Nothing) => Json.Null
+    case (Enlist(p), vs: Seq[Any]) => Json.arr(vs.map(v => encode(p, v)):_*)
+    case (Index(_, pv), vs: Map[ID, Any]) => Json.obj(
+      vs.toSeq.map { case (k, v) =>
+        k.key.toString -> encode(pv, v)
+      } :_*
+    )
+    case (other, another) =>
+      ???
   }
 
   private def encode(p: Predicate, v: Any): Json = (p, v) match {
     case (t: Type, values: Seq[Any]) =>
       Json.obj(t.fields.zip(values).map { case (f, v) => (f.name, encode(f.of, v)) }:_*)
     case (p: Plain, v: Any) => encodePlain(p, v)
-    case (other, another) => ???
+    case (other, another) =>
+      Json.fromString(s"NOT IMPLEMENTED: $another")
   }
 
   private def encodePlain(p: Plain, v: Any): Json = (p, v) match {
