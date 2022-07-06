@@ -9,7 +9,7 @@ import dev.rudiments.hardcore.http.{RootRouter, ScalaRouter}
 object Main extends App {
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private implicit val mem: Memory = new Memory()
-  private val fileAgent = new FileAgent("core/src")
+  private val fileAgent = new FileAgent(".")
   fileAgent.load(Root, mem) match {
     case Prepared(cmt) => mem << cmt
     case _ => throw new IllegalStateException("Unexpected result of load")
