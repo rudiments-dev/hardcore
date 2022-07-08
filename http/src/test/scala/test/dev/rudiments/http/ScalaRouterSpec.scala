@@ -19,7 +19,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   private implicit val root: Memory = new Memory()
 
   private val router = new ScalaRouter()
-  private val routes = Route.seal(pathPrefix("example") { router.routes })
+  private val routes = router.seal("example")
   private val t = Type(
     Field("id", Number(Long.MinValue, Long.MaxValue)),
     Field("name", Text(Int.MaxValue)),

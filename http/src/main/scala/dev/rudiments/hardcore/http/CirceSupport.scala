@@ -10,16 +10,15 @@ trait CirceSupport extends FailFastCirceSupport {
   implicit val printer: Printer = Printer.noSpaces.copy(dropNullValues = true)
 
   implicit val dataEncoder: Encoder[Data] = CirceSupport.encodeData
-  implicit val eventEncoder: Encoder[Event] = dataEncoder.contramap {
-    case Created(data) => data
-    case Updated(_, data) => data
-    case Deleted(data) => data
-    case Committed(_) => ???
-  }
+  implicit def structuredEncoder[T](implicit en: Encoder[T]): Encoder[Node[T]] = CirceSupport.encodeNode
 }
 
 object CirceSupport {
   private def encodeData(data: Data): Json = encode(data.what, data.data)
+  private def encodeNode[T](node: Node[T])(implicit en: Encoder[T]): Json = Json.obj(
+    node.leafs.toSeq.map{ case (k, v) => k.toString -> en(v) } ++
+      node.branches.toSeq.map { case (k, v) => k.toString -> encodeNode(v) } :_*
+  )
 
   private def encode(p: Predicate, v: Any): Json = (p, v) match {
     case (t: Type, values: Seq[Any]) =>
@@ -41,7 +40,7 @@ object CirceSupport {
     case (Number(_, _), i: Int) => Json.fromInt(i)
     case (Number(_, _), l: Long) => Json.fromLong(l)
     case (Bool, b: Boolean) => Json.fromBoolean(b)
-    case (Binary, Nothing) => Json.Null
+    case (Binary, Nothing) => Json.fromString("∅")
     case (_, None) => Json.Null
     case (_, _) => throw new IllegalArgumentException(s"Can't encode [$v] of $p ")
   }

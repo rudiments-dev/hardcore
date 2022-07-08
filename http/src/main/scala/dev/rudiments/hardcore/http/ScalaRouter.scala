@@ -21,8 +21,10 @@ class ScalaRouter(implicit val mount: Memory) extends CirceSupport {
           responseWith(mount << Update(id, data))
         }
       }*/
-    } ~ get {
-      responseWith(mount << Find(All))
+    } ~ pathSingleSlash {
+      get {
+        responseWith(mount << Find(All))
+      }
     }
   }
 
@@ -32,7 +34,7 @@ class ScalaRouter(implicit val mount: Memory) extends CirceSupport {
     case Updated(_, newValue: Data) => complete(StatusCodes.OK, newValue)
     case Deleted(_) =>                 complete(StatusCodes.NoContent)
 
-    case Found(_, values: Map[Location, Data]) => complete(StatusCodes.OK, values.map(v => v._1.toString -> v._2))
+    case Found(_, values: Map[Location, Data]) => complete(StatusCodes.OK, Node.fromMap(values))
 
     case NotExist =>        complete(StatusCodes.NotFound)
     case AlreadyExist(_) => complete(StatusCodes.Conflict)
@@ -40,4 +42,6 @@ class ScalaRouter(implicit val mount: Memory) extends CirceSupport {
     case _: Error =>           complete(StatusCodes.InternalServerError)
     case _ =>                  complete(StatusCodes.InternalServerError)
   }
+
+  def seal(prefix: String): Route = Route.seal(pathPrefix(prefix) { routes })
 }
