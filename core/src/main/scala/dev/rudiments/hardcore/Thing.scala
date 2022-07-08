@@ -11,6 +11,9 @@ case object Holds extends Relation {}
 
 final case class Link(where: Location, what: Predicate) extends Predicate
 final case class Data(what: Predicate, data: Any) extends Thing
+object Data {
+  val empty = Data(Nothing, Nothing)
+}
 
 sealed trait Predicate extends Thing {}
 object Predicate {

@@ -76,6 +76,15 @@ case class Node[T : ClassTag](leafs: Map[ID, T], branches: Map[ID, Node[T]]) {
       }
     case other => Left(other)
   }
+
+  def seek(where: Location): Option[Node[T]] = where match {
+    case id: ID => this.branches.get(id)
+    case path: Path => path.ids.foldLeft(Option(this)) { (acc, el) =>
+      acc.flatMap(_.branches.get(el))
+    }
+    case Root => Some(this)
+    case Unmatched => None
+  }
 }
 
 object Node {

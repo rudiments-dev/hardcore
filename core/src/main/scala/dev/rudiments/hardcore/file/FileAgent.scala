@@ -2,7 +2,8 @@ package dev.rudiments.hardcore.file
 
 import dev.rudiments.hardcore._
 
-import java.io.{File => JavaFile}
+import java.io.{FileWriter, File => JavaFile}
+import java.nio.charset.Charset
 import java.nio.file.{Files, Paths}
 import scala.io.Source
 import scala.util.Using
@@ -14,15 +15,15 @@ class FileAgent(absolutePath: String) {
     case path: Path => readFile(absolutePath + "/" + path.toString)
   }
 
-  def load(where: Location, into: Memory): Out = deltaTx(new Tx(into), where)
+  def load(where: Location, into: Memory): Out = readFileIntoTx(new Tx(into), where)
 
-  def deltaTx(tx: Tx, where: Location): Out = (read(where), tx.read(where)) match {
+  def readFileIntoTx(tx: Tx, where: Location): Out = (read(where), tx.read(where)) match {
     case (Readen(file), NotExist) =>
       file match {
         case Data(Folder.typeOf, fs: Map[ID, File]) =>
           tx.remember(where, Created(file))
-          fs.foreach { case (id, f) =>
-            deltaTx(tx, where / id)
+          fs.foreach { case (id, _) =>
+            readFileIntoTx(tx, where / id)
           }
           tx.>>
         case Data(TextFile.typeOf, _) => tx.remember(where, Created(file))
@@ -32,7 +33,7 @@ class FileAgent(absolutePath: String) {
       (file, found) match {
         case (Data(Folder.typeOf, incoming: Map[ID, File]), Data(Folder.typeOf, existing: Map[ID, File])) =>
           val allKeys = existing.keys ++ incoming.keys
-          allKeys.foreach { k => deltaTx(tx, where / k) }
+          allKeys.foreach { k => readFileIntoTx(tx, where / k) }
           tx.>>
         case (_, _) => tx.remember(where, Updated(found, file))
       }
@@ -65,6 +66,92 @@ class FileAgent(absolutePath: String) {
       } else {
         FileError(s"Unknown file ${f.getAbsolutePath}")
       }
+    }
+  }
+
+  def writeFileFromTx(tx: Tx, where: Location): Out = {
+    Node.fromMap(tx.last.toMap).seek(where) match {
+      case Some(node) => writeFileFromNode(node, where)
+      case None => NotExist
+    }
+  }
+
+  def writeFileFromNode(node: Node[Memory.O], where: Location): Out = { //TODO File events?
+    mkDir(absolutePath) //will return AlreadyExist if directory already exist
+
+    val leafs = node.leafs.map { //TODO more checks on update and delete?
+      case (id, Created(data)) => id -> writeFile(absolutePath + "/" + (where / id).toString, data)
+      case (id, Updated(_, data)) => id -> writeFile(absolutePath + "/" + (where / id).toString, data)
+      case (id, Deleted(_)) => id -> deleteFile(absolutePath + "/" + (where / id).toString)
+      case (id, _) => id -> NotImplemented
+    }
+
+    val branches = node.branches.map { case(id, n) =>
+      //TODO if all leafs and branches Deleted ?
+      val out = mkDir(absolutePath + "/" + (where / id).toString)
+      writeFileFromNode(n, where / id)
+    }
+
+    WrittenTextFile(Data.empty)
+  }
+
+  def mkDir(path: String): Out = {
+    val f = new JavaFile(path)
+    try {
+      if(!f.exists()) {
+        f.mkdir()
+        Created(Data.empty)
+      } else {
+        AlreadyExist(Data.empty) //TODO read dir for info?
+      }
+    } catch {
+      case e: Exception => FileError(e.getMessage)
+    }
+  }
+
+  def writeFile(path: String, content: Any): Out = {
+    def wf(f: JavaFile): Out = {
+      content match {
+        case d@Data(TextFile.typeOf, content: Seq[String]) =>
+          f.createNewFile()
+          val writer = new FileWriter(f, Charset.defaultCharset())
+          try {
+            content.foreach { s =>
+              writer.write(s)
+              writer.write("\n")
+            }
+            Created(d)
+          } finally {
+            writer.close()
+          }
+        case _ => NotImplemented
+      }
+    }
+
+    val f = new JavaFile(path)
+    try {
+      if(!f.exists()) {
+        wf(f)
+      } else {
+        f.delete()
+        wf(f)
+      }
+    } catch {
+      case e: Exception => FileError(e.getMessage)
+    }
+  }
+
+  def deleteFile(path: String): Out = {
+    val f = new JavaFile(path)
+    try {
+      if(!f.exists()) {
+        NotExist
+      } else {
+        f.delete()
+        Deleted(Data.empty)
+      }
+    } catch {
+      case e: Exception => FileError(e.getMessage)
     }
   }
 }
