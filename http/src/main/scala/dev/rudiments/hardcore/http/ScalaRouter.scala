@@ -6,29 +6,37 @@ import akka.http.scaladsl.server.{Route, StandardRoute}
 import dev.rudiments.hardcore.Memory.MemoryOps
 import dev.rudiments.hardcore.Predicate.All
 import dev.rudiments.hardcore._
+import io.circe.Decoder
+
+import scala.language.implicitConversions
 
 class ScalaRouter(implicit val mount: Memory) extends CirceSupport {
+  private implicit val de: Decoder[Data] = ThingDecoder.dataDecoder(
+    Type(Field("a", Bool))
+  )
+
   val routes: Route = {
     path(Segment) { str =>
+      val id = ID(str)
       get {
-        responseWith(ID(str).?)
+        id.?
       } ~ delete {
-        responseWith(ID(str) << Delete)
-      }/* ~ entity(as[Data]) { data =>
+        id.-=
+      } ~ entity(as[Data]) { data =>
         post {
-          responseWith(mount << Create(id, data))
+          id += data
         } ~ put {
-          responseWith(mount << Update(id, data))
+          id *= data
         }
-      }*/
+      }
     } ~ pathSingleSlash {
       get {
-        responseWith(mount << Find(All))
+        mount << Find(All)
       }
     }
   }
 
-  def responseWith(event: Out): StandardRoute = event match {
+  private implicit def responseWith(event: Out): StandardRoute = event match {
     case Created(value: Data) =>       complete(StatusCodes.Created, value)
     case Readen(value: Data) =>        complete(StatusCodes.OK, value)
     case Updated(_, newValue: Data) => complete(StatusCodes.OK, newValue)
