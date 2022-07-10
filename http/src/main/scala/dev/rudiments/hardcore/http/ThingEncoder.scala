@@ -5,10 +5,14 @@ import io.circe.{Encoder, Json}
 
 object ThingEncoder {
   def encodeData(data: Data): Json = encode(data.what, data.data)
-  def encodeNode[T](node: Node[T])(implicit en: Encoder[T]): Json = Json.obj(
-    node.leafs.toSeq.map{ case (k, v) => k.toString -> en(v) } ++
-      node.branches.toSeq.map { case (k, v) => k.toString -> encodeNode(v) } :_*
-  )
+  def encodeNode[T](node: Node[T])(implicit en: Encoder[T]): Json = {
+    val leafs = node.leafs.toSeq.map{ case (k, v) => k.toString -> en(v) }
+    val branches = node.branches.toSeq.map { case (k, v) => k.toString -> encodeNode(v) }
+    val all = node.self
+      .map { s => leafs ++ branches :+ ("self" -> en(s)) }
+      .getOrElse(leafs ++ branches)
+    Json.obj(all :_*)
+  }
 
   def encode(p: Predicate, v: Any): Json = (p, v) match {
     case (t: Type, values: Seq[Any]) =>
