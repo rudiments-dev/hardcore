@@ -11,4 +11,5 @@ trait CirceSupport extends FailFastCirceSupport {
 
   implicit val dataEncoder: Encoder[Data] = ThingEncoder.encodeData
   implicit def structuredEncoder[T](implicit en: Encoder[T]): Encoder[Node[T]] = ThingEncoder.encodeNode
+  implicit val outEncoder: Encoder[Memory.O] = ThingEncoder.encodeOut
 }

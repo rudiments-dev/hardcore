@@ -22,7 +22,7 @@ final case class Conflict(that: Message, other: Message) extends Error with CRUD
 case object Prepare extends Query with CRUD
 final case class Prepared(commit: Commit) extends Report with CRUD
 final case class Commit(
-  crud: Map[Location, Event],
+  crud: Map[Location, Memory.Evt],
   basedOn: Commit,
   extra: Seq[(Command, Event)] = Seq.empty // for future use
 ) extends Command with CRUD

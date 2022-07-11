@@ -16,7 +16,15 @@ class ScalaRouter(implicit val mount: Memory) extends CirceSupport {
   )
 
   val routes: Route = {
-    path(Segment) { str =>
+    path("last-commit") {
+      get {
+        responseWith(
+          mount.commits.lastOption
+            .map(Committed)
+            .getOrElse(NotExist)
+        )
+      }
+    } ~ path(Segment) { str =>
       val id = ID(str)
       get {
         id.?
@@ -37,18 +45,17 @@ class ScalaRouter(implicit val mount: Memory) extends CirceSupport {
   }
 
   private implicit def responseWith(event: Out): StandardRoute = event match {
-    case Created(value: Data) =>       complete(StatusCodes.Created, value)
-    case Readen(value: Data) =>        complete(StatusCodes.OK, value)
-    case Updated(_, newValue: Data) => complete(StatusCodes.OK, newValue)
-    case Deleted(_) =>                 complete(StatusCodes.NoContent)
+    case Created(value) =>       complete(StatusCodes.Created, value)
+    case Readen(value) =>        complete(StatusCodes.OK, value)
+    case Updated(_, newValue) => complete(StatusCodes.OK, newValue)
+    case Deleted(_) =>           complete(StatusCodes.NoContent)
+    case Found(_, values) =>     complete(StatusCodes.OK, Node.fromMap(values))
+    case NotExist =>             complete(StatusCodes.NotFound)
+    case AlreadyExist(_) =>      complete(StatusCodes.Conflict)
+    case out: Memory.O =>        complete(StatusCodes.OK, out)
 
-    case Found(_, values: Map[Location, Data]) => complete(StatusCodes.OK, Node.fromMap(values))
-
-    case NotExist =>        complete(StatusCodes.NotFound)
-    case AlreadyExist(_) => complete(StatusCodes.Conflict)
-
-    case _: Error =>           complete(StatusCodes.InternalServerError)
-    case _ =>                  complete(StatusCodes.InternalServerError)
+    case _: Error =>             complete(StatusCodes.InternalServerError)
+    case _ =>                    complete(StatusCodes.InternalServerError)
   }
 
   def seal(prefix: String): Route = Route.seal(pathPrefix(prefix) { routes })
