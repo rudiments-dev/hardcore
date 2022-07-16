@@ -1,6 +1,5 @@
 package test.dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.Tx.TxOps
 import dev.rudiments.hardcore._
 import org.junit.Ignore
 import org.junit.runner.RunWith
@@ -15,8 +14,8 @@ class BulkTest extends AnyWordSpec with Matchers {
   private val rFill = Range(1, sampleSize + 1)
   private val rRead = Range(sampleSize + 1, 1)
 
-  private implicit val mem: Memory = new Memory()
-  private implicit val tx: Tx = new Tx(mem)
+  private val mem: Memory = new Memory()
+  private val tx: Tx = new Tx(mem)
 
 
   private val t = Type(Field("i", Number(0, sampleSize)), Field("j", Text(10)), Field("k", Text(0)))
@@ -25,7 +24,7 @@ class BulkTest extends AnyWordSpec with Matchers {
 
   s"can create Commit with $sampleSize records" in {
     rFill.foreach { i =>
-      ID(i) += Data(t, Seq(i, i.toString, ""))
+      tx += ID(i) -> Data(t, Seq(i, i.toString, ""))
     }
     commit = tx.>>.asInstanceOf[Prepared].commit
     commit.crud.size should be (sampleSize)
@@ -36,7 +35,7 @@ class BulkTest extends AnyWordSpec with Matchers {
     mem.total.size should be (sampleSize)
 
     rRead.foreach { i =>
-      mem.ask(ID(i), Read) should be (Readen(Data(t, Seq(i, i.toString, ""))))
+      mem ? ID(i) should be (Readen(Data(t, Seq(i, i.toString, ""))))
     }
   }
 
@@ -49,7 +48,7 @@ class BulkTest extends AnyWordSpec with Matchers {
       ))
       mem << (localTx.>>.asInstanceOf[Prepared].commit)
 
-      mem.ask(ID(i), Read) should be (Readen(Data(t, Seq(-i, "!" + i.toString, "!"))))
+      mem ? ID(i) should be (Readen(Data(t, Seq(-i, "!" + i.toString, "!"))))
     }
   }
 }

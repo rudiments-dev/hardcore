@@ -3,14 +3,13 @@ package dev.rudiments.hardcore.http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
-import dev.rudiments.hardcore.Memory.MemoryOps
 import dev.rudiments.hardcore.Predicate.All
 import dev.rudiments.hardcore._
 import io.circe.Decoder
 
 import scala.language.implicitConversions
 
-class ScalaRouter(implicit val mount: Memory) extends CirceSupport {
+class ScalaRouter(val mem: Memory) extends CirceSupport {
   private implicit val de: Decoder[Data] = ThingDecoder.dataDecoder(
     Type(Field("a", Bool))
   )
@@ -19,7 +18,7 @@ class ScalaRouter(implicit val mount: Memory) extends CirceSupport {
     path("last-commit") {
       get {
         responseWith(
-          mount.commits.lastOption
+          mem.commits.lastOption
             .map(Committed)
             .getOrElse(NotExist)
         )
@@ -27,19 +26,19 @@ class ScalaRouter(implicit val mount: Memory) extends CirceSupport {
     } ~ path(Segment) { str =>
       val id = ID(str)
       get {
-        id.?
+        mem ? id
       } ~ delete {
-        id.-=
+        mem -= id
       } ~ entity(as[Data]) { data =>
         post {
-          id += data
+          mem += id -> data
         } ~ put {
-          id *= data
+          mem *= id -> data
         }
       }
     } ~ pathSingleSlash {
       get {
-        mount << Find(All)
+        mem << Find(All)
       }
     }
   }

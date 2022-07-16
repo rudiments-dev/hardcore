@@ -1,26 +1,33 @@
 package dev.rudiments.hardcore.http
 
 import dev.rudiments.hardcore._
-import io.circe.{Encoder, Json}
+import io.circe.{Encoder, Json, KeyEncoder}
 
 object ThingEncoder {
+  val discriminator = "type"
+
+  implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.key.toString)
+  implicit val pathEncoder: KeyEncoder[Path] = KeyEncoder.encodeKeyString.contramap(path => path.toString)
+
   def encodeData(data: Data): Json = encode(data.what, data.data)
 
   def encodeNode[T](node: Node[T])(implicit en: Encoder[T]): Json = {
-    val leafs = node.leafs.toSeq.map{ case (k, v) => k.toString -> en(v) }
-    val branches = node.branches.toSeq.map { case (k, v) => k.toString -> encodeNode(v) }
+    val leafs = node.leafs.toSeq.map{ case (k, v) => k -> en(v) }
+    val branches = node.branches.toSeq.map { case (k, v) => k -> encodeNode(v) }
     val all = node.self
-      .map { s => leafs ++ branches :+ ("self" -> en(s)) }
+      .map { s => leafs ++ branches :+ (ID("self") -> en(s)) } //TODO "self" is parameter, check it not in leafs or branches
       .getOrElse(leafs ++ branches)
+      .map { case (id, j) => idEncoder(id) -> j}
     Json.obj(all :_*)
   }
 
   def encodeNodeRaw[T](node: Node[T])(f: T => Json): Json = {
-    val leafs = node.leafs.toSeq.map{ case (k, v) => k.toString -> f(v) }
-    val branches = node.branches.toSeq.map { case (k, v) => k.toString -> encodeNodeRaw(v)(f) }
+    val leafs = node.leafs.toSeq.map{ case (k, v) => k -> f(v) }
+    val branches = node.branches.toSeq.map { case (k, v) => k -> encodeNodeRaw(v)(f) }
     val all = node.self
-      .map { s => leafs ++ branches :+ ("self" -> f(s)) }
+      .map { s => leafs ++ branches :+ (ID("self") -> f(s)) }
       .getOrElse(leafs ++ branches)
+      .map { case (id, j) => idEncoder(id) -> j}
     Json.obj(all :_*)
   }
 
@@ -51,12 +58,12 @@ object ThingEncoder {
   def encodeOut(out: Memory.O): Json = out match {
     case evt: Memory.Evt => encodeEvent(evt)
     case Readen(Data(p, v)) => Json.obj(
-      "type" -> Json.fromString("?"),
+      discriminator -> Json.fromString("?"),
       "data" -> encode(p, v)
     )
     case NotExist => Json.fromString("NotExist")
     case Prepared(cmt) => Json.obj(
-      "type" -> Json.fromString("Prepared"),
+      discriminator -> Json.fromString("Prepared"),
       "CRUD" -> encodeNodeRaw(Node.fromMap(cmt.crud))(encodeEvent)
     )
     case other => Json.fromString(s"NOT IMPLEMENTED: $other")
@@ -64,20 +71,20 @@ object ThingEncoder {
 
   def encodeEvent(evt: Memory.Evt): Json = evt match {
     case Created(Data(p, v)) => Json.obj(
-      "type" -> Json.fromString("+"),
+      discriminator -> Json.fromString("+"),
       "data" -> encode(p, v)
     )
     case Updated(o, Data(p, v)) => Json.obj(
-      "type" -> Json.fromString("*"),
+      discriminator -> Json.fromString("*"),
       "data" -> encode(p, v),
       "old" -> encode(o.what, o.data)
     )
     case Deleted(Data(p, v)) => Json.obj(
-      "type" -> Json.fromString("-"),
+      discriminator -> Json.fromString("-"),
       "old" -> encode(p, v)
     )
     case Committed(cmt) => Json.obj(
-      "type" -> Json.fromString("Committed"),
+      discriminator -> Json.fromString("Committed"),
       "CRUD" -> encodeNodeRaw(Node.fromMap(cmt.crud))(encodeEvent)
     )
   }

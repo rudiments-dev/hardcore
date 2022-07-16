@@ -93,6 +93,25 @@ class Memory {
   }
 
   def << (in: I) : O = this.execute(in)
+
+  def ? (where: Location): O = this.ask(where, Read)
+  def + (pair: (Location, Data)): O = this.ask(pair._1, Create(pair._2))
+  def * (pair: (Location, Data)): O = this.ask(pair._1, Update(pair._2))
+  def - (where: Location): O = this.ask(where, Delete)
+
+  def += (pair: (Location, Data)): O = this + pair match {
+    case c: Created => this.remember(pair._1, c)
+    case other => other
+  }
+
+  def *= (pair: (Location, Data)): O = this * pair match {
+    case u: Updated => this.remember(pair._1, u)
+    case other => other
+  }
+  def -= (where: Location): O = this - where match {
+    case d: Deleted => this.remember(where, d)
+    case other => other
+  }
 }
 
 object Memory {
@@ -100,30 +119,4 @@ object Memory {
   type Cmd = Command with CRUD
   type O = Out with CRUD
   type I = In with CRUD
-
-  implicit class MemoryOps(where: Location)(implicit memory: Memory) {
-    def ? : Out = memory.ask(where, Read)
-    def +(data: Data) : O = memory.ask(where, Create(data))
-    def *(data: Data) : O = memory.ask(where, Update(data))
-    def - : Out = memory.ask(where, Delete)
-
-    def +=(data: Data): O = memory.remember(where, Created(data))
-    def *=(data: Data): O = {
-      memory.read(where) match {
-        case Readen(found) => memory.remember(where, Updated(found, data))
-        case NotExist => NotExist
-        case _ => ???
-      }
-    }
-    def -= : O = memory.read(where) match {
-      case Readen(found) => memory.remember(where, Deleted(found))
-      case NotExist => NotExist
-      case _ => ???
-    }
-
-    def << (cmd: Cmd): O = memory.ask(where, cmd) match {
-      case evt: Evt => memory.remember(where, evt)
-      case other => other
-    }
-  }
 }

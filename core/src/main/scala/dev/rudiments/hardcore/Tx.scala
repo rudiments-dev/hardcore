@@ -94,6 +94,25 @@ class Tx(ctx: Memory) {
 
   def >? : O = this.report(Verify)
   def >> : O = this.report(Prepare)
+
+  def ? (where: Location): O = this.ask(where, Read)
+  def + (pair: (Location, Data)): O = this.ask(pair._1, Create(pair._2))
+  def * (pair: (Location, Data)): O = this.ask(pair._1, Update(pair._2))
+  def - (where: Location): O = this.ask(where, Delete)
+
+  def += (pair: (Location, Data)): O = this + pair match {
+    case c: Created => this.remember(pair._1, c)
+    case other => other
+  }
+
+  def *= (pair: (Location, Data)): O = this * pair match {
+    case u: Updated => this.remember(pair._1, u)
+    case other => other
+  }
+  def -= (where: Location): O = this - where match {
+    case d: Deleted => this.remember(where, d)
+    case other => other
+  }
 }
 
 object Tx {
@@ -123,26 +142,5 @@ object Tx {
     case ( d:Deleted,       u: Updated)                    => AlreadyNotExist(d, u)
     case (d1:Deleted,      d2: Deleted)                    => AlreadyNotExist(d1, d2)
     case (that, other) /* unfitting updates */             => Conflict(that, other)
-  }
-
-  implicit class TxOps(where: Location)(implicit tx: Tx) {
-    def ? : O = tx.ask(where, Read)
-    def +(data: Data) : O = tx.ask(where, Create(data))
-    def *(data: Data) : O = tx.ask(where, Update(data))
-    def - : O = tx.ask(where, Delete)
-
-    def +=(data: Data): O = tx.remember(where, Created(data))
-    def *=(data: Data): O = {
-      tx.read(where) match {
-        case Readen(found) => tx.remember(where, Updated(found, data))
-        case NotExist => NotExist
-        case _ => ???
-      }
-    }
-    def -= : O = tx.read(where) match {
-      case Readen(found) => tx.remember(where, Deleted(found))
-      case NotExist => NotExist
-      case _ => ???
-    }
   }
 }

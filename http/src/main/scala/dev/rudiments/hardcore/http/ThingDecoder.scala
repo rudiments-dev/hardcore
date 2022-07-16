@@ -22,7 +22,7 @@ object ThingDecoder {
     (e, acc) => for (xs <- acc.right; x <- e.right) yield x :: xs
   }
 
-  private val plainDecoder: PartialFunction[Thing, Decoder[_]] = {
+  private val plainDecoder: PartialFunction[Plain, Decoder[_]] = {
     case Bool => Decoder.decodeBoolean
     case Text(_) => Decoder.decodeString
     case Number(_, _) => Decoder.decodeLong

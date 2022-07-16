@@ -1,6 +1,5 @@
 package test.dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.Tx.TxOps
 import dev.rudiments.hardcore._
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -9,8 +8,8 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class TxSpec extends AnyWordSpec with Matchers {
-  private implicit val mem: Memory = new Memory()
-  private implicit val tx: Tx = new Tx(mem)
+  private val mem: Memory = new Memory()
+  private val tx: Tx = new Tx(mem)
 
   private val id = ID("42")
 
@@ -20,27 +19,27 @@ class TxSpec extends AnyWordSpec with Matchers {
 
   private val initial = Commit.beginningOfTime
 
-  "can't read non-existing ID in Tx" in { ID("not exist").? should be (NotExist) }
+  "can't read non-existing ID in Tx" in { tx ? ID("not exist") should be (NotExist) }
 
   "can remember Created" in {
-    mem.execute(Commit(Map(id -> Created(data)), null))
+    mem << Commit(Map(id -> Created(data)), null)
   }
-  "can Read if Created" in { mem.ask(id, Read) should be (Readen(data)) }
+  "can Read if Created" in { mem ? id should be (Readen(data)) }
 
-  "can read Created in Tx as Readen" in { id.? should be (Readen(data)) }
+  "can read Created in Tx as Readen" in { tx ? id should be (Readen(data)) }
 
   "can modify in Tx without modification on memory" in {
-    (id *= data2) should be (Updated(data, data2))
-    id.? should be (Readen(data2))
+    (tx *= id -> data2) should be (Updated(data, data2))
+    tx ? id should be (Readen(data2))
 
-    mem.read(id) should be (Readen(data))
+    mem ? id should be (Readen(data))
   }
 
   "can Delete in Tx" in {
-    id.-= should be (Deleted(data2))
-    id.? should be (NotExist)
+    (tx -= id) should be (Deleted(data2))
+    tx ? id should be (NotExist)
 
-    mem.read(id) should be (Readen(data))
+    mem ? id should be (Readen(data))
   }
 
   "can Verify Tx" in {

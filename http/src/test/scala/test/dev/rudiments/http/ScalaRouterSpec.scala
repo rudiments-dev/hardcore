@@ -2,12 +2,10 @@ package test.dev.rudiments.http
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives.pathPrefix
-import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.Json
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -16,9 +14,9 @@ import org.scalatestplus.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with CirceSupport {
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private implicit val root: Memory = new Memory()
+  private val root: Memory = new Memory()
 
-  private val router = new ScalaRouter()
+  private val router = new ScalaRouter(root)
   private val routes = router.seal("example")
   private val t = Type(
     Field("id", Number(Long.MinValue, Long.MaxValue)),
@@ -45,7 +43,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
     val c = Commit(
       Map(ID("42") -> Created(sample)), null
     )
-    root.execute(c) should be (Committed(c))
+    root << c should be (Committed(c))
 //    Post("/example/42", sample) ~> routes ~> check {
 //      response.status should be (StatusCodes.Created)
 //      responseAs[Data] should be (sample)
