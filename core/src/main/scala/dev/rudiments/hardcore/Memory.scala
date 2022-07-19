@@ -1,14 +1,15 @@
 package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.Memory.{Evt, I, O}
-import dev.rudiments.hardcore.Predicate.All
+import dev.rudiments.hardcore.Predicate.{All, Anything}
 
 import scala.collection.mutable
 
 class Memory {
   val total: mutable.Map[Location, mutable.Seq[Evt]] = mutable.Map.empty
   val last: mutable.Map[Location, Evt] = mutable.Map.empty
-  val commits: mutable.Buffer[Commit] = mutable.Buffer.empty
+
+  val commits: ID = ID("commits")
 
   private def unsafeUpdateState(where: Location, what: Evt): Evt = {
     last.get(where) match {
@@ -62,12 +63,11 @@ class Memory {
         .collect { case (id, err: Error) => (id, err) }
 
       if(errors.isEmpty) {
-        commits += c
+        this += commits / ID(in.hashCode().toString) -> c
         Committed(c)
       } else {
         MultiError(errors) //TODO rollback?
       }
-
     case Find(All) =>
       Found(All, last.toMap.collect {
         case (id, Created(data)) => id -> data
@@ -95,16 +95,16 @@ class Memory {
   def << (in: I) : O = this.execute(in)
 
   def ? (where: Location): O = this.ask(where, Read)
-  def + (pair: (Location, Data)): O = this.ask(pair._1, Create(pair._2))
-  def * (pair: (Location, Data)): O = this.ask(pair._1, Update(pair._2))
+  def + (pair: (Location, Thing)): O = this.ask(pair._1, Create(pair._2))
+  def * (pair: (Location, Thing)): O = this.ask(pair._1, Update(pair._2))
   def - (where: Location): O = this.ask(where, Delete)
 
-  def += (pair: (Location, Data)): O = this + pair match {
+  def += (pair: (Location, Thing)): O = this + pair match {
     case c: Created => this.remember(pair._1, c)
     case other => other
   }
 
-  def *= (pair: (Location, Data)): O = this * pair match {
+  def *= (pair: (Location, Thing)): O = this * pair match {
     case u: Updated => this.remember(pair._1, u)
     case other => other
   }
@@ -119,4 +119,9 @@ object Memory {
   type Cmd = Command with CRUD
   type O = Out with CRUD
   type I = In with CRUD
+
+  sealed trait Constraint {}
+  final case class KeyIs(p: Predicate) extends Constraint
+  final case class ValueIs(p: Predicate) extends Constraint
+  //TODO extra constraints or configs like capacity
 }

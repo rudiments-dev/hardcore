@@ -17,11 +17,7 @@ class ScalaRouter(val mem: Memory) extends CirceSupport {
   val routes: Route = {
     path("last-commit") {
       get {
-        responseWith(
-          mem.commits.lastOption
-            .map(Committed)
-            .getOrElse(NotExist)
-        )
+        responseWith(NotExist)
       }
     } ~ path(Segment) { str =>
       val id = ID(str)

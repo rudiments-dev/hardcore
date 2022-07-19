@@ -26,7 +26,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   private val sample: Data = Data(t, Seq(42, "sample", None))
 
   "dataEncoder can encode" in {
-    router.dataEncoder(sample) should be (Json.obj(
+    router.thingEncoder(sample) should be (Json.obj(
       "id" -> Json.fromInt(42),
       "name" -> Json.fromString("sample"),
       "comment" -> Json.Null

@@ -2,20 +2,20 @@ package dev.rudiments.hardcore
 
 sealed trait CRUD {}
 
-final case class Create(what: Data) extends Command with CRUD
+final case class Create(what: Thing) extends Command with CRUD
 case object Read extends Query with CRUD
-final case class Update(what: Data) extends Command with CRUD
+final case class Update(what: Thing) extends Command with CRUD
 case object Delete extends Command with CRUD
 final case class Find(p: Predicate) extends Query with CRUD
 
-final case class Created(data: Data) extends Event with CRUD
-final case class Readen(data: Data) extends Report with CRUD
-final case class Updated(old: Data, data: Data) extends Event with CRUD
-final case class Deleted(old: Data) extends Event with CRUD
-final case class Found(p: Predicate, values: Map[Location, Data]) extends Report with CRUD
+final case class Created(data: Thing) extends Event with CRUD
+final case class Readen(data: Thing) extends Report with CRUD
+final case class Updated(old: Thing, data: Thing) extends Event with CRUD
+final case class Deleted(old: Thing) extends Event with CRUD
+final case class Found(p: Predicate, values: Map[Location, Thing]) extends Report with CRUD
 
 case object NotExist extends Report with CRUD
-final case class AlreadyExist(data: Data) extends Error with CRUD
+final case class AlreadyExist(data: Thing) extends Error with CRUD
 final case class AlreadyNotExist(that: Message, other: Message) extends Error with CRUD
 final case class Conflict(that: Message, other: Message) extends Error with CRUD
 

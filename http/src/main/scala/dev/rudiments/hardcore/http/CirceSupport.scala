@@ -9,7 +9,7 @@ trait CirceSupport extends FailFastCirceSupport {
   implicit val configuration: Configuration = Configuration.default.withDefaults
   implicit val printer: Printer = Printer.noSpaces.copy(dropNullValues = true)
 
-  implicit val dataEncoder: Encoder[Data] = ThingEncoder.encodeData
+  implicit val thingEncoder: Encoder[Thing] = ThingEncoder.encodeAnything
   implicit def structuredEncoder[T](implicit en: Encoder[T]): Encoder[Node[T]] = ThingEncoder.encodeNode
   implicit val outEncoder: Encoder[Memory.O] = ThingEncoder.encodeOut
 }

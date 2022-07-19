@@ -55,9 +55,11 @@ class FileSpec extends AnyWordSpec with Matchers {
       case _ => fail("Unexpected result of load")
     }
 
-    mem << Find(All) should be (Found(All, commitData.view.mapValues {
+    val committedData = commitData.view.mapValues {
       case c: Created => c.data
-    }.toMap))
+    }.toMap
+    val commit = ID("commits") / ID("59806943") -> Commit(commitData, null)
+    mem << Find(All) should be (Found(All, committedData + commit))
   }
 
   "can write Commit into files elsewhere" in {

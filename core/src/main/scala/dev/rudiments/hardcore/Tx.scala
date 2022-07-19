@@ -96,16 +96,16 @@ class Tx(ctx: Memory) {
   def >> : O = this.report(Prepare)
 
   def ? (where: Location): O = this.ask(where, Read)
-  def + (pair: (Location, Data)): O = this.ask(pair._1, Create(pair._2))
-  def * (pair: (Location, Data)): O = this.ask(pair._1, Update(pair._2))
+  def + (pair: (Location, Thing)): O = this.ask(pair._1, Create(pair._2))
+  def * (pair: (Location, Thing)): O = this.ask(pair._1, Update(pair._2))
   def - (where: Location): O = this.ask(where, Delete)
 
-  def += (pair: (Location, Data)): O = this + pair match {
+  def += (pair: (Location, Thing)): O = this + pair match {
     case c: Created => this.remember(pair._1, c)
     case other => other
   }
 
-  def *= (pair: (Location, Data)): O = this * pair match {
+  def *= (pair: (Location, Thing)): O = this * pair match {
     case u: Updated => this.remember(pair._1, u)
     case other => other
   }

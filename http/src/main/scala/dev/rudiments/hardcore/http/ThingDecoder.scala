@@ -16,7 +16,7 @@ object ThingDecoder {
   def dataDecoder(t: Type): Decoder[Data] =
     dataValuesDecoder(t).map(values => Data(t, values))
 
-  def dataValuesDecoder(t: Type): Decoder[scala.List[_]] = (c: HCursor) => t.fields.map {
+  private def dataValuesDecoder(t: Type): Decoder[scala.List[_]] = (c: HCursor) => t.fields.map {
     case Field(name, p) => c.downField(name).as(decoder(p))
   }.foldRight(Right(scala.Nil): Either[DecodingFailure, scala.List[_]]) {
     (e, acc) => for (xs <- acc.right; x <- e.right) yield x :: xs

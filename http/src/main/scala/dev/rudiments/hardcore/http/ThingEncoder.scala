@@ -31,6 +31,12 @@ object ThingEncoder {
     Json.obj(all :_*)
   }
 
+  def encodeAnything(thing: Thing): Json = thing match {
+    case Data(p, v) => encode(p, v)
+    case o: Memory.O => encodeOut(o)
+    case other => Json.fromString(s"NOT IMPLEMENTED: $other")
+  }
+
   def encode(p: Predicate, v: Any): Json = (p, v) match {
     case (l: Link, values) => encode(l.what, values) //TODO add 'type' from Link's location
     case (t: Type, values: Seq[Any]) =>
@@ -57,9 +63,9 @@ object ThingEncoder {
 
   def encodeOut(out: Memory.O): Json = out match {
     case evt: Memory.Evt => encodeEvent(evt)
-    case Readen(Data(p, v)) => Json.obj(
+    case Readen(t) => Json.obj(
       discriminator -> Json.fromString("?"),
-      "data" -> encode(p, v)
+      "thing" -> encodeAnything(t)
     )
     case NotExist => Json.fromString("NotExist")
     case Prepared(cmt) => Json.obj(
@@ -74,14 +80,14 @@ object ThingEncoder {
       discriminator -> Json.fromString("+"),
       "data" -> encode(p, v)
     )
-    case Updated(o, Data(p, v)) => Json.obj(
+    case Updated(o, n) => Json.obj(
       discriminator -> Json.fromString("*"),
-      "data" -> encode(p, v),
-      "old" -> encode(o.what, o.data)
+      "new" -> encodeAnything(n),
+      "old" -> encodeAnything(o)
     )
-    case Deleted(Data(p, v)) => Json.obj(
+    case Deleted(d) => Json.obj(
       discriminator -> Json.fromString("-"),
-      "old" -> encode(p, v)
+      "old" -> encodeAnything(d)
     )
     case Committed(cmt) => Json.obj(
       discriminator -> Json.fromString("Committed"),
