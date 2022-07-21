@@ -15,31 +15,39 @@ class FileAgent(absolutePath: String) {
     case path: Path => readFile(absolutePath + "/" + path.toString)
   }
 
-  def load(where: Location, into: Memory): Out = readFileIntoTx(new Tx(into), where)
+  def load(where: Location, into: Memory): Out = {
+    val tx = new Tx(into)
+    readFileIntoTx(tx, where)
+    tx.>>
+  }
 
-  def readFileIntoTx(tx: Tx, where: Location): Out = (read(where), tx.read(where)) match {
+  def readFileIntoTx(tx: Tx, where: Location): Unit = (read(where), tx.read(where)) match {
     case (Readen(file), NotExist) =>
       file match {
         case Data(Folder.typeOf, fs: Map[ID, File]) =>
           tx.remember(where, Created(file))
-          fs.foreach { case (id, _) =>
-            readFileIntoTx(tx, where / id)
-          }
-          tx.>>
+          fs.foreach { case (id, _) => readFileIntoTx(tx, where / id) }
         case Data(TextFile.typeOf, _) => tx.remember(where, Created(file))
-        case Data(_, _) => tx.remember(where, Created(Data(Binary, Nothing)))
+        case Data(Binary, _) => tx.remember(where, Created(Data(Binary, Nothing)))
+        case Data(_, _) => ???
       }
     case (Readen(file), Readen(found)) =>
       (file, found) match {
-        case (Data(Folder.typeOf, incoming: Map[ID, File]), Data(Folder.typeOf, existing: Map[ID, File])) =>
+        case (d1@Data(Folder.typeOf, incoming: Map[ID, File]), d2@Data(Folder.typeOf, existing: Map[ID, File])) =>
           val allKeys = existing.keys ++ incoming.keys
+          if(d1 != d2) {
+            tx.remember(where, Updated(d1, d2))
+          }
           allKeys.foreach { k => readFileIntoTx(tx, where / k) }
-          tx.>>
-        case (_, _) => tx.remember(where, Updated(found, file))
+        case (t1@Data(TextFile.typeOf, _), t2@Data(TextFile.typeOf, _)) => if(t1 != t2){
+          tx.remember(where, Updated(t1, t2))
+        }
+        case (Data(Binary, _), Data(Binary, _)) => // do nothing with binaries
+        case (_, _) => ???
       }
-    case (NotExist, Readen(found)) => Deleted(found)
+    case (NotExist, Readen(found)) => tx.remember(where, Deleted(found))
     case (NotExist, NotExist) => NotExist
-    case (that, other) => Conflict(that, other)
+    case (that, other) => tx.remember(where, Conflict(that, other))
   }
 
   def readFile(path: String): Out = {
@@ -76,7 +84,7 @@ class FileAgent(absolutePath: String) {
     }
   }
 
-  def writeFileFromNode(node: Node[Memory.O], where: Location): Out = { //TODO File events?
+  def writeFileFromNode(node: Node[CRUD.O], where: Location): Out = { //TODO File events?
     mkDir(absolutePath) //will return AlreadyExist if directory already exist
 
     val leafs = node.leafs.map { //TODO more checks on update and delete?

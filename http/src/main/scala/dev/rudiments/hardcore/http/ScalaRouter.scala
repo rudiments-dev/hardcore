@@ -47,7 +47,7 @@ class ScalaRouter(val mem: Memory) extends CirceSupport {
     case Found(_, values) =>     complete(StatusCodes.OK, Node.fromMap(values))
     case NotExist =>             complete(StatusCodes.NotFound)
     case AlreadyExist(_) =>      complete(StatusCodes.Conflict)
-    case out: Memory.O =>        complete(StatusCodes.OK, out)
+    case out: CRUD.O =>          complete(StatusCodes.OK, out)
 
     case _: Error =>             complete(StatusCodes.InternalServerError)
     case _ =>                    complete(StatusCodes.InternalServerError)

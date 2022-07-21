@@ -32,7 +32,7 @@ class BulkTest extends AnyWordSpec with Matchers {
 
   "can update Memory with big Commit" in {
     mem << commit
-    mem.total.size should be (sampleSize)
+    mem.total.size should be (sampleSize + 1) // commit also persists
 
     rRead.foreach { i =>
       mem ? ID(i) should be (Readen(Data(t, Seq(i, i.toString, ""))))

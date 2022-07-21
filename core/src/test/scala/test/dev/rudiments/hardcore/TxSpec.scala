@@ -1,5 +1,6 @@
 package test.dev.rudiments.hardcore
 
+import dev.rudiments.hardcore.Predicate.All
 import dev.rudiments.hardcore._
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -55,11 +56,11 @@ class TxSpec extends AnyWordSpec with Matchers {
     mem << c should be (Committed(c))
   }
 
-  "can see commits of Memory" ignore {
-//    mem.commits.toSeq should be(Seq(
-//      Commit(Map(id -> Created(data)), null),
-//      Commit(Map(id -> Deleted(data)), null)
-//    ))
+  "can see commits of Memory" in {
+    mem ?? ID("commits") should be(Found(All, Map(
+      ID("-486712223") -> Commit(Map(id -> Created(data)), null),
+      ID("-1613531203") -> Commit(Map(id -> Deleted(data)), null)
+    )))
   }
 
   "init commit" in {

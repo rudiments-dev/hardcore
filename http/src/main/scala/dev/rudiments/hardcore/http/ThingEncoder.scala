@@ -33,7 +33,7 @@ object ThingEncoder {
 
   def encodeAnything(thing: Thing): Json = thing match {
     case Data(p, v) => encode(p, v)
-    case o: Memory.O => encodeOut(o)
+    case o: CRUD.O => encodeOut(o)
     case other => Json.fromString(s"NOT IMPLEMENTED: $other")
   }
 
@@ -61,8 +61,8 @@ object ThingEncoder {
     case (_, _) => throw new IllegalArgumentException(s"Can't encode [$v] of $p ")
   }
 
-  def encodeOut(out: Memory.O): Json = out match {
-    case evt: Memory.Evt => encodeEvent(evt)
+  def encodeOut(out: CRUD.O): Json = out match {
+    case evt: CRUD.Evt => encodeEvent(evt)
     case Readen(t) => Json.obj(
       discriminator -> Json.fromString("?"),
       "thing" -> encodeAnything(t)
@@ -75,7 +75,7 @@ object ThingEncoder {
     case other => Json.fromString(s"NOT IMPLEMENTED: $other")
   }
 
-  def encodeEvent(evt: Memory.Evt): Json = evt match {
+  def encodeEvent(evt: CRUD.Evt): Json = evt match {
     case Created(Data(p, v)) => Json.obj(
       discriminator -> Json.fromString("+"),
       "data" -> encode(p, v)

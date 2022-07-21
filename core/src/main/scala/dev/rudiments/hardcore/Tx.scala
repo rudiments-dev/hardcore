@@ -1,12 +1,40 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.Memory.{I, O}
+import dev.rudiments.hardcore.CRUD.{I, O}
 
 import scala.collection.mutable
 
-class Tx(ctx: Memory) {
+class Tx(ctx: Agent) extends AgentCrud {
   val total: mutable.Map[Location, mutable.Buffer[O]] = mutable.Map.empty
   val last: mutable.Map[Location, O] = mutable.Map.empty
+
+  override def read(where: Location): O = last.get(where) match {
+    case Some(Created(found)) => Readen(found)
+    case Some(r: Readen) => r
+    case Some(Updated(_, found)) => Readen(found)
+    case Some(Deleted(_)) => NotExist
+    case Some(NotExist) => NotExist
+    case Some(_) => ???
+    case None => unsafeUpdateState(where, ctx ? where)
+  }
+
+  override def remember(subj: Location, via: O): O = {
+    (read(subj), via) match {
+      case (NotExist, NotExist)                              => unsafeUpdateState(subj, NotExist)
+      case (NotExist, c: Created)                            => unsafeUpdateState(subj, c)
+      case (NotExist, r: Readen)                             => unsafeUpdateState(subj, r)
+      case (Readen(found), Created(_))                       => AlreadyExist(found)
+      case (r@Readen(r1), Readen(r2)) if r1 == r2            => r
+      case (Readen(found), Updated(u2, data)) if found == u2 => unsafeUpdateState(subj, Updated(found, data))
+      case (Readen(found), Deleted(d2))       if found == d2 => unsafeUpdateState(subj, Deleted(found))
+      case (found, other)                                    => Conflict(found, other)
+    }
+  }
+
+  override def find(where: Location, p: Predicate): O =
+    MemoryNode
+      .fromMap(this.prepare())
+      .find(where, p)
 
   private def unsafeUpdateState(where: Location, what: O): O = {
     last.get(where) match {
@@ -20,21 +48,6 @@ class Tx(ctx: Memory) {
         what
     }
   }
-
-  def remember(subj: Location, via: O): O = {
-    (read(subj), via) match {
-      case (NotExist, NotExist)                              => unsafeUpdateState(subj, NotExist)
-      case (NotExist, c: Created)                            => unsafeUpdateState(subj, c)
-      case (NotExist, r: Readen)                             => unsafeUpdateState(subj, r)
-      case (Readen(found), Created(_))                       => AlreadyExist(found)
-      case (r@Readen(r1), Readen(r2)) if r1 == r2            => r
-      case (Readen(found), Updated(u2, data)) if found == u2 => unsafeUpdateState(subj, Updated(found, data))
-      case (Readen(found), Deleted(d2))       if found == d2 => unsafeUpdateState(subj, Deleted(found))
-      case (found, other)                                    => Conflict(found, other)
-    }
-  }
-
-  def recall(subj: Location): Seq[O] = total.get(subj).map(_.toSeq).getOrElse(Seq.empty)
 
   def verify(): O = {
     val reduced = prepare()
@@ -57,28 +70,6 @@ class Tx(ctx: Memory) {
     }
   }
 
-  def read(where: Location): O = last.get(where) match {
-    case Some(Created(found)) => Readen(found)
-    case Some(r: Readen) => r
-    case Some(Updated(_, found)) => Readen(found)
-    case Some(Deleted(_)) => NotExist
-    case Some(NotExist) => NotExist
-    case Some(_) => ???
-    case None => unsafeUpdateState(where, ctx.read(where))
-  }
-
-  def ask(about: Location, in: I): O = {
-    (read(about), in) match {
-      case (NotExist, Create(data)) => Created(data)
-      case (NotExist, _) => NotExist
-      case (r: Readen, Read) => r
-      case (Readen(found), Create(_)) => AlreadyExist(found)
-      case (Readen(found), Update(data)) => Updated(found, data)
-      case (Readen(found), Delete) => Deleted(found)
-      case (found, other) => Conflict(found, other)
-    }
-  }
-
   def report(in: I): O = in match {
     case Verify => this.verify()
     case Prepare =>
@@ -94,25 +85,6 @@ class Tx(ctx: Memory) {
 
   def >? : O = this.report(Verify)
   def >> : O = this.report(Prepare)
-
-  def ? (where: Location): O = this.ask(where, Read)
-  def + (pair: (Location, Thing)): O = this.ask(pair._1, Create(pair._2))
-  def * (pair: (Location, Thing)): O = this.ask(pair._1, Update(pair._2))
-  def - (where: Location): O = this.ask(where, Delete)
-
-  def += (pair: (Location, Thing)): O = this + pair match {
-    case c: Created => this.remember(pair._1, c)
-    case other => other
-  }
-
-  def *= (pair: (Location, Thing)): O = this * pair match {
-    case u: Updated => this.remember(pair._1, u)
-    case other => other
-  }
-  def -= (where: Location): O = this - where match {
-    case d: Deleted => this.remember(where, d)
-    case other => other
-  }
 }
 
 object Tx {

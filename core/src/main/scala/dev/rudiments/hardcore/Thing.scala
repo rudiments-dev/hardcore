@@ -1,5 +1,7 @@
 package dev.rudiments.hardcore
 
+import dev.rudiments.hardcore.Predicate.All
+
 sealed trait Thing {}
 
 sealed trait Relation extends Thing {} // (obj, rel, subj) => obj -> (rel, subj), assuming rel or subj can be data and obj is always 'self'
@@ -8,6 +10,14 @@ sealed trait Relation extends Thing {} // (obj, rel, subj) => obj -> (rel, subj)
 // memory spec: id -> (Can, <Create, Read, Update, Delete>), id -> (Store, <Created, Updated, Deleted>), Q: CRUD events are also Relations?
 case object Can extends Relation {}
 case object Holds extends Relation {}
+
+trait Agent extends Thing {
+  def read(where: Location): CRUD.O
+  def ?(where: Location): CRUD.O = read(where)
+
+  def find(where: Location, p: Predicate = All): CRUD.O
+  def ?? (where: Location): CRUD.O = find(where, All)
+}
 
 final case class Link(where: Location, what: Predicate) extends Predicate
 final case class Data(what: Predicate, data: Any) extends Thing

@@ -13,7 +13,7 @@ class FileSpec extends AnyWordSpec with Matchers {
   private val fileAgent = new FileAgent("src/test/resources/file-test")
   private val mem: Memory = new Memory
 
-  private val commitData: Map[Location, Memory.Evt] = Map(
+  private val commitData: Map[Location, CRUD.Evt] = Map(
     Root -> Created(Data(Folder.typeOf, Map(
       ID("folder1") -> File.folder,
       ID("24.bin") -> File.unknownFile,
@@ -58,13 +58,14 @@ class FileSpec extends AnyWordSpec with Matchers {
     val committedData = commitData.view.mapValues {
       case c: Created => c.data
     }.toMap
-    val commit = ID("commits") / ID("59806943") -> Commit(commitData, null)
-    mem << Find(All) should be (Found(All, committedData + commit))
+    val commit = Memory.commits / ID("59806943") -> Commit(commitData, null)
+    val found = mem ?? Root
+    found should be (Found(All, committedData + commit))
   }
 
   "can write Commit into files elsewhere" in {
     val otherFile = new FileAgent("build/tmp/test-files")
-    val node = Node.fromMap(commitData.toMap[Location, Memory.O])
+    val node = Node.fromMap(commitData.toMap[Location, CRUD.O])
     otherFile.writeFileFromNode(node, Root) should be (WrittenTextFile(Data.empty))
 
   }

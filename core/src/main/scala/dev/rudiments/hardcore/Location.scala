@@ -24,6 +24,35 @@ final case class Path(ids: ID*) extends Location {
     case head :: tail if head == what => Path(tail: _*)
     case other => Unmatched
   }
+
+  def /- (what: ID): Location = {
+    if(ids.last == what) {
+      ids.size match {
+        case 0 => throw new IllegalArgumentException("Wrong size of Path")
+        case 1 => Root
+        case 2 => ids.head
+        case _ => Path(ids.dropRight(1) :_*)
+      }
+    } else {
+      Unmatched
+    }
+  }
+
+  def /- (what: Path): Location = {
+    if(what.ids.size > this.ids.size) throw new IllegalArgumentException("Dropping more then have")
+
+    val head = ids.dropRight(what.ids.size)
+    val tail = ids.drop(head.size)
+    if(tail == what.ids) {
+      head.size match {
+        case 0 => Root
+        case 1 => head.head
+        case _ => Path(head:_*)
+      }
+    } else {
+      Unmatched
+    }
+  }
 }
 case object Root extends Location
 case object Unmatched extends Location
