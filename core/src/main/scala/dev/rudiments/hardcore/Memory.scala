@@ -22,13 +22,17 @@ case class Memory(
       case Some(_) =>
         last += where -> what
         total(where).+:(what)
-        node.remember(where, what)
-        what
+        node.remember(where, what) match {
+          case evt: Evt => evt
+          case other => throw new IllegalArgumentException(s"whut? $other")
+        }
       case None =>
         last += where -> what
         total += where -> mutable.Seq(what)
-        node.remember(where, what)
-        what
+        node.remember(where, what) match {
+          case evt: Evt => evt
+          case other => throw new IllegalArgumentException(s"whut? $other")
+        }
     }
   }
 
@@ -142,8 +146,27 @@ class MemoryNode extends AgentCrud {
         unsafeUpdateState(where, c)
 
       case (NotExist, c: Created)                  => unsafeUpdateState(where, c)
+      case (Readen(t: Thing), Created(m: MemoryNode)) =>
+        if(m.self == Nothing) {
+          m.self = t
+          Created(m)
+        } else {
+          Updated(t, m)
+        }
+      case (Readen(m: MemoryNode), Created(t: Thing)) =>
+        if(m.self == Nothing) {
+          m.self = t
+          Created(t)
+        } else {
+          val old = m.self
+          m.self = t
+          Updated(old, t)
+        }
       case (Readen(r), Created(_))                 => AlreadyExist(r)
       case (Readen(r), Updated(u, data)) if r == u => unsafeUpdateState(where, Updated(r, data))
+      case (Readen(m: MemoryNode), u@Updated(old: Thing, t: Thing)) if old == m.self =>
+        m.self = t
+        u
       case (Readen(r), Deleted(d)) if r == d       => unsafeUpdateState(where, Deleted(r))
       case (found, other)                          => Conflict(found, other)
     }
@@ -162,14 +185,17 @@ class MemoryNode extends AgentCrud {
   }
 
   def find(): Map[Location, Thing] = {
+    val b: Map[Location, Thing] = branches.toMap.flatMap { case (id, b) =>
+      val found: Map[Location, Thing] = b.find()
+      found.map {
+        case (Root, v) => id -> v
+        case (k, v) => id / k -> v
+      }
+    }
     if(this.self != Nothing) {
-      (Map(Root -> self) ++ branches.toMap.flatMap { case (id, b) =>
-        b.find().map { case (k, v) => id / k -> v }
-      } ++ leafs.toMap).toMap
+      b + (Root -> self) ++ leafs.toMap
     } else {
-      branches.toMap.flatMap { case (id, b) =>
-        b.find().map { case (k, v) => id / k -> v }
-      } ++ leafs.toMap
+      b ++ leafs.toMap
     }
   }
 
