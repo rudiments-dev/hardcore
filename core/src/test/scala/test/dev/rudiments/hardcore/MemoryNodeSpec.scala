@@ -8,7 +8,7 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class MemoryNodeSpec extends AnyWordSpec with Matchers {
-  private val mem: MemoryNode = new MemoryNode()
+  private val mem: MemoryNode = MemoryNode.empty
   private val id: Location = ID("42")
   private val t = Type(Field("a", Bool))
   private val data = Data(t, Seq(true))
