@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.StrictLogging
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.RootRouter.RootConfig
 
+import java.lang.management.ManagementFactory
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
@@ -35,7 +36,7 @@ class RootRouter(
       config.host,
       config.port
     ).bind(route).onComplete {
-      case Success(b) => logger.info("Bound http:/{}/{}", b.localAddress.toString, config.prefix)
+      case Success(b) => logger.info("Bound http:/{}/{} on {}", b.localAddress.toString, config.prefix, ManagementFactory.getRuntimeMXBean.getName)
       case Failure(e) =>
         actorSystem.terminate()
         throw e

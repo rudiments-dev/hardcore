@@ -37,6 +37,14 @@ case class Memory(
               p = p / id
               m.unsafeUpdateState(p, Created(Memory.empty))
             }
+          case Readen(t: Thing) =>
+            val mem = Memory(self = t)
+            var p: Location = Root
+            path.ids.dropRight(1).foreach { id =>
+              p = p / id
+              mem.unsafeUpdateState(p, Created(Memory.empty))
+            }
+            this.unsafeUpdateState(head, Created(mem))
           case other => throw new IllegalArgumentException(s"unexpected $other")
         }
         unsafeUpdateState(where, c)
