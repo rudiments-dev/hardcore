@@ -10,7 +10,7 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class FileSpec extends AnyWordSpec with Matchers {
-  private val fileAgent = new FileAgent("src/test/resources/file-test")
+  private val fileAgent = new FileAgent("src/test/resources/file-test", Root)
   private val mem: Memory = new Memory
 
   private val initialFound = mem ?? Root match {
@@ -67,7 +67,7 @@ class FileSpec extends AnyWordSpec with Matchers {
   }
 
   "can write Commit into files elsewhere" in {
-    val otherFile = new FileAgent("build/tmp/test-files")
+    val otherFile = new FileAgent("build/tmp/test-files", Root)
     val node = Node.fromMap(commitData.toMap[Location, CRUD.O])
     otherFile.writeFileFromNode(node, Root) should be (WrittenTextFile(Data.empty))
 

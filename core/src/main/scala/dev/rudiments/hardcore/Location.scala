@@ -8,7 +8,10 @@ sealed trait Location {
     case (id: ID, p: Path) => Path((id +: p.ids):_*)
     case (Root, id: ID) => id
     case (Root, p: Path) => p
-    case (_, _) => throw new IllegalArgumentException("/Root prohibited")
+    case (Root, Root) => Root
+    case (p: Path, Root) => p
+    case (id: ID, Root) => id
+    case (_, _) => throw new IllegalArgumentException("prohibited")
   }
 
   def / (p: String): Location = this./(ID(p))

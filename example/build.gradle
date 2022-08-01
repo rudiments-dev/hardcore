@@ -14,7 +14,7 @@ dependencies {
     testImplementation 'com.typesafe.akka:akka-http-testkit_2.13:10.2.7'
 }
 
-task runExample(type: JavaExec, dependsOn: classes) {
+task example(type: JavaExec, dependsOn: classes) {
     classpath sourceSets.main.runtimeClasspath
     mainClass = 'dev.rudiments.app.Main'
     standardInput = System.in
