@@ -14,15 +14,15 @@ class BulkTest extends AnyWordSpec with Matchers {
   private val rFill = Range(1, sampleSize + 1)
   private val rRead = Range(sampleSize + 1, 1)
 
-  private val mem: Memory = new Memory()
-  private val tx: Tx = new Tx(mem)
+  private val ctx: Context = new Context()
+  private val tx: Tx = new Tx(ctx)
 
 
   private val t = Type(Field("i", Number(0, sampleSize)), Field("j", Text(10)), Field("k", Text(0)))
 
   private var commit: Commit = _
 
-  private val initialSize = mem.total.size
+  private val initialSize = ctx.total.size
 
   s"can create Commit with $sampleSize records" in {
     rFill.foreach { i =>
@@ -33,24 +33,24 @@ class BulkTest extends AnyWordSpec with Matchers {
   }
 
   "can update Memory with big Commit" in {
-    mem << commit
-    mem.total.size should be (sampleSize + initialSize + 1) // commit + initial
+    ctx << commit
+    ctx.total.size should be (sampleSize + initialSize + 1) // commit + initial
 
     rRead.foreach { i =>
-      mem ? ID(i) should be (Readen(Data(t, Seq(i, i.toString, ""))))
+      ctx ? ID(i) should be (Readen(Data(t, Seq(i, i.toString, ""))))
     }
   }
 
   "can update every item in memory" in {
     rFill.foreach { i =>
-      val localTx = new Tx(mem)
+      val localTx = new Tx(ctx)
       localTx.remember(ID(i), Updated(
         Data(t, Seq(i, i.toString, "")),
         Data(t, Seq(-i, "!" + i.toString, "!")),
       ))
-      mem << (localTx.>>.asInstanceOf[Prepared].commit)
+      ctx << (localTx.>>.asInstanceOf[Prepared].commit)
 
-      mem ? ID(i) should be (Readen(Data(t, Seq(-i, "!" + i.toString, "!"))))
+      ctx ? ID(i) should be (Readen(Data(t, Seq(-i, "!" + i.toString, "!"))))
     }
   }
 }

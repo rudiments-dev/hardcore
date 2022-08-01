@@ -15,7 +15,7 @@ class FileAgent(absolutePath: String, mount: Location) {
     case path: Path => readFile(absolutePath + "/" + path.toString)
   }
 
-  def load(where: Location, into: Memory): Out = {
+  def load(where: Location, into: Context): Out = {
     val tx = new Tx(into)
     readFileIntoTx(tx, where)
     tx.>>

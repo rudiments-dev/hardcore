@@ -32,7 +32,7 @@ class Tx(ctx: Agent) extends AgentCrud {
   }
 
   override def find(where: Location, p: Predicate): O =
-    MemoryNode
+    Memory
       .fromMap(this.prepare())
       .find(where, p)
 

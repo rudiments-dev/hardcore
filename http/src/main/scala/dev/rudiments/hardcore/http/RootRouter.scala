@@ -19,7 +19,7 @@ class RootRouter(
   routes: (String, Route)*
 )(implicit actorSystem: ActorSystem) extends StrictLogging {
   private implicit val ec: ExecutionContext = actorSystem.getDispatcher
-  val routers = new Memory()
+  val routers = new Context()
 
   def route: Route =
     CorsDirectives.cors(config.cors) {

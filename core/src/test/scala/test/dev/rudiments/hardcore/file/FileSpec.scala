@@ -11,9 +11,9 @@ import org.scalatestplus.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class FileSpec extends AnyWordSpec with Matchers {
   private val fileAgent = new FileAgent("src/test/resources/file-test", Root)
-  private val mem: Memory = new Memory
+  private val ctx: Context = new Context
 
-  private val initialFound = mem ?? Root match {
+  private val initialFound = ctx ?? Root match {
     case Found(All, values) => values
     case _ => fail("Can't read initial memory state")
   }
@@ -49,20 +49,20 @@ class FileSpec extends AnyWordSpec with Matchers {
   }
 
   "can prepare commit via Agent" in {
-    fileAgent.load(Root, mem) should be(Prepared(Commit(commitData)))
+    fileAgent.load(Root, ctx) should be(Prepared(Commit(commitData)))
   }
 
-  "can save prepared into Memory" in {
-    fileAgent.load(Root, mem) match {
-      case Prepared(cmt) => mem << cmt should be (Committed(cmt))
+  "can save prepared into Context" in {
+    fileAgent.load(Root, ctx) match {
+      case Prepared(cmt) => ctx << cmt should be (Committed(cmt))
       case _ => fail("Unexpected result of load")
     }
 
     val committedData = commitData.view.mapValues {
       case c: Created => c.data
     }.toMap
-    val commit = Memory.commits / ID("-599147518") -> Commit(commitData)
-    val found = mem ?? Root
+    val commit = Context.commits / ID("-599147518") -> Commit(commitData)
+    val found = ctx ?? Root
     found should be (Found(All, initialFound ++ committedData + commit)) //TODO refine file manipulation from internal memory work
   }
 

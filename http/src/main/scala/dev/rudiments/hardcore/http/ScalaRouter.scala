@@ -9,8 +9,8 @@ import io.circe.Decoder
 
 import scala.language.implicitConversions
 
-class ScalaRouter(val mem: Memory) extends CirceSupport {
-  private implicit val de: Decoder[Data] = ThingDecoder.dataDecoder(
+class ScalaRouter(val ctx: Context) extends CirceSupport {
+  implicit val de: Decoder[Data] = ThingDecoder.dataDecoder(
     Type(Field("a", Bool))
   )
 
@@ -22,19 +22,19 @@ class ScalaRouter(val mem: Memory) extends CirceSupport {
     } ~ path(Segment) { str =>
       val id = ID(str)
       get {
-        mem ? id
+        ctx ? id
       } ~ delete {
-        mem -= id
+        ctx -= id
       } ~ entity(as[Data]) { data =>
         post {
-          mem += id -> data
+          ctx += id -> data
         } ~ put {
-          mem *= id -> data
+          ctx *= id -> data
         }
       }
     } ~ pathSingleSlash {
       get {
-        mem << Find(All)
+        ctx << Find(All)
       }
     }
   }

@@ -9,8 +9,8 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class TxSpec extends AnyWordSpec with Matchers {
-  private val mem: Memory = new Memory()
-  private val tx: Tx = new Tx(mem)
+  private val ctx: Context = new Context()
+  private val tx: Tx = new Tx(ctx)
 
   private val id = ID("42")
 
@@ -23,24 +23,24 @@ class TxSpec extends AnyWordSpec with Matchers {
   "can't read non-existing ID in Tx" in { tx ? ID("not exist") should be (NotExist) }
 
   "can remember Created" in {
-    mem << Commit(Map(id -> Created(data)))
+    ctx << Commit(Map(id -> Created(data)))
   }
-  "can Read if Created" in { mem ? id should be (Readen(data)) }
+  "can Read if Created" in { ctx ? id should be (Readen(data)) }
 
   "can read Created in Tx as Readen" in { tx ? id should be (Readen(data)) }
 
-  "can modify in Tx without modification on memory" in {
+  "can modify in Tx without modification in Context" in {
     (tx *= id -> data2) should be (Updated(data, data2))
     tx ? id should be (Readen(data2))
 
-    mem ? id should be (Readen(data))
+    ctx ? id should be (Readen(data))
   }
 
   "can Delete in Tx" in {
     (tx -= id) should be (Deleted(data2))
     tx ? id should be (NotExist)
 
-    mem ? id should be (Readen(data))
+    ctx ? id should be (Readen(data))
   }
 
   "can Verify Tx" in {
@@ -51,13 +51,13 @@ class TxSpec extends AnyWordSpec with Matchers {
     tx.>> should be (Prepared(Commit(Map(id -> Deleted(data)))))
   }
 
-  "can Change memory" in {
+  "can Change Context" in {
     val c = tx.>>.asInstanceOf[Prepared].commit
-    mem << c should be (Committed(c))
+    ctx << c should be (Committed(c))
   }
 
-  "can see commits of Memory" in {
-    mem ?? ID("commits") should be(Found(All, Map(
+  "can see commits of Context" in {
+    ctx ?? ID("commits") should be(Found(All, Map(
       ID("1240340089") -> Commit(Map(id -> Created(data))),
       ID("-847544541") -> Commit(Map(id -> Deleted(data)))
     )))

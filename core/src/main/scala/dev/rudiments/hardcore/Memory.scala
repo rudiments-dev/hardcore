@@ -1,76 +1,104 @@
 package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.CRUD.{Evt, I, O}
-import dev.rudiments.hardcore.Memory.commits
 import dev.rudiments.hardcore.Predicate.All
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 case class Memory(
-  total: mutable.Map[Location, mutable.Seq[Evt]] = mutable.Map.empty,
-  last: mutable.Map[Location, Evt] = mutable.Map.empty,
-  node: MemoryNode = MemoryNode.empty
+  var self: Thing = Nothing,
+  leafs: mutable.Map[ID, Thing] = mutable.Map.empty,
+  branches: mutable.Map[ID, Memory] = mutable.Map.empty
 ) extends AgentCrud {
-
-  Initial.init(this)
-
-  private def unsafeUpdateState(where: Location, what: Evt): Evt = {
-    last.get(where) match {
-      case Some(_) =>
-        last += where -> what
-        total(where).+:(what)
-        node.remember(where, what) match {
-          case evt: Evt => evt
-          case other => throw new IllegalArgumentException(s"whut? $other")
-        }
-      case None =>
-        last += where -> what
-        total += where -> mutable.Seq(what)
-        node.remember(where, what) match {
-          case evt: Evt => evt
-          case other => throw new IllegalArgumentException(s"whut? $other")
-        }
+  override def read(where: Location): O = where match {
+    case Root => Readen(this)
+    case id: ID =>
+      leafs.get(id).map(Readen)
+        .getOrElse(branches.get(id).map(Readen)
+          .getOrElse(NotExist))
+    case path: Path => branches.get(path.ids.head) match {
+      case Some(node) => node ? (path -/ path.ids.head)
+      case None => NotFound(where)
     }
+    case _ => throw new IllegalArgumentException("Not supported")
   }
 
-  override def read(where: Location): O = last.get(where) match {
-    case Some(Created(found)) => Readen(found)
-    case Some(Updated(_, found)) => Readen(found)
-    case Some(Deleted(_)) => NotExist
-    case Some(Committed(_)) => ???
-    case None => NotExist
-  }
+  override def remember(where: Location, what: O): O = {
+    val readen = this ? where
+    (readen, what) match {
+      case (NotFound(_: ID), c: Created)           => unsafeUpdateState(where, c)
+      case (NotFound(path: Path), c: Created)      =>
+        val head = where.asInstanceOf[Path] /- path
+        this ? head match {
+          case Readen(m: Memory) =>
+            var p: Location = Root
+            path.ids.dropRight(1).foreach { id =>
+              p = p / id
+              m.unsafeUpdateState(p, Created(Memory.empty))
+            }
+          case other => throw new IllegalArgumentException(s"unexpected $other")
+        }
+        unsafeUpdateState(where, c)
 
-  override def remember(where: Location, via: O): O = {
-    (this ? where, via) match {
       case (NotExist, c: Created)                  => unsafeUpdateState(where, c)
+      case (Readen(t: Thing), Created(m: Memory)) =>
+        if(m.self == Nothing) {
+          m.self = t
+          Created(m)
+        } else {
+          Updated(t, m)
+        }
+      case (Readen(m: Memory), Created(t: Thing)) =>
+        if(m.self == Nothing) {
+          m.self = t
+          Created(t)
+        } else {
+          val old = m.self
+          m.self = t
+          Updated(old, t)
+        }
       case (Readen(r), Created(_))                 => AlreadyExist(r)
       case (Readen(r), Updated(u, data)) if r == u => unsafeUpdateState(where, Updated(r, data))
+      case (Readen(m: Memory), u@Updated(old: Thing, t: Thing)) if old == m.self =>
+        m.self = t
+        u
       case (Readen(r), Deleted(d)) if r == d       => unsafeUpdateState(where, Deleted(r))
       case (found, other)                          => Conflict(found, other)
     }
   }
 
-  override def find(where: Location, p: Predicate): O = node.find(where, p)
+  def execute(in: I): O = in match {
+    case c: Commit => commit(c)
+    case Find(All) => Found(All, find())
+    case _ => NotImplemented
+  }
+
+  override def find(where: Location, p: Predicate): O = this ? where match {
+    case Readen(n: Memory) => Found(All, n.find())
+    case r: Readen => Conflict(r, Find(p))
+    case other => other
+  }
+
+  def find(): Map[Location, Thing] = {
+    val b: Map[Location, Thing] = branches.toMap.flatMap { case (id, b) =>
+      val found: Map[Location, Thing] = b.find()
+      found.map {
+        case (Root, v) => id -> v
+        case (k, v) => id / k -> v
+      }
+    }
+    if(this.self != Nothing) {
+      b + (Root -> self) ++ leafs.toMap
+    } else {
+      b ++ leafs.toMap
+    }
+  }
 
   def commit(c: Commit): O = {
-    val outputs = c.crud
-      .map { case (id, evt: Evt) =>
-        id -> remember(id, evt)
-      }
-
-    val crudErrors = outputs.collect {
-        case (id, err: Error) => (id, err)
-        case (id, NotExist) => (id, NotExist)
-      }
-
-    val p = commits / ID(c.hashCode().toString)
-    val errors = this += p -> c match {
-      case _: Created => crudErrors
-      case m: MultiError => crudErrors + (p -> m)
-      case e: Error => crudErrors + (p -> e)
-      case other => crudErrors + (p -> Conflict(c, other))
-    }
+    val errors = c.crud
+      .map { case (id, evt: Evt) => id -> remember(id, evt) }
+      .collect { case (id, err: Error) => (id, err) }
 
     if(errors.isEmpty) {
       Committed(c)
@@ -79,43 +107,73 @@ case class Memory(
     }
   }
 
-  def execute(in: I): O = in match {
-    case c: Commit => commit(c)
-    case Find(All) => Found(All, node.find())
-    case _ => NotImplemented
-  }
-
   def << (in: I) : O = this.execute(in)
 
-  def ! (where: Location): Link = this ? where match {
-    case Readen(MemoryNode(_, leafs, _)) =>
-      val selected = leafs.values.collect {
-        case l: Link => l
-      }.toSeq
-      if(selected.nonEmpty) {
-        Link(where, AnyOf(selected:_*))
-      } else {
-        ???
+  @tailrec
+  private def unsafeUpdateState(where: Location, what: O): O = (where, what) match {
+    case (id: ID, Created(mem: Memory)) =>
+      this.branches += id -> mem
+      what
+    case (id: ID, Created(data)) =>
+      this.leafs += id -> data
+      what
+    case (Root, Created(t)) if self == Nothing =>
+      self = t
+      what
+    case (id: ID, Updated(_, mem: Memory)) =>
+      this.branches += id -> mem
+      what
+    case (id: ID, Updated(_, data)) =>
+      this.leafs += id -> data
+      what
+    case (Root, Updated(old, t)) if self == old =>
+      self = t
+      what
+    case (id: ID, Deleted(_: Memory)) =>
+      branches -= id
+      what
+    case (id: ID, Deleted(_)) =>
+      leafs -= id
+      what
+    case (Root, Deleted(old)) if self == old =>
+      self = Nothing
+      what
+    case (p: Path, evt: O) =>
+      branches.get(p.ids.head) match {
+        case Some(node) => node.unsafeUpdateState(p -/ p.ids.head, evt)
+        case None => NotFound(p)
       }
-    case Readen(p: Predicate) => Link(where, p)
-    case Readen(Data(p, _)) => Link(where, p)
-    case _ => ???
+
+    case (other, another) => MultiError(Map(other -> another))
   }
 }
-
 object Memory {
-  val commits: ID = ID("commits")
+  def empty: Memory = Memory(Nothing)
+  def wrap(l: Location, t: Thing): Memory = (l, t) match {
+    case (Root, _: Memory) => throw new IllegalArgumentException("Memory node in root is forbidden")
+    case (Root, thing) => Memory(thing)
+    case (id: ID, mem: Memory) => Memory(branches = mutable.Map(id -> mem))
+    case (id: ID, thing) => Memory(leafs = mutable.Map(id -> thing))
+    case (path: Path, _) =>
+      Memory(branches = mutable.Map(path.ids.head -> wrap(path -/ path.ids.head, t)))
+    case other => throw new IllegalArgumentException(s"$other not supported in MemoryNode")
+  }
 
-  val reducer: PartialFunction[(Evt, Evt), O] = {
-    case (   Created(c1),      Created(_))                 => AlreadyExist(c1)
-    case (   Created(c1),    u@Updated(u2, _)) if c1 == u2 => u
-    case (   Created(c1),    d@Deleted(d2))    if c1 == d2 => d
+  def fromMap(from: Map[Location, Thing]): Memory = {
+    from.foldLeft(Memory.empty) { (acc, el) =>
+      el._2 match {
+        case o: O =>
+          acc.remember(el._1, o) match {
+            case err: Error => throw new IllegalArgumentException(s"Error from map: '$err'")
+          }
+          acc
+        case other => //TODO do not ignore errors
+          throw new IllegalArgumentException(s"Wrong type of thing: $other")
+      }
+    }
+  }
 
-    case (   Updated(_, u1),   Created(_))                 => AlreadyExist(u1)
-    case (   Updated(_, u1), u@Updated(u2, _)) if u1 == u2 => u
-    case (   Updated(_, u1), d@Deleted(d2))    if u1 == d2 => d
-
-    case (   Deleted(_),     c@Created(_))                 => c
-    case (that, other) /* unfitting updates */             => Conflict(that, other)
+  def leafs(prefix: Location, from: Map[String, Predicate]): Memory = {
+    Memory(leafs = mutable.Map.from(from.map { case (k, v) => ID(k) -> Link(prefix / k, v) }))
   }
 }
