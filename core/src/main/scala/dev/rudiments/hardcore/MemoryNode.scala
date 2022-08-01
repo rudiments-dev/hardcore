@@ -172,4 +172,8 @@ object MemoryNode {
       }
     }
   }
+
+  def leafs(prefix: Location, from: Map[String, Predicate]): MemoryNode = {
+    MemoryNode(leafs = mutable.Map.from(from.map { case (k, v) => ID(k) -> Link(prefix / k, v) }))
+  }
 }

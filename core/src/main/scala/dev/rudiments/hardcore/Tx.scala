@@ -74,7 +74,7 @@ class Tx(ctx: Agent) extends AgentCrud {
     case Verify => this.verify()
     case Prepare =>
       this.verify() match {
-        case Valid => Prepared(Commit(prepare().collect { case (l, evt: Event) => (l, evt) }, null))
+        case Valid => Prepared(Commit(prepare().collect { case (l, evt: Event) => (l, evt) }))
         case other => other
       }
     case _ => NotImplemented
@@ -110,9 +110,9 @@ object Tx {
     case (   Updated(u1, u2), Deleted(d2))    if u2 == d2  => Deleted(u1)
 
     case (   Deleted(_),    c: Created)                    => c
-    case ( d:Deleted,       r: Readen)                     => AlreadyNotExist(d, r)
-    case ( d:Deleted,       u: Updated)                    => AlreadyNotExist(d, u)
-    case (d1:Deleted,      d2: Deleted)                    => AlreadyNotExist(d1, d2)
+    case ( d:Deleted,       r: Readen)                     => Conflict(d, r)
+    case ( d:Deleted,       u: Updated)                    => Conflict(d, u)
+    case (d1:Deleted,      d2: Deleted)                    => Conflict(d1, d2)
     case (that, other) /* unfitting updates */             => Conflict(that, other)
   }
 }

@@ -12,6 +12,8 @@ case class Memory(
   node: MemoryNode = MemoryNode.empty
 ) extends AgentCrud {
 
+  Initial.init(this)
+
   private def unsafeUpdateState(where: Location, what: Evt): Evt = {
     last.get(where) match {
       case Some(_) =>
@@ -84,6 +86,21 @@ case class Memory(
   }
 
   def << (in: I) : O = this.execute(in)
+
+  def ! (where: Location): Link = this ? where match {
+    case Readen(MemoryNode(_, leafs, _)) =>
+      val selected = leafs.values.collect {
+        case l: Link => l
+      }.toSeq
+      if(selected.nonEmpty) {
+        Link(where, AnyOf(selected:_*))
+      } else {
+        ???
+      }
+    case Readen(p: Predicate) => Link(where, p)
+    case Readen(Data(p, _)) => Link(where, p)
+    case _ => ???
+  }
 }
 
 object Memory {
@@ -99,8 +116,6 @@ object Memory {
     case (   Updated(_, u1), d@Deleted(d2))    if u1 == d2 => d
 
     case (   Deleted(_),     c@Created(_))                 => c
-    case ( d@Deleted(_),     u@Updated(_, _))              => AlreadyNotExist(d, u)
-    case (d1@Deleted(_),    d2@Deleted(_))                 => AlreadyNotExist(d1, d2)
     case (that, other) /* unfitting updates */             => Conflict(that, other)
   }
 }

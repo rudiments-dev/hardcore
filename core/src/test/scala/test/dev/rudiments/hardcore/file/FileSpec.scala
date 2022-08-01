@@ -13,6 +13,11 @@ class FileSpec extends AnyWordSpec with Matchers {
   private val fileAgent = new FileAgent("src/test/resources/file-test")
   private val mem: Memory = new Memory
 
+  private val initialFound = mem ?? Root match {
+    case Found(All, values) => values
+    case _ => fail("Can't read initial memory state")
+  }
+
   private val commitData: Map[Location, CRUD.Evt] = Map(
     Root -> Created(Data(Folder.typeOf, Map(
       ID("folder1") -> File.folder,
@@ -44,9 +49,7 @@ class FileSpec extends AnyWordSpec with Matchers {
   }
 
   "can prepare commit via Agent" in {
-    fileAgent.load(Root, mem) should be(Prepared(Commit(
-      commitData, null
-    )))
+    fileAgent.load(Root, mem) should be(Prepared(Commit(commitData)))
   }
 
   "can save prepared into Memory" in {
@@ -58,9 +61,9 @@ class FileSpec extends AnyWordSpec with Matchers {
     val committedData = commitData.view.mapValues {
       case c: Created => c.data
     }.toMap
-    val commit = Memory.commits / ID("59806943") -> Commit(commitData, null)
+    val commit = Memory.commits / ID("-599147518") -> Commit(commitData)
     val found = mem ?? Root
-    found should be (Found(All, committedData + commit))
+    found should be (Found(All, initialFound ++ committedData + commit)) //TODO refine file manipulation from internal memory work
   }
 
   "can write Commit into files elsewhere" in {

@@ -23,7 +23,7 @@ class TxSpec extends AnyWordSpec with Matchers {
   "can't read non-existing ID in Tx" in { tx ? ID("not exist") should be (NotExist) }
 
   "can remember Created" in {
-    mem << Commit(Map(id -> Created(data)), null)
+    mem << Commit(Map(id -> Created(data)))
   }
   "can Read if Created" in { mem ? id should be (Readen(data)) }
 
@@ -48,7 +48,7 @@ class TxSpec extends AnyWordSpec with Matchers {
   }
 
   "can Prepare Change from Tx" in {
-    tx.>> should be (Prepared(Commit(Map(id -> Deleted(data)), null)))
+    tx.>> should be (Prepared(Commit(Map(id -> Deleted(data)))))
   }
 
   "can Change memory" in {
@@ -58,14 +58,13 @@ class TxSpec extends AnyWordSpec with Matchers {
 
   "can see commits of Memory" in {
     mem ?? ID("commits") should be(Found(All, Map(
-      ID("-486712223") -> Commit(Map(id -> Created(data)), null),
-      ID("-1613531203") -> Commit(Map(id -> Deleted(data)), null)
+      ID("1240340089") -> Commit(Map(id -> Created(data))),
+      ID("-847544541") -> Commit(Map(id -> Deleted(data)))
     )))
   }
 
   "init commit" in {
     initial.crud.size should be (0)
     initial.extra.size should be (0)
-    initial.basedOn should be (null)
   }
 }

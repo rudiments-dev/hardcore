@@ -4,13 +4,6 @@ import dev.rudiments.hardcore.Predicate.All
 
 sealed trait Thing {}
 
-sealed trait Relation extends Thing {} // (obj, rel, subj) => obj -> (rel, subj), assuming rel or subj can be data and obj is always 'self'
-// usual relation: id -> (id, id)
-// data inside memory is a relation: id -> (predicate, any)
-// memory spec: id -> (Can, <Create, Read, Update, Delete>), id -> (Store, <Created, Updated, Deleted>), Q: CRUD events are also Relations?
-case object Can extends Relation {}
-case object Holds extends Relation {}
-
 trait Agent extends Thing {
   def read(where: Location): CRUD.O
   def ?(where: Location): CRUD.O = read(where)
@@ -19,8 +12,18 @@ trait Agent extends Thing {
   def ?? (where: Location): CRUD.O = find(where, All)
 }
 
-final case class Link(where: Location, what: Predicate) extends Predicate
-final case class Data(what: Predicate, data: Any) extends Thing
+final case class Link(where: Location, what: Predicate) extends Predicate {
+  override def toString: String = "#" + where
+}
+final case class Declared(where: Location) extends Predicate {
+  override def toString: String = "!" + where
+}
+final case class Data(what: Predicate, data: Any) extends Thing {
+  override def toString: String = what match {
+    case l: Link => l.toString + " {" + data.toString + "}"
+    case _ => super.toString
+  }
+}
 object Data {
   val empty = Data(Nothing, Nothing)
 }
@@ -30,12 +33,22 @@ object Predicate {
   case object All extends Predicate
   case object Anything extends Predicate
 }
-final case class Type(fields: Field*) extends Predicate
-final case class Field(name: String, of: Predicate) //TODO snapshot & restore for Memory[Text, Field] -> Type -> Memory[Text, Field]
+final case class Type(fields: Field*) extends Predicate {
+  override def toString: String = fields.mkString("{", ",", "}")
+}
+final case class Field(name: String, of: Predicate) {
+  override def toString: String = name + ":" + of.toString
+} //TODO snapshot & restore for Memory[Text, Field] -> Type -> Memory[Text, Field]
 
-final case class Enlist(item: Predicate) extends Predicate {}
-final case class Index(of: Predicate, over: Predicate) extends Predicate {}
-final case class AnyOf(p: Predicate*) extends Predicate {} // Sum-Type
+final case class Enlist(item: Predicate) extends Predicate {
+  override def toString: String = "[" + item.toString + "]"
+}
+final case class Index(of: Predicate, over: Predicate) extends Predicate {
+  override def toString: String = "{" + of.toString + "->" + over.toString + "}"
+}
+final case class AnyOf(p: Predicate*) extends Predicate {
+  override def toString: String = p.mkString("*(", ",", ")")
+} // Sum-Type
 
 sealed trait Plain extends Predicate {}
 final case class Text(maxSize: Int) extends Plain

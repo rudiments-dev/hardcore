@@ -9,6 +9,8 @@ import org.scalatestplus.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class MemorySpec extends AnyWordSpec with Matchers {
   private val mem: Memory = new Memory()
+  Initial.init(mem)
+
   private val id: Location = ID("42")
   private val t = Type(Field("a", Bool))
   private val data = Data(t, Seq(true))

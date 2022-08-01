@@ -41,7 +41,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
 
   "put item into repository" in {
     val c = Commit(
-      Map(ID("42") -> Created(sample)), null
+      Map(ID("42") -> Created(sample))
     )
     root << c should be (Committed(c))
 //    Post("/example/42", sample) ~> routes ~> check {
