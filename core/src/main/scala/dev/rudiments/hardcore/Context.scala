@@ -86,21 +86,6 @@ case class Context(
   }
 
   def << (in: I) : O = this.execute(in)
-
-  def ! (where: Location): Link = this ? where match {
-    case Readen(Memory(_, leafs, _)) =>
-      val selected = leafs.values.collect {
-        case l: Link => l
-      }.toSeq
-      if(selected.nonEmpty) {
-        Link(where, AnyOf(selected:_*))
-      } else {
-        ???
-      }
-    case Readen(p: Predicate) => Link(where, p)
-    case Readen(Data(p, _)) => Link(where, p)
-    case _ => ???
-  }
 }
 
 object Context {

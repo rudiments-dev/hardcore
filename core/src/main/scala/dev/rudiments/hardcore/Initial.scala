@@ -7,20 +7,29 @@ object Initial {
   private val predicate: Declared = Declared(types / "Predicate")
 
   def init(ctx: Context): Unit = {
-    locations(ctx)
-    plain(ctx)
-    predicates(ctx)
+    val tx = new Tx(ctx)
+    locations(tx)
+    plain(tx)
+    predicates(tx)
 
-    ctx += types / "Data" -> Type(
+    tx += types / "Data" -> Type(
       Field("what", predicate),
       Field("data", Anything)
     )
-    ctx += types / "Agent" -> Nothing
+    tx += types / "Agent" -> Nothing
 
-    messages(ctx)
+    messages(tx)
+
+    tx.>> match {
+      case Prepared(c) => ctx << c match {
+        case Committed(_) =>
+        case _ => throw new IllegalStateException("Initial commit failed")
+      }
+      case _ => throw new IllegalStateException("Initial commit not prepared")
+    }
   }
 
-  private def messages(ctx: Context): Unit = {
+  private def messages(tx: Tx): Unit = {
     val message = Declared(types / "Message")
     val crudIn = Map(
       "Create" -> Type(Field("what", Anything)),
@@ -31,7 +40,7 @@ object Initial {
       "Prepare" -> Nothing,
       "Verify" -> Nothing,
       "Commit" -> Type(
-        Field("crud", Index(ctx ! (types / "Location"), Declared(types / "Event")))
+        Field("crud", Index(tx ! (types / "Location"), Declared(types / "Event")))
       )
     )
 
@@ -44,10 +53,10 @@ object Initial {
       "Deleted" -> Type(Field("old", Anything)),
       "Found" -> Type(
         Field("p", predicate),
-        Field("values", Index(ctx ! (types / "Location"), Anything))
+        Field("values", Index(tx ! (types / "Location"), Anything))
       ),
       "NotExist" -> Nothing,
-      "NotFound" -> Type(Field("missing", ctx ! (types / "Location"))),
+      "NotFound" -> Type(Field("missing", tx ! (types / "Location"))),
       "Prepared" -> Type(Field("commit", commitLink)),
       "Committed" -> Type(Field("commit", commitLink)),
       "Valid" -> Nothing
@@ -65,36 +74,36 @@ object Initial {
     val crud = crudIn ++ crudOut ++ crudErrors
 
     crud.foreach { case (k, v) =>
-      ctx += types / k -> v
+      tx += types / k -> v
     }
 
-    ctx += types / "CRUD" -> Memory.leafs(types, crud)
-    ctx += types / "In" -> Memory.leafs(types, crudIn)
-    ctx += types / "Out" -> Memory.leafs(types, crudOut)
-    ctx += types / "Error" -> Memory.leafs(types, crudErrors)
+    tx += types / "CRUD" -> Memory.leafs(types, crud)
+    tx += types / "In" -> Memory.leafs(types, crudIn)
+    tx += types / "Out" -> Memory.leafs(types, crudOut)
+    tx += types / "Error" -> Memory.leafs(types, crudErrors)
 
-    ctx += types / "Command" -> Memory.leafs(types, Map(
+    tx += types / "Command" -> Memory.leafs(types, Map(
       "Create" -> crud("Create"),
       "Update" -> crud("Update"),
       "Delete" -> crud("Delete"),
       "Commit" -> crud("Commit"),
     ))
 
-    ctx += types / "Event" -> Memory.leafs(types, Map(
+    tx += types / "Event" -> Memory.leafs(types, Map(
       "Created" -> crud("Created"),
       "Updated" -> crud("Updated"),
       "Deleted" -> crud("Deleted"),
       "Committed" -> crud("Committed")
     ))
 
-    ctx += types / "Query" -> Memory.leafs(types, Map(
+    tx += types / "Query" -> Memory.leafs(types, Map(
       "Read" -> crud("Read"),
       "Find" -> crud("Find"),
       "Prepare" -> crud("Prepare"),
       "Verify" -> crud("Verify")
     ))
 
-    ctx += types / "Report" -> Memory.leafs(types, Map(
+    tx += types / "Report" -> Memory.leafs(types, Map(
       "Readen" -> crud("Readen"),
       "Found" -> crud("Found"),
       "NotExist" -> crud("NotExist"),
@@ -104,9 +113,9 @@ object Initial {
     ))
   }
 
-  private def predicates(ctx: Context): Unit = {
+  private def predicates(tx: Tx): Unit = {
     val constants = Seq("All", "Anything", "Nothing")
-    constants.foreach { s => ctx += types / s -> Nothing}
+    constants.foreach { s => tx += types / s -> Nothing}
 
     val field = Type(
       Field("name", Declared(ID("String"))),
@@ -123,22 +132,22 @@ object Initial {
       "Index" -> Type(Field("of", predicate), Field("over", predicate)),
       "AnyOf" -> Type(Field("p", Enlist(predicate))),
       "Link" -> Type(
-        Field("where", ctx ! (types / "Location")),
+        Field("where", tx ! (types / "Location")),
         Field("what", predicate)
       ),
       "Data" -> Type(
         Field("what", predicate),
         Field("data", Anything)
       ),
-      "Declared" -> Type(Field("where", ctx ! (types / "Location")))
+      "Declared" -> Type(Field("where", tx ! (types / "Location")))
     )
 
-    composite.foreach { case (k, v) => ctx += types / k -> v }
+    composite.foreach { case (k, v) => tx += types / k -> v }
 
-    ctx += types / "Predicate" -> Memory.leafs(types, composite)
+    tx += types / "Predicate" -> Memory.leafs(types, composite)
   }
 
-  private def plain(ctx: Context): Unit = {
+  private def plain(tx: Tx): Unit = {
     val plainTypes = Map(
       "Text" -> Type(
         Field("maxSize", Declared(ID("Int")))
@@ -150,11 +159,11 @@ object Initial {
       "Bool" -> Nothing,
       "Binary" -> Nothing
     )
-    plainTypes.foreach { case (k, v) => ctx += types / k -> v }
-    ctx += types / "Plain" -> Memory.leafs(types, plainTypes)
+    plainTypes.foreach { case (k, v) => tx += types / k -> v }
+    tx += types / "Plain" -> Memory.leafs(types, plainTypes)
   }
 
-  private def locations(ctx: Context): Unit = {
+  private def locations(tx: Tx): Unit = {
     val id = Type(Field("key", Anything))
     val idLink = Link(types / "ID", id)
 
@@ -166,7 +175,7 @@ object Initial {
       "Unmatched" -> Nothing
     )
 
-    loc foreach { case (k, v) => ctx += types / k -> v }
-    ctx += types / "Location" -> Memory.leafs(types, loc)
+    loc foreach { case (k, v) => tx += types / k -> v }
+    tx += types / "Location" -> Memory.leafs(types, loc)
   }
 }

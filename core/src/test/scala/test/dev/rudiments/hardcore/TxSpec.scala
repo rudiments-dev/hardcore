@@ -20,6 +20,11 @@ class TxSpec extends AnyWordSpec with Matchers {
 
   private val initial = Commit.beginningOfTime
 
+  private val initialCommit = ctx ?? ID("commits") match {
+    case Found(All, values) => values
+    case _ => fail("Can't read initial commits")
+  }
+
   "can't read non-existing ID in Tx" in { tx ? ID("not exist") should be (NotExist) }
 
   "can remember Created" in {
@@ -57,7 +62,7 @@ class TxSpec extends AnyWordSpec with Matchers {
   }
 
   "can see commits of Context" in {
-    ctx ?? ID("commits") should be(Found(All, Map(
+    ctx ?? ID("commits") should be(Found(All, initialCommit ++ Map(
       ID("1240340089") -> Commit(Map(id -> Created(data))),
       ID("-847544541") -> Commit(Map(id -> Deleted(data)))
     )))
