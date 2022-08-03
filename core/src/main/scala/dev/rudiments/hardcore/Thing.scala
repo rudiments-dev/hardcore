@@ -50,6 +50,8 @@ object Predicate {
 }
 final case class Type(fields: Field*) extends Predicate {
   override def toString: String = fields.mkString("{", ",", "}")
+
+  def data(values: Any*): Data = Data(this, values.toSeq)
 }
 final case class Field(name: String, of: Predicate) {
   override def toString: String = name + ":" + of.toString

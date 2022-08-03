@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore._
+import dev.rudiments.hardcore.http.ThingEncoder.discriminator
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
 import io.circe.Json
 import org.junit.runner.RunWith
@@ -14,16 +15,36 @@ import org.scalatestplus.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with CirceSupport {
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private val root: Context = new Context()
+  private val ctx: Context = new Context()
 
-  private val router = new ScalaRouter(root)
+  private val router = new ScalaRouter(ctx)
   private val routes = router.seal("example")
   private val t = Type(
     Field("id", Number(Long.MinValue, Long.MaxValue)),
     Field("name", Text(Int.MaxValue)),
     Field("comment", Text(Int.MaxValue))
   )
-  private val sample: Data = Data(t, Seq(42, "sample", None))
+  private val sample: Data = t.data(42, "sample", None)
+
+  private val types = ID("types")
+
+  "can encode links" in {
+    router.thingEncoder(ctx ! (types / "Bool")) should be (Json.fromString("Bool"))
+    router.thingEncoder(ctx ! (types / "Number")) should be (Json.obj(
+      "type" -> Json.fromString("Number")
+    ))
+  }
+
+  "can encode predicates" in {
+    router.thingEncoder(ctx ? (types / "Bool")) should be(Json.obj(
+      "type" -> Json.fromString("Nothing")
+    ))
+    router.thingEncoder(ctx ? (types / "Number")) should be(Json.obj(
+      "type" -> Json.fromString("Type"),
+      "from" -> Json.obj("type" -> Json.fromString("Anything")),
+      "to" -> Json.obj("type" -> Json.fromString("Anything"))
+    ))
+  }
 
   "dataEncoder can encode" in {
     router.thingEncoder(sample) should be (Json.obj(
@@ -43,7 +64,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
     val c = Commit(
       Map(ID("42") -> Created(sample))
     )
-    root << c should be (Committed(c))
+    ctx << c should be (Committed(c))
 //    Post("/example/42", sample) ~> routes ~> check {
 //      response.status should be (StatusCodes.Created)
 //      responseAs[Data] should be (sample)

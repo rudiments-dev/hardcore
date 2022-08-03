@@ -1,5 +1,6 @@
 package dev.rudiments.hardcore.http
 
+import dev.rudiments.hardcore.Predicate.Anything
 import dev.rudiments.hardcore._
 import io.circe.{Encoder, Json, KeyEncoder}
 
@@ -34,7 +35,20 @@ object ThingEncoder {
   def encodeAnything(thing: Thing): Json = thing match {
     case Data(p, v) => encode(p, v)
     case o: CRUD.O => encodeOut(o)
-    case other => Json.fromString(s"NOT IMPLEMENTED: $other")
+    case p: Predicate => encodePredicate(p)
+    case c: Commit => Json.obj(discriminator -> Json.fromString("Commit"), "crud" -> encodeNode(Node.fromMap(c.crud))(encodeEvent))
+    case mem: Memory => if(mem.branches.isEmpty) { //TODO specify relations via Memory constraints and fields
+      val links = mem.leafs.collect { case (_, l:Link) => l }.toSeq
+      if(links.size == mem.leafs.size) {
+        encodePredicate(AnyOf(links :_*))
+      } else {
+        ???
+      }
+    } else {
+      ???
+    }
+    case other =>
+      Json.fromString(s"NOT IMPLEMENTED something: $other")
   }
 
   def encode(p: Predicate, v: Any): Json = (p, v) match {
@@ -63,6 +77,22 @@ object ThingEncoder {
 
   def encodeOut(out: CRUD.O): Json = out match {
     case evt: CRUD.Evt => encodeEvent(evt)
+    case Readen(Data(Link(l, p), v)) =>
+      Json.obj(
+        discriminator -> Json.fromString(l.toString),
+        "thing" -> encode(p, v)
+      )
+    case Readen(Link(l, p)) =>
+      p match {
+        case Anything | Nothing => Json.obj(
+          discriminator -> Json.fromString(l.toString)
+        )
+        case other => Json.obj(
+          discriminator -> Json.fromString(l.toString),
+          "thing" -> encodePredicate(other)
+        )
+      }
+    case Readen(p: Predicate) => encodePredicate(p)
     case Readen(t) => Json.obj(
       discriminator -> Json.fromString("?"),
       "thing" -> encodeAnything(t)
@@ -72,26 +102,53 @@ object ThingEncoder {
       discriminator -> Json.fromString("Prepared"),
       "CRUD" -> encodeNodeRaw(Node.fromMap(cmt.crud))(encodeEvent)
     )
-    case other => Json.fromString(s"NOT IMPLEMENTED: $other")
+    case other =>
+      Json.fromString(s"NOT IMPLEMENTED Out: $other")
   }
 
   def encodeEvent(evt: CRUD.Evt): Json = evt match {
-    case Created(Data(p, v)) => Json.obj(
-      discriminator -> Json.fromString("+"),
-      "data" -> encode(p, v)
+    case Created(t) => Json.obj(
+      discriminator -> Json.fromString("Created"),
+      "data" -> encodeAnything(t)
     )
     case Updated(o, n) => Json.obj(
-      discriminator -> Json.fromString("*"),
+      discriminator -> Json.fromString("Updated"),
       "new" -> encodeAnything(n),
       "old" -> encodeAnything(o)
     )
     case Deleted(d) => Json.obj(
-      discriminator -> Json.fromString("-"),
+      discriminator -> Json.fromString("Deleted"),
       "old" -> encodeAnything(d)
     )
     case Committed(cmt) => Json.obj(
       discriminator -> Json.fromString("Committed"),
       "CRUD" -> encodeNodeRaw(Node.fromMap(cmt.crud))(encodeEvent)
     )
+  }
+
+  def encodePredicate(p: Predicate): Json = p match {
+    case Anything => Json.obj(discriminator -> Json.fromString("Anything"))
+    case Nothing => Json.obj(discriminator -> Json.fromString("Nothing"))
+    case t: Type => Json.obj((discriminator -> Json.fromString("Type")) +: t.fields.map{ f => f.name -> encodePredicate(f.of) } :_*)
+    case Declared(l) => Json.obj(discriminator -> Json.fromString(l.lastString))
+    case Enlist(p) => Json.obj(discriminator -> Json.fromString("Enlist"), "of" -> encodePredicate(p))
+    case Index(k, v) => Json.obj(discriminator -> Json.fromString("Index"), "of" -> encodePredicate(k), "over" -> encodePredicate(v))
+    case Link(l, p) => p match {
+      case Anything | Nothing | Bool => Json.fromString(l.lastString)
+      case _: Type => Json.obj(discriminator -> Json.fromString(l.lastString))
+      case _: Declared => Json.obj(discriminator -> Json.fromString(l.lastString))
+      case _: AnyOf => Json.obj(discriminator -> Json.fromString(l.lastString))
+      case other =>
+        Json.fromString(s"NOT IMPLEMENTED Predicate: $other")
+    }
+    case a: AnyOf =>
+      val links = a.p.collect { case l: Link => l }.toSeq
+      if(a.p.size == links.size) { // AnyOf(Link*)
+        Json.obj(discriminator -> Json.fromString("AnyOf"), "p" -> Json.arr(links.map(l => Json.fromString(l.where.lastString)) :_*))
+      } else {
+        ???
+      }
+    case other =>
+      Json.fromString(s"NOT IMPLEMENTED Predicate: $other")
   }
 }

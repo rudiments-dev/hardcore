@@ -15,12 +15,15 @@ sealed trait Location {
   }
 
   def / (p: String): Location = this./(ID(p))
+  def lastString: String
 }
 final case class ID(key: Any) extends Location {
   override def toString: String = key.toString
+  override def lastString: String = key.toString
 }
 final case class Path(ids: ID*) extends Location {
   override def toString: String = ids.map(_.key).mkString("/")
+  override def lastString: String = ids.last.lastString
 
   def -/ (what: ID): Location = ids.toList match {
     case head :: tail :: Nil if head == what => tail
@@ -57,5 +60,9 @@ final case class Path(ids: ID*) extends Location {
     }
   }
 }
-case object Root extends Location
-case object Unmatched extends Location
+case object Root extends Location {
+  override def lastString: String = "/"
+}
+case object Unmatched extends Location {
+  override def lastString: String = "Unmatched"
+}
