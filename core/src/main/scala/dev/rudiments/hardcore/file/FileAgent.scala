@@ -13,6 +13,7 @@ class FileAgent(absolutePath: String, mount: Location) {
     case Root => readFile(absolutePath)
     case id: ID => readFile(absolutePath + "/" + id.key.toString)
     case path: Path => readFile(absolutePath + "/" + path.toString)
+    case other => throw new IllegalArgumentException(s"Unsupported: $other")
   }
 
   def load(where: Location, into: Context): Out = {
@@ -29,7 +30,7 @@ class FileAgent(absolutePath: String, mount: Location) {
           fs.foreach { case (id, _) => readFileIntoTx(tx, where / id) }
         case Data(TextFile.typeOf, _) => tx.remember(mount / where, Created(file))
         case Data(Binary, _) => tx.remember(mount / where, Created(Data(Binary, Nothing)))
-        case Data(_, _) => ???
+        case other => ???
       }
     case (Readen(file), Readen(found)) =>
       (file, found) match {
@@ -57,7 +58,7 @@ class FileAgent(absolutePath: String, mount: Location) {
     } else {
       if(f.isDirectory) {
         Readen(Data(Folder.typeOf,
-          f.listFiles().toSeq.map {
+          f.listFiles().toSeq.collect {
             case f: JavaFile if f.isDirectory => ID(f.getName) -> File.folder
             case f: JavaFile if f.isFile && TextFile.isTextFile(f.getName) => ID(f.getName) -> File.textFile
             case f: JavaFile if f.isFile => ID(f.getName) -> File.unknownFile

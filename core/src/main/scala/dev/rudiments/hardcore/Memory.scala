@@ -173,6 +173,7 @@ object Memory {
         case o: O =>
           acc.remember(el._1, o) match {
             case err: Error => throw new IllegalArgumentException(s"Error from map: '$err'")
+            case other => //OK
           }
           acc
         case other => //TODO do not ignore errors

@@ -60,6 +60,7 @@ class FileSpec extends AnyWordSpec with Matchers {
 
     val committedData = commitData.view.mapValues {
       case c: Created => c.data
+      case other => fail(s"Unexpected: $other")
     }.toMap
     val commit = Context.commits / ID("-599147518") -> Commit(commitData)
     val found = ctx ?? Root

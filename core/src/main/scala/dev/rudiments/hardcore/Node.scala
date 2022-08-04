@@ -27,6 +27,7 @@ case class Node[T : ClassTag](
             this.branches + (h -> Node.wrap(rest, t))
           )
         }
+      case other => throw new IllegalArgumentException(s"Not supported: $other")
     }
   }
 
