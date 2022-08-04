@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.ThingEncoder.discriminator
+import dev.rudiments.hardcore.http.ThingEncoder.encodeMem
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
 import io.circe.Json
 import org.junit.runner.RunWith
@@ -27,6 +27,10 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   private val sample: Data = t.data(42, "sample", None)
 
   private val types = ID("types")
+  private val initial = ctx ? (ID("commits") / ID("-2061851797")) match {
+    case Readen(cmt: Commit) => cmt
+    case other => throw new IllegalStateException("Expecting initial commit")
+  }
 
   "can encode links" in {
     router.thingEncoder(ctx ! (types / "Bool")) should be (Json.fromString("Bool"))
@@ -44,6 +48,14 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
       "from" -> Json.obj("type" -> Json.fromString("Anything")),
       "to" -> Json.obj("type" -> Json.fromString("Anything"))
     ))
+  }
+
+  "can encode first commit" in {
+    router.thingEncoder(initial) should be(Json.obj(
+      "type" -> Json.fromString("Commit"),
+      "crud" -> encodeMem(Memory.fromMap(initial.crud))
+      )
+    )
   }
 
   "dataEncoder can encode" in {

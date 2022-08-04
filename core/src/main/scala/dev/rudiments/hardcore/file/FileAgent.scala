@@ -92,16 +92,28 @@ class FileAgent(absolutePath: String, mount: Location) {
       case (id, Created(data)) => id -> writeFile(absolutePath + "/" + (where / id).toString, data)
       case (id, Updated(_, data)) => id -> writeFile(absolutePath + "/" + (where / id).toString, data)
       case (id, Deleted(_)) => id -> deleteFile(absolutePath + "/" + (where / id).toString)
-      case (id, _) => id -> NotImplemented
+      case (id, data: Data) => id -> writeFile(absolutePath + "/" + (where / id).toString, data)
+      case (id, Nothing) => id -> writeFile(absolutePath + "/" + (where / id).toString, Nothing)
+      case (id, _) =>
+        id -> NotImplemented
     }
 
     val branches = node.branches.map { case(id, n) =>
       //TODO if all leafs and branches Deleted ?
       val out = mkDir(absolutePath + "/" + (where / id).toString)
-      writeFileFromNode(n, where / id)
+      id -> writeFileFromNode(n, where / id)
     }
 
-    WrittenTextFile(Data.empty)
+    val errors = leafs ++ branches filter {
+      case (_, _: Error) => true
+      case _ => false
+    }
+
+    if(errors.nonEmpty) {
+      MultiError(errors.toMap)
+    } else {
+      WrittenTextFile(Data.empty)
+    }
   }
 
   def mkDir(path: String): Out = {
@@ -133,7 +145,14 @@ class FileAgent(absolutePath: String, mount: Location) {
           } finally {
             writer.close()
           }
-        case _ => NotImplemented
+        case Data(Binary, Nothing) =>
+          f.createNewFile()
+          Created(Nothing)
+        case Nothing =>
+          f.createNewFile()
+          Created(Nothing)
+        case _ =>
+          NotImplemented
       }
     }
 
