@@ -12,31 +12,24 @@ object ThingEncoder {
 
   def encodeData(data: Data): Json = encode(data.what, data.data)
 
-  def encodeNode[T](node: Node[T])(implicit en: Encoder[T]): Json = {
-    val leafs = node.leafs.toSeq.map{ case (k, v) => k -> en(v) }
-    val branches = node.branches.toSeq.map { case (k, v) => k -> encodeNode(v) }
-    val all = node.self
-      .map { s => leafs ++ branches :+ (ID("self") -> en(s)) } //TODO "self" is parameter, check it not in leafs or branches
-      .getOrElse(leafs ++ branches)
-      .map { case (id, j) => idEncoder(id) -> j}
-    Json.obj(all :_*)
-  }
+  def encodeMem(node: Memory): Json = {
+    val leafs = node.leafs.toSeq.map{ case (k, v) => k -> encodeAnything(v) }
+    val branches = node.branches.toSeq.map { case (k, v) => k -> encodeMem(v) }
+    val all: Seq[(ID, Json)] = if(node.self != Nothing) {
+      leafs ++ branches :+ (ID("self") -> encodeAnything(node.self))
+    } else {
+      leafs ++ branches
+    }
+    val keyEncoded = all.map { case (id, j) => idEncoder(id) -> j }
 
-  def encodeNodeRaw[T](node: Node[T])(f: T => Json): Json = {
-    val leafs = node.leafs.toSeq.map{ case (k, v) => k -> f(v) }
-    val branches = node.branches.toSeq.map { case (k, v) => k -> encodeNodeRaw(v)(f) }
-    val all = node.self
-      .map { s => leafs ++ branches :+ (ID("self") -> f(s)) }
-      .getOrElse(leafs ++ branches)
-      .map { case (id, j) => idEncoder(id) -> j}
-    Json.obj(all :_*)
+    Json.obj(keyEncoded :_*)
   }
 
   def encodeAnything(thing: Thing): Json = thing match {
     case Data(p, v) => encode(p, v)
     case o: CRUD.O => encodeOut(o)
     case p: Predicate => encodePredicate(p)
-    case c: Commit => Json.obj(discriminator -> Json.fromString("Commit"), "crud" -> encodeNode(Node.fromMap(c.crud))(encodeEvent))
+    case c: Commit => Json.obj(discriminator -> Json.fromString("Commit"), "crud" -> encodeMem(Memory.fromMap(c.crud)))
     case mem: Memory => if(mem.branches.isEmpty) { //TODO specify relations via Memory constraints and fields
       val links = mem.leafs.collect { case (_, l:Link) => l }.toSeq
       if(links.size == mem.leafs.size) {
@@ -100,7 +93,7 @@ object ThingEncoder {
     case NotExist => Json.fromString("NotExist")
     case Prepared(cmt) => Json.obj(
       discriminator -> Json.fromString("Prepared"),
-      "CRUD" -> encodeNodeRaw(Node.fromMap(cmt.crud))(encodeEvent)
+      "CRUD" -> encodeMem(Memory.fromMap(cmt.crud))
     )
     case other =>
       Json.fromString(s"NOT IMPLEMENTED Out: $other")
@@ -122,7 +115,7 @@ object ThingEncoder {
     )
     case Committed(cmt) => Json.obj(
       discriminator -> Json.fromString("Committed"),
-      "CRUD" -> encodeNodeRaw(Node.fromMap(cmt.crud))(encodeEvent)
+      "CRUD" -> encodeMem(Memory.fromMap(cmt.crud))
     )
   }
 

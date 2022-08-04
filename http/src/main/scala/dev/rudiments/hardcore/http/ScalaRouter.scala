@@ -44,7 +44,7 @@ class ScalaRouter(val ctx: Context) extends CirceSupport {
     case Readen(value) =>        complete(StatusCodes.OK, value)
     case Updated(_, newValue) => complete(StatusCodes.OK, newValue)
     case Deleted(_) =>           complete(StatusCodes.NoContent)
-    case Found(_, values) =>     complete(StatusCodes.OK, Node.fromMap(values))
+    case Found(_, values) =>     complete(StatusCodes.OK, Memory.fromMap(values))
     case NotExist =>             complete(StatusCodes.NotFound)
     case AlreadyExist(_) =>      complete(StatusCodes.Conflict)
     case out: CRUD.O =>          complete(StatusCodes.OK, out)

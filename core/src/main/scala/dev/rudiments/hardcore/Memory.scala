@@ -117,6 +117,15 @@ case class Memory(
 
   def << (in: I) : O = this.execute(in)
 
+  def seek(where: Location): Option[Memory] = where match {
+    case id: ID => this.branches.get(id)
+    case path: Path => path.ids.foldLeft(Option(this)) { (acc, el) =>
+      acc.flatMap(_.branches.get(el))
+    }
+    case Root => Some(this)
+    case Unmatched => None
+  }
+
   @tailrec
   private def unsafeUpdateState(where: Location, what: O): O = (where, what) match {
     case (id: ID, Created(mem: Memory)) =>
@@ -176,6 +185,18 @@ object Memory {
             case other => //OK
           }
           acc
+        case t: Thing =>
+          acc ? el._1 match {
+            case Readen(mem: Memory) if mem.self != t => acc.remember(el._1, Updated(mem.self, t))
+            case Readen(mem: Memory) if mem.self == t => //OK, self with self
+            case Readen(Nothing) if t == Nothing =>
+            //OK, nothing with nothing
+            case Readen(_: Thing) =>
+              throw new IllegalArgumentException(s"Error from map: '${el._1} already exist'")
+            case NotExist => acc.remember(el._1, Created(t))
+            case NotFound(_) => acc.remember(el._1, Created(t))
+          }
+          acc
         case other => //TODO do not ignore errors
           throw new IllegalArgumentException(s"Wrong type of thing: $other")
       }
@@ -185,4 +206,8 @@ object Memory {
   def leafs(prefix: Location, from: Map[String, Predicate]): Memory = {
     Memory(leafs = mutable.Map.from(from.map { case (k, v) => ID(k) -> Link(prefix / k, v) }))
   }
+
+  def apply(self: Thing, leafs: Map[ID, Thing], branches: Map[ID, Memory]): Memory = new Memory(self, mutable.Map.from(leafs), mutable.Map.from(branches))
+  def apply(self: Thing, leafs: Map[ID, Thing]): Memory = new Memory(self, mutable.Map.from(leafs), mutable.Map.empty)
+  def apply(self: Thing): Memory = new Memory(self, mutable.Map.empty, mutable.Map.empty)
 }

@@ -79,13 +79,13 @@ class FileAgent(absolutePath: String, mount: Location) {
   }
 
   def writeFileFromTx(tx: Tx, where: Location): Out = {
-    Node.fromMap(tx.last.toMap).seek(mount / where) match {
+    Memory.fromMap(tx.last.toMap).seek(mount / where) match {
       case Some(node) => writeFileFromNode(node, where)
       case None => NotExist
     }
   }
 
-  def writeFileFromNode(node: Node[CRUD.O], where: Location): Out = { //TODO File events?
+  def writeFileFromNode(node: Memory, where: Location): Out = { //TODO File events?
     mkDir(absolutePath) //will return AlreadyExist if directory already exist
 
     val leafs = node.leafs.map { //TODO more checks on update and delete?

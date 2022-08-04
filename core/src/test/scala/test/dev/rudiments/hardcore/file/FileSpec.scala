@@ -69,7 +69,7 @@ class FileSpec extends AnyWordSpec with Matchers {
 
   "can write Commit into files elsewhere" in {
     val otherFile = new FileAgent("build/tmp/test-files", Root)
-    val node = Node.fromMap(commitData.toMap[Location, CRUD.O])
+    val node = Memory.fromMap(commitData.toMap[Location, CRUD.O])
     otherFile.writeFileFromNode(node, Root) should be (WrittenTextFile(Data.empty))
 
   }
