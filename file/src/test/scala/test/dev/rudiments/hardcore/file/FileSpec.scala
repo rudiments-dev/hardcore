@@ -2,7 +2,7 @@ package test.dev.rudiments.hardcore.file
 
 import dev.rudiments.hardcore.Predicate.All
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.file.{File, FileAgent, Folder, TextFile, UnknownFile, WrittenTextFile}
+import dev.rudiments.hardcore.file._
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -71,6 +71,13 @@ class FileSpec extends AnyWordSpec with Matchers {
     val otherFile = new FileAgent("build/tmp/test-files", Root)
     val node = Memory.fromMap(commitData.toMap[Location, CRUD.O])
     otherFile.writeFileFromNode(node, Root) should be (WrittenTextFile(Data.empty))
+  }
 
+  "can write commit into json file" in {
+    val otherFile = new FileAgent("build/tmp/test-files", ID("commits"))
+    ctx ? (ID("commits") / ID("-2061851797")) match {
+      case Readen(cmt: Commit) => otherFile.writeFile("build/tmp/test-files/commit.json", cmt)
+      case other => fail("Expecting initial commit")
+    }
   }
 }

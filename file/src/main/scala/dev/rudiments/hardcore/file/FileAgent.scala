@@ -1,6 +1,7 @@
 package dev.rudiments.hardcore.file
 
 import dev.rudiments.hardcore._
+import dev.rudiments.hardcore.http.ThingEncoder
 
 import java.io.{FileWriter, File => JavaFile}
 import java.nio.charset.Charset
@@ -78,13 +79,6 @@ class FileAgent(absolutePath: String, mount: Location) {
     }
   }
 
-  def writeFileFromTx(tx: Tx, where: Location): Out = {
-    Memory.fromMap(tx.last.toMap).seek(mount / where) match {
-      case Some(node) => writeFileFromNode(node, where)
-      case None => NotExist
-    }
-  }
-
   def writeFileFromNode(node: Memory, where: Location): Out = { //TODO File events?
     mkDir(absolutePath) //will return AlreadyExist if directory already exist
 
@@ -100,7 +94,7 @@ class FileAgent(absolutePath: String, mount: Location) {
 
     val branches = node.branches.map { case(id, n) =>
       //TODO if all leafs and branches Deleted ?
-      val out = mkDir(absolutePath + "/" + (where / id).toString)
+      mkDir(absolutePath + "/" + (where / id).toString)
       id -> writeFileFromNode(n, where / id)
     }
 
@@ -148,6 +142,15 @@ class FileAgent(absolutePath: String, mount: Location) {
         case Data(Binary, Nothing) =>
           f.createNewFile()
           Created(Nothing)
+        case cmt: Commit =>
+          f.createNewFile()
+          val writer = new FileWriter(f, Charset.defaultCharset())
+          try {
+            writer.write(ThingEncoder.encodeOut(Prepared(cmt)).toString())
+            Created(cmt)
+          } finally {
+            writer.close()
+          }
         case Nothing =>
           f.createNewFile()
           Created(Nothing)
