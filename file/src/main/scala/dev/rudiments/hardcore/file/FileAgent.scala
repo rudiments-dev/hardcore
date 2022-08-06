@@ -1,5 +1,6 @@
 package dev.rudiments.hardcore.file
 
+import dev.rudiments.hardcore.CRUD.Evt
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.ThingEncoder
 
@@ -15,6 +16,65 @@ class FileAgent(absolutePath: String, mount: Location) {
     case id: ID => readFile(absolutePath + "/" + id.key.toString)
     case path: Path => readFile(absolutePath + "/" + path.toString)
     case other => throw new IllegalArgumentException(s"Unsupported: $other")
+  }
+
+  def compose(where: Location): Thing = {
+    read(where) match {
+      case Readen(d@Data(Folder.typeOf, folders: Map[ID, File])) =>
+        val loaded = folders.map { case (k, _) => k -> compose(where / k) }
+        val errors = loaded.collect { case p@(_, _: Error) => p }
+
+        if(errors.isEmpty) {
+          val branches: Map[ID, Memory] = loaded.collect { case (id, m: Memory) => id -> m }
+          val data: Map[ID, Thing] = loaded.collect {
+            case (_, _: Out) => None //TODO more invalid options
+            case (_, _: Memory) => None
+            case p@(_, _) => Some(p)
+          }.flatten.toMap
+          Memory(
+            d,
+            data,
+            branches
+          )
+        } else {
+          MultiError(errors.asInstanceOf[Map[Location, Error]])
+        }
+      case Readen(d: Data) => d
+      case other => throw new IllegalStateException(s"Where '$other' coming from?")
+    }
+  }
+
+  def reconsFor(mem: Memory): Out = {
+    compose(Root) match {
+      case err: Error => err
+      case out: Out => out
+      case m: Memory =>
+        val compared = mem.compareWith(m)
+        val changes = compared.collect { case (l, evt: Evt) => l -> evt }
+        val errors = changes.collect { case (l, err: Error) => l -> err }
+        if (errors.isEmpty && changes.nonEmpty) {
+          if(changes.size == 1) {
+            if(changes.keys.head == Root) {
+              changes(Root)
+            } else {
+              Prepared(Commit(changes))
+            }
+          } else {
+            Prepared(Commit(changes))
+          }
+        } else if (changes.isEmpty) {
+          Identical
+        } else {
+          MultiError(errors)
+        }
+      case t: Thing =>
+        (t, mem.self) match {
+          case (d, Nothing) => Created(d)
+          case (Nothing, Nothing) => Readen(Nothing)
+          case (d, s) if d != s => Updated(s, d)
+          case (Nothing, s) => Deleted(s)
+        }
+    }
   }
 
   def load(where: Location, into: Context): Out = {
@@ -45,6 +105,12 @@ class FileAgent(absolutePath: String, mount: Location) {
           tx.remember(mount / where, Updated(t1, t2))
         }
         case (Data(Binary, _), Data(Binary, _)) => // do nothing with binaries
+        case (d@Data(Folder.typeOf, incoming: Map[ID, File]), mem: Memory) =>
+          val allKeys = mem.leafs.keys ++ mem.branches.keys ++ incoming.keys
+          if (d != mem.self) {
+            tx.remember(mount / where, Updated(mem.self, d))
+          }
+          allKeys.foreach { k => readFileIntoTx(tx, where / k) }
         case (_, _) => ???
       }
     case (NotExist, Readen(found)) => tx.remember(mount / where, Deleted(found))
@@ -71,7 +137,7 @@ class FileAgent(absolutePath: String, mount: Location) {
             Readen(Data(TextFile.typeOf, f.getLines().toSeq))
           }.getOrElse(FileError(s"Failed to read $path"))
         } else {
-          Readen(Data(Binary, Files.readAllBytes(Paths.get(path))))
+          Readen(Data(Binary, Files.readAllBytes(Paths.get(path)).toSeq))
         }
       } else {
         FileError(s"Unknown file ${f.getAbsolutePath}")
@@ -83,18 +149,19 @@ class FileAgent(absolutePath: String, mount: Location) {
     mkDir(absolutePath) //will return AlreadyExist if directory already exist
 
     val leafs = node.leafs.map { //TODO more checks on update and delete?
-      case (id, Created(data)) => id -> writeFile(absolutePath + "/" + (where / id).toString, data)
-      case (id, Updated(_, data)) => id -> writeFile(absolutePath + "/" + (where / id).toString, data)
-      case (id, Deleted(_)) => id -> deleteFile(absolutePath + "/" + (where / id).toString)
-      case (id, data: Data) => id -> writeFile(absolutePath + "/" + (where / id).toString, data)
-      case (id, Nothing) => id -> writeFile(absolutePath + "/" + (where / id).toString, Nothing)
+      case (id, Created(data)) => id -> writeFile((where / id).toString, data)
+      case (id, Updated(_, data)) => id -> writeFile((where / id).toString, data)
+      case (id, Deleted(_)) => id -> deleteFile((where / id).toString)
+      case (id, c: Commit) => id -> writeFile((where / id).toString, c)
+      case (id, data: Data) => id -> writeFile((where / id).toString, data)
+      case (id, Nothing) => id -> writeFile((where / id).toString, Nothing)
       case (id, _) =>
         id -> NotImplemented
     }
 
     val branches = node.branches.map { case(id, n) =>
       //TODO if all leafs and branches Deleted ?
-      mkDir(absolutePath + "/" + (where / id).toString)
+      mkDir((where / id).toString)
       id -> writeFileFromNode(n, where / id)
     }
 
@@ -111,7 +178,7 @@ class FileAgent(absolutePath: String, mount: Location) {
   }
 
   def mkDir(path: String): Out = {
-    val f = new JavaFile(path)
+    val f = new JavaFile(absolutePath + "/" + path)
     try {
       if(!f.exists()) {
         f.mkdir()
@@ -142,6 +209,9 @@ class FileAgent(absolutePath: String, mount: Location) {
         case Data(Binary, Nothing) =>
           f.createNewFile()
           Created(Nothing)
+        case d@Data(Binary, _: Seq[Byte]) =>
+          f.createNewFile()
+          Created(d)
         case cmt: Commit =>
           f.createNewFile()
           val writer = new FileWriter(f, Charset.defaultCharset())
@@ -159,7 +229,7 @@ class FileAgent(absolutePath: String, mount: Location) {
       }
     }
 
-    val f = new JavaFile(path)
+    val f = new JavaFile(absolutePath + "/" + path)
     try {
       if(!f.exists()) {
         wf(f)
@@ -173,7 +243,7 @@ class FileAgent(absolutePath: String, mount: Location) {
   }
 
   def deleteFile(path: String): Out = {
-    val f = new JavaFile(path)
+    val f = new JavaFile(absolutePath + "/" + path)
     try {
       if(!f.exists()) {
         NotExist

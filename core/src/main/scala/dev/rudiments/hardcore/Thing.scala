@@ -19,11 +19,12 @@ trait Agent extends Thing {
       if (selected.nonEmpty) {
         Link(where, AnyOf(selected: _*))
       } else {
-        ???
+        throw new IllegalArgumentException(s"not only links in leafs")
       }
     case Readen(p: Predicate) => Link(where, p)
     case Readen(Data(p, _)) => Link(where, p)
-    case _ => ???
+    case other =>
+      throw new IllegalArgumentException(s"don't know $other")
   }
 }
 
@@ -36,6 +37,11 @@ final case class Declared(where: Location) extends Predicate {
 final case class Data(what: Predicate, data: Any) extends Thing {
   override def toString: String = what match {
     case l: Link => l.toString + " {" + data.toString + "}"
+    case Binary =>
+      data match {
+        case Nothing => "Nothing"
+        case arr: Seq[Byte] => "binary: " + arr.mkString("[", " ", "]")
+      }
     case _ => super.toString
   }
 }

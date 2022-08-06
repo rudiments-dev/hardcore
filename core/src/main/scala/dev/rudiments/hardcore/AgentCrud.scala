@@ -6,12 +6,15 @@ trait AgentCrud extends Agent {
 
   def ask(where: Location, what: I): O = (read(where), what) match {
     case (NotExist, Create(data)) => Created(data)
+    case (NotFound(_), Create(data)) => Created(data)
     case (NotExist, _) => NotExist
+    case (n: NotFound, _) => n
     case (r: Readen, Read) => r
     case (Readen(found), Create(_)) => AlreadyExist(found)
     case (Readen(found), Update(data)) => Updated(found, data)
     case (Readen(found), Delete) => Deleted(found)
-    case (other, another) => Conflict(other, another)
+    case (other, another) =>
+      Conflict(other, another)
   }
 
   def remember(where: Location, what: O): O
@@ -32,5 +35,19 @@ trait AgentCrud extends Agent {
   def -= (where: Location): O = this - where match {
     case d: Deleted => this.remember(where, d)
     case other => other
+  }
+
+  def := (pair: (Location, Thing)): O = (read(pair._1), pair._2) match {
+    case (NotExist, Nothing) => Conflict(NotExist, Delete)
+    case (NotExist, t) => this.remember(pair._1, Created(t))
+    case (NotFound(_), t) => this.remember(pair._1, Created(t))
+    case (Readen(r), t) if r != t => this.remember(pair._1, Updated(r, t))
+    case (r@Readen(r1), t) if r1 == t => r
+    case (Readen(r), Nothing) => this.remember(pair._1, Deleted(r))
+  }
+
+  def /! (where: Location): Memory = read(where) match {
+    case Readen(mem: Memory) => mem
+    case _ => throw new IllegalArgumentException("Not a memory")
   }
 }

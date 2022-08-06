@@ -20,7 +20,9 @@ object Initial {
 
     messages(tx)
 
-    tx.>> match {
+    val prepared = tx.>>
+
+    prepared match {
       case Prepared(c) => ctx << c match {
         case Committed(_) =>
         case _ => throw new IllegalStateException("Initial commit failed")

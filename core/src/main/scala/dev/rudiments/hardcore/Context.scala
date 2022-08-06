@@ -4,47 +4,28 @@ import dev.rudiments.hardcore.CRUD.{Evt, I, O}
 import dev.rudiments.hardcore.Context.commits
 import dev.rudiments.hardcore.Predicate.All
 
-import scala.collection.mutable
-
 case class Context(
-  total: mutable.Map[Location, mutable.Seq[Evt]] = mutable.Map.empty,
-  last: mutable.Map[Location, Evt] = mutable.Map.empty,
   node: Memory = Memory.empty
 ) extends AgentCrud {
 
   Initial.init(this)
 
-  private def unsafeUpdateState(where: Location, what: Evt): Evt = {
-    last.get(where) match {
-      case Some(_) =>
-        last += where -> what
-        total(where).+:(what)
-        node.remember(where, what) match {
-          case evt: Evt => evt
-          case other => throw new IllegalArgumentException(s"whut? $other")
-        }
-      case None =>
-        last += where -> what
-        total += where -> mutable.Seq(what)
-        node.remember(where, what) match {
-          case evt: Evt => evt
-          case other => throw new IllegalArgumentException(s"whut? $other")
-        }
-    }
+  private def unsafeUpdateState(where: Location, what: Evt): Evt = node.remember(where, what) match {
+    case evt: Evt => evt
+    case other =>
+      throw new IllegalArgumentException(s"whut? $other")
   }
 
-  override def read(where: Location): O = last.get(where) match {
-    case Some(Created(found)) => Readen(found)
-    case Some(Updated(_, found)) => Readen(found)
-    case Some(Deleted(_)) => NotExist
-    case Some(Committed(_)) => ???
-    case None => NotExist
-  }
+  override def read(where: Location): O = node.read(where)
 
   override def remember(where: Location, via: O): O = {
     (this ? where, via) match {
       case (NotExist, c: Created)                  => unsafeUpdateState(where, c)
-      case (Readen(r), Created(_))                 => AlreadyExist(r)
+      case (NotFound(_), c: Created)               => unsafeUpdateState(where, c)
+      case (Readen(m: Memory), c@Created(_: Data))   => unsafeUpdateState(where, c)
+      case (Readen(m: Memory), u@Updated(old, _: Data)) if m.self == old => unsafeUpdateState(where, u)
+      case (Readen(r), Created(_))                 =>
+        AlreadyExist(r)
       case (Readen(r), Updated(u, data)) if r == u => unsafeUpdateState(where, Updated(r, data))
       case (Readen(r), Deleted(d)) if r == d       => unsafeUpdateState(where, Deleted(r))
       case (found, other)                          => Conflict(found, other)

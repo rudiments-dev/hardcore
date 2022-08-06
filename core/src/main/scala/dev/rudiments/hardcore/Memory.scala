@@ -14,9 +14,12 @@ case class Memory(
   override def read(where: Location): O = where match {
     case Root => Readen(this)
     case id: ID =>
-      leafs.get(id).map(Readen)
-        .getOrElse(branches.get(id).map(Readen)
-          .getOrElse(NotExist))
+      (leafs.get(id), branches.get(id)) match {
+        case (Some(_), Some(_)) => throw new IllegalStateException(s"Have both branch and leaf by #$id")
+        case (Some(leaf), None) => Readen(leaf)
+        case (None, Some(b)) => Readen(b)
+        case (None, None) => NotExist
+      }
     case path: Path => branches.get(path.ids.head) match {
       case Some(node) => node ? (path -/ path.ids.head)
       case None => NotFound(where)
@@ -25,55 +28,99 @@ case class Memory(
   }
 
   override def remember(where: Location, what: O): O = {
-    val readen = this ? where
-    (readen, what) match {
-      case (NotFound(_: ID), c: Created)           => unsafeUpdateState(where, c)
-      case (NotFound(path: Path), c: Created)      =>
-        val head = where.asInstanceOf[Path] /- path
-        this ? head match {
-          case Readen(m: Memory) =>
-            var p: Location = Root
-            path.ids.dropRight(1).foreach { id =>
-              p = p / id
-              m.unsafeUpdateState(p, Created(Memory.empty))
+    where match {
+      case Root =>
+        what match {
+          case Created(_: Memory) =>
+            throw new IllegalArgumentException("Not supported")
+          case c@Created(t: Thing) if self != t =>
+            if(self == Nothing) {
+              self = t
+              c
+            } else {
+              AlreadyExist(self)
             }
-          case Readen(t: Thing) =>
-            val mem = Memory(self = t)
-            var p: Location = Root
-            path.ids.dropRight(1).foreach { id =>
-              p = p / id
-              mem.unsafeUpdateState(p, Created(Memory.empty))
+          case Updated(_, _: Memory) =>
+            throw new IllegalArgumentException("Not supported")
+          case u@Updated(old, t) if self != t && self == old =>
+            self = t
+            u
+          case d@Deleted(t) =>
+            if(self != Nothing && self == t) {
+              self = Nothing
+              d
+            } else {
+              Conflict(Readen(self), d)
             }
-            this.unsafeUpdateState(head, Created(mem))
-          case other => throw new IllegalArgumentException(s"unexpected $other")
+          case other => throw new IllegalArgumentException(s"Expecting CRUD Event, got $other")
         }
-        unsafeUpdateState(where, c)
 
-      case (NotExist, c: Created)                  => unsafeUpdateState(where, c)
-      case (Readen(t: Thing), Created(m: Memory)) =>
-        if(m.self == Nothing) {
-          m.self = t
-          Created(m)
-        } else {
-          Updated(t, m)
+      case id: ID =>
+        (leafs.get(id), branches.get(id)) match {
+          case (Some(_), Some(_)) => throw new IllegalStateException(s"Have both leaf and branch by $id")
+          case (Some(leaf), None) =>
+            what match {
+              case Created(_) =>
+                AlreadyExist(leaf)
+              case u@Updated(old, t) if old == leaf =>
+                leafs += id -> t
+                u
+              case d@Deleted(old) if old == leaf =>
+                leafs -= id
+                d
+              case other => throw new IllegalArgumentException(s"Expecting CRUD Event, got $other")
+            }
+          case (None, Some(branch)) =>
+            what match {
+              case Created(d: Data) =>
+                if(self != Nothing) {
+                  val old = self
+                  self = d
+                  Updated(old, d)
+                } else {
+                  self = d
+                  Created(d)
+                }
+              case Created(_) =>
+                AlreadyExist(branch)
+              case u@Updated(old, m: Memory) => ???
+              case u@Updated(old, t) => ???
+              case d@Deleted(m: Memory) if m == branch =>
+                branches -= id
+                d
+              case other => throw new IllegalArgumentException(s"Expecting CRUD Event, got $other")
+            }
+          case (None, None) =>
+            what match {
+              case c@Created(m: Memory) =>
+                branches += id -> m
+                c
+              case c@Created(t) =>
+                leafs += id -> t
+                c
+              case other => NotExist
+            }
         }
-      case (Readen(m: Memory), Created(t: Thing)) =>
-        if(m.self == Nothing) {
-          m.self = t
-          Created(t)
-        } else {
-          val old = m.self
-          m.self = t
-          Updated(old, t)
+
+      case path: Path =>
+        val h = path.ids.head
+        val tail = path -/ h
+        branches.get(h) match {
+          case Some(found) => found.remember(tail, what)
+          case None =>
+            what match {
+              case c: Created =>
+                val m = Memory.empty
+                branches += h -> m
+                m.remember(tail, c)
+              case other =>
+                NotFound(path)
+            }
         }
-      case (Readen(r), Created(_))                 => AlreadyExist(r)
-      case (Readen(r), Updated(u, data)) if r == u => unsafeUpdateState(where, Updated(r, data))
-      case (Readen(m: Memory), u@Updated(old: Thing, t: Thing)) if old == m.self =>
-        m.self = t
-        u
-      case (Readen(r), Deleted(d)) if r == d       => unsafeUpdateState(where, Deleted(r))
-      case (found, other)                          => Conflict(found, other)
+
+      case other => throw new IllegalArgumentException(s"Not supported location: $other")
     }
+
   }
 
   def execute(in: I): O = in match {
@@ -126,42 +173,66 @@ case class Memory(
     case Unmatched => None
   }
 
-  @tailrec
-  private def unsafeUpdateState(where: Location, what: O): O = (where, what) match {
-    case (id: ID, Created(mem: Memory)) =>
-      this.branches += id -> mem
-      what
-    case (id: ID, Created(data)) =>
-      this.leafs += id -> data
-      what
-    case (Root, Created(t)) if self == Nothing =>
-      self = t
-      what
-    case (id: ID, Updated(_, mem: Memory)) =>
-      this.branches += id -> mem
-      what
-    case (id: ID, Updated(_, data)) =>
-      this.leafs += id -> data
-      what
-    case (Root, Updated(old, t)) if self == old =>
-      self = t
-      what
-    case (id: ID, Deleted(_: Memory)) =>
-      branches -= id
-      what
-    case (id: ID, Deleted(_)) =>
-      leafs -= id
-      what
-    case (Root, Deleted(old)) if self == old =>
-      self = Nothing
-      what
-    case (p: Path, evt: O) =>
-      branches.get(p.ids.head) match {
-        case Some(node) => node.unsafeUpdateState(p -/ p.ids.head, evt)
-        case None => NotFound(p)
+  def flatten(): Map[Location, Thing] = {
+    val leafAndRoot: Map[Location, Thing] = leafs.toMap[Location, Thing] + (Root -> this.self)
+    val b = branches.toSeq
+      .map { case (k, v) =>
+        v.flatten().map { case (l, t) => k / l -> t }
+      }
+    if(b.isEmpty) {
+      leafAndRoot
+    } else if(b.size == 1) {
+      b.head
+    } else {
+      leafAndRoot ++ b.reduce(_ ++ _)
+    }
+  }
+
+  def compareWith(another: Memory): Map[Location, Event] = {
+    if (this == another) {
+      Map.empty
+    } else {
+      val store = mutable.Map.empty[Location, Event]
+
+      if (this.self != another.self) {
+        store += Root -> Updated(this.self, another.self)
       }
 
-    case (other, another) => MultiError(Map(other -> another))
+      val leafKeys = this.leafs.keys ++ another.leafs.keys
+      leafKeys.foreach { k =>
+        (this.leafs.get(k), another.leafs.get(k)) match {
+          case (None, None) => throw new IllegalArgumentException("How this happened?")
+          case (Some(found), None) => store += k -> Deleted(found)
+          case (None, Some(loaded)) => store += k -> Created(loaded)
+          case (Some(found), Some(loaded)) if found != loaded =>
+            store += k -> Updated(found, loaded)
+        }
+      }
+
+      val branchKeys = this.branches.keys ++ another.branches.keys
+      branchKeys.foreach { k =>
+        (this.branches.get(k), another.branches.get(k)) match {
+          case (None, None) => throw new IllegalArgumentException("How this happened?")
+          case (Some(found), None) =>
+            found.flatten().foreach { case (l, v) =>
+              store += k / l -> Deleted(v)
+            }
+            if(found.self != Nothing) {
+              store += k -> Deleted(found.self)
+            }
+          case (None, Some(loaded)) =>
+            loaded.flatten().foreach { case (l, v) =>
+              store += k / l -> Created(v)
+            }
+            if(loaded.self != Nothing) {
+              store += k -> Created(loaded.self)
+            }
+          case (Some(found), Some(loaded)) if found != loaded =>
+            store ++= found.compareWith(loaded).map { case (l, v) => k / l -> v }
+        }
+      }
+      store.toMap
+    }
   }
 }
 object Memory {

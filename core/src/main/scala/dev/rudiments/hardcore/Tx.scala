@@ -14,20 +14,26 @@ class Tx(ctx: Agent) extends AgentCrud {
     case Some(Updated(_, found)) => Readen(found)
     case Some(Deleted(_)) => NotExist
     case Some(NotExist) => NotExist
-    case Some(_) => ???
+    case Some(n: NotFound) => n
+    case Some(other) => throw new IllegalArgumentException(s"don't know $other")
     case None => unsafeUpdateState(where, ctx ? where)
   }
 
   override def remember(subj: Location, via: O): O = {
     (read(subj), via) match {
       case (NotExist, NotExist)                              => unsafeUpdateState(subj, NotExist)
+      case (_: NotFound, NotExist)                           => unsafeUpdateState(subj, NotExist)
       case (NotExist, c: Created)                            => unsafeUpdateState(subj, c)
+      case (NotFound(_), c: Created)                         => unsafeUpdateState(subj, c)
       case (NotExist, r: Readen)                             => unsafeUpdateState(subj, r)
+      case (NotFound(_), r: Readen)                          => unsafeUpdateState(subj, r)
       case (Readen(found), Created(_))                       => AlreadyExist(found)
       case (r@Readen(r1), Readen(r2)) if r1 == r2            => r
       case (Readen(found), Updated(u2, data)) if found == u2 => unsafeUpdateState(subj, Updated(found, data))
+      case (Readen(mem: Memory), Updated(u, data)) if mem.self == u => unsafeUpdateState(subj, Updated(u, data))
       case (Readen(found), Deleted(d2))       if found == d2 => unsafeUpdateState(subj, Deleted(found))
-      case (found, other)                                    => Conflict(found, other)
+      case (found, other)                                    =>
+        Conflict(found, other)
     }
   }
 
@@ -93,6 +99,11 @@ object Tx {
     case (   NotExist,      r: Readen)                     => Conflict(NotExist, r)
     case (   NotExist,      u: Updated)                    => Conflict(NotExist, u)
     case (   NotExist,      d: Deleted)                    => Conflict(NotExist, d)
+
+    case (n: NotFound,      c: Created)                    => c
+    case (n: NotFound,      r: Readen)                     => Conflict(n, r)
+    case (n: NotFound,      u: Updated)                    => Conflict(n, u)
+    case (n: NotFound,      d: Deleted)                    => Conflict(n, d)
 
     case (   Created(c1),      Created(_))                 => AlreadyExist(c1)
     case ( c@Created(c1),      Readen(r2))     if c1 == r2 => c

@@ -22,8 +22,6 @@ class BulkTest extends AnyWordSpec with Matchers {
 
   private var commit: Commit = _
 
-  private val initialSize = ctx.total.size
-
   s"can create Commit with $sampleSize records" in {
     rFill.foreach { i =>
       tx += ID(i) -> Data(t, Seq(i, i.toString, ""))
@@ -34,8 +32,6 @@ class BulkTest extends AnyWordSpec with Matchers {
 
   "can update Memory with big Commit" in {
     ctx << commit
-    ctx.total.size should be (sampleSize + initialSize + 1) // commit + initial
-
     rRead.foreach { i =>
       ctx ? ID(i) should be (Readen(Data(t, Seq(i, i.toString, ""))))
     }
