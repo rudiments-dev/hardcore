@@ -42,9 +42,16 @@ case class Memory(
             }
           case Updated(_, _: Memory) =>
             throw new IllegalArgumentException("Not supported")
-          case u@Updated(old, t) if self != t && self == old =>
-            self = t
-            u
+          case u@Updated(old, t) =>
+            if (self != t && self == old) { //TODO seen update from (main, test) to (scala, resources) means some folder self-updating with children
+              self = t
+              u
+            } else if (self ==t) {
+              Identical
+            } else {
+              Conflict(Readen(self), u)
+            }
+
           case d@Deleted(t) =>
             if(self != Nothing && self == t) {
               self = Nothing
@@ -73,13 +80,19 @@ case class Memory(
           case (None, Some(branch)) =>
             what match {
               case Created(d: Data) =>
-                if(self != Nothing) {
-                  val old = self
-                  self = d
+                if(branch.self != Nothing) {
+                  val old = branch.self
+                  branch.self = d
                   Updated(old, d)
                 } else {
-                  self = d
+                  branch.self = d
                   Created(d)
+                }
+              case Created(Nothing) =>
+                if (branch.self == Nothing) {
+                  Identical
+                } else {
+                  Conflict(Created(Nothing), Readen(Nothing))
                 }
               case Created(_) =>
                 AlreadyExist(branch)
@@ -164,29 +177,7 @@ case class Memory(
 
   def << (in: I) : O = this.execute(in)
 
-  def seek(where: Location): Option[Memory] = where match {
-    case id: ID => this.branches.get(id)
-    case path: Path => path.ids.foldLeft(Option(this)) { (acc, el) =>
-      acc.flatMap(_.branches.get(el))
-    }
-    case Root => Some(this)
-    case Unmatched => None
-  }
-
-  def flatten(): Map[Location, Thing] = {
-    val leafAndRoot: Map[Location, Thing] = leafs.toMap[Location, Thing] + (Root -> this.self)
-    val b = branches.toSeq
-      .map { case (k, v) =>
-        v.flatten().map { case (l, t) => k / l -> t }
-      }
-    if(b.isEmpty) {
-      leafAndRoot
-    } else if(b.size == 1) {
-      b.head
-    } else {
-      leafAndRoot ++ b.reduce(_ ++ _)
-    }
-  }
+  def flatten(): Map[Location, Thing] = structure ++ allLeafs
 
   def compareWith(another: Memory): Map[Location, Event] = {
     if (this == another) {
@@ -195,15 +186,23 @@ case class Memory(
       val store = mutable.Map.empty[Location, Event]
 
       if (this.self != another.self) {
-        store += Root -> Updated(this.self, another.self)
+        if(another.self == Nothing) {
+          store += Root -> Deleted(this.self)
+        } else if(this.self == Nothing) {
+          store += Root -> Created(another.self)
+        } else {
+          store += Root -> Updated(this.self, another.self)
+        }
       }
 
       val leafKeys = this.leafs.keys ++ another.leafs.keys
       leafKeys.foreach { k =>
         (this.leafs.get(k), another.leafs.get(k)) match {
           case (None, None) => throw new IllegalArgumentException("How this happened?")
-          case (Some(found), None) => store += k -> Deleted(found)
-          case (None, Some(loaded)) => store += k -> Created(loaded)
+          case (Some(found), None) =>
+            store += k -> Deleted(found)
+          case (None, Some(loaded)) =>
+            store += k -> Created(loaded)
           case (Some(found), Some(loaded)) if found != loaded =>
             store += k -> Updated(found, loaded)
         }
@@ -214,19 +213,9 @@ case class Memory(
         (this.branches.get(k), another.branches.get(k)) match {
           case (None, None) => throw new IllegalArgumentException("How this happened?")
           case (Some(found), None) =>
-            found.flatten().foreach { case (l, v) =>
-              store += k / l -> Deleted(v)
-            }
-            if(found.self != Nothing) {
-              store += k -> Deleted(found.self)
-            }
+            store ++= found.flatten().map { case (l, v) => k / l -> Deleted(v) }
           case (None, Some(loaded)) =>
-            loaded.flatten().foreach { case (l, v) =>
-              store += k / l -> Created(v)
-            }
-            if(loaded.self != Nothing) {
-              store += k -> Created(loaded.self)
-            }
+            store ++= loaded.flatten().map { case (l, v) => k / l -> Created(v) }
           case (Some(found), Some(loaded)) if found != loaded =>
             store ++= found.compareWith(loaded).map { case (l, v) => k / l -> v }
         }
@@ -234,7 +223,28 @@ case class Memory(
       store.toMap
     }
   }
+
+  def structure: Map[Location, Thing] = {
+    val store = mutable.Map.empty[Location, Thing]
+    if(this.self != Nothing) {
+      store += Root -> this.self
+    }
+    this.branches.foreach { case (id, m) =>
+      store ++= m.structure.map { case (k, v) => id / k -> v }
+    }
+
+    store.toMap
+  }
+
+  def allLeafs: Map[Location, Thing] = {
+    val store = mutable.Map.empty[Location, Thing]
+    store ++= this.leafs
+    store ++= branches.flatMap { case (id, b) => b.allLeafs.map { case (k, v) => id / k -> v }}
+    store.toMap
+  }
 }
+
+
 object Memory {
   def empty: Memory = Memory(Nothing)
   def wrap(l: Location, t: Thing): Memory = (l, t) match {

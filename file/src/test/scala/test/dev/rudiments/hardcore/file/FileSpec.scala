@@ -11,7 +11,7 @@ import org.scalatestplus.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class FileSpec extends AnyWordSpec with Matchers {
   private val files = ID("files")
-  private val fileAgent = new FileAgent("src/test/resources/file-test", files)
+  private val fileAgent = new FileAgent("src/test/resources/file-test")
   private val ctx: Context = new Context
 
   ctx += files -> Memory.empty
@@ -88,7 +88,7 @@ class FileSpec extends AnyWordSpec with Matchers {
     out should be(Prepared(Commit(commitData)))
   }
 
-  "can save prepared into Context" ignore {
+  "can save prepared into Context" in {
     val out = fileAgent.reconsFor(ctx /! files)
     out match {
       case Prepared(cmt) =>
@@ -109,13 +109,13 @@ class FileSpec extends AnyWordSpec with Matchers {
   }
 
   "can write Commit into files elsewhere" in {
-    val otherFile = new FileAgent("build/tmp/test-files", Root)
+    val otherFile = new FileAgent("build/tmp/test-files")
     val node = Memory.fromMap(commitData.toMap[Location, CRUD.O])
     otherFile.writeFileFromNode(node, Root) should be (WrittenTextFile(Data.empty))
   }
 
   "can write commit into json file" in {
-    val otherFile = new FileAgent("build/tmp/test-files", Context.commits)
+    val otherFile = new FileAgent("build/tmp/test-files")
     ctx ? Context.commits match {
       case Readen(node: Memory) => otherFile.writeFileFromNode(node, Root)
       case other => fail("Expecting initial commit")

@@ -18,8 +18,6 @@ class TxSpec extends AnyWordSpec with Matchers {
   private val data = Data(t, Seq(true))
   private val data2 = Data(t, Seq(false))
 
-  private val initial = Commit.beginningOfTime
-
   private val initialCommit = ctx ?? ID("commits") match {
     case Found(All, values) => values
     case _ => fail("Can't read initial commits")
@@ -68,8 +66,27 @@ class TxSpec extends AnyWordSpec with Matchers {
     )))
   }
 
-  "init commit" in {
-    initial.crud.size should be (0)
-    initial.extra.size should be (0)
+  "can prepare commit comparing memory" in {
+    val to = Memory(Nothing,
+      Map(
+        ID("example-true") -> Data(Bool, true),
+        ID("example-false") -> Data(Bool, false)
+      ),
+      Map(
+        ID("nested-1") -> Memory(Nothing,
+          Map(ID("inside") -> Data(Text(20), "content of inside"))
+        ),
+        ID("nested-2") -> Memory(Nothing,
+          Map.empty[ID, Thing],
+          Map(ID("nested-3") -> Memory(Nothing,
+            Map(ID("deep-inside") -> Data(Number(0, 100), 42))
+          ))
+        )
+      ),
+    )
+
+    val compared = Memory.empty.compareWith(to)
+    val recreated = Memory.fromMap(compared)
+    recreated should be (to)
   }
 }

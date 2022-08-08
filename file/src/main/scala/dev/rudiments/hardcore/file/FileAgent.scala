@@ -10,7 +10,7 @@ import java.nio.file.{Files, Paths}
 import scala.io.Source
 import scala.util.Using
 
-class FileAgent(absolutePath: String, mount: Location) {
+class FileAgent(absolutePath: String) {
   def read(where: Location): Out = where match {
     case Root => readFile(absolutePath)
     case id: ID => readFile(absolutePath + "/" + id.key.toString)
@@ -75,47 +75,6 @@ class FileAgent(absolutePath: String, mount: Location) {
           case (Nothing, s) => Deleted(s)
         }
     }
-  }
-
-  def load(where: Location, into: Context): Out = {
-    val tx = new Tx(into)
-    readFileIntoTx(tx, where)
-    tx.>>
-  }
-
-  def readFileIntoTx(tx: Tx, where: Location): Unit = (read(where), tx.read(mount / where)) match {
-    case (Readen(file), NotExist) =>
-      file match {
-        case Data(Folder.typeOf, fs: Map[ID, File]) =>
-          tx.remember(mount / where, Created(file))
-          fs.foreach { case (id, _) => readFileIntoTx(tx, where / id) }
-        case Data(TextFile.typeOf, _) => tx.remember(mount / where, Created(file))
-        case Data(Binary, _) => tx.remember(mount / where, Created(Data(Binary, Nothing)))
-        case other => ???
-      }
-    case (Readen(file), Readen(found)) =>
-      (file, found) match {
-        case (d1@Data(Folder.typeOf, incoming: Map[ID, File]), d2@Data(Folder.typeOf, existing: Map[ID, File])) =>
-          val allKeys = existing.keys ++ incoming.keys
-          if(d1 != d2) {
-            tx.remember(mount / where, Updated(d1, d2))
-          }
-          allKeys.foreach { k => readFileIntoTx(tx, where / k) }
-        case (t1@Data(TextFile.typeOf, _), t2@Data(TextFile.typeOf, _)) => if(t1 != t2){
-          tx.remember(mount / where, Updated(t1, t2))
-        }
-        case (Data(Binary, _), Data(Binary, _)) => // do nothing with binaries
-        case (d@Data(Folder.typeOf, incoming: Map[ID, File]), mem: Memory) =>
-          val allKeys = mem.leafs.keys ++ mem.branches.keys ++ incoming.keys
-          if (d != mem.self) {
-            tx.remember(mount / where, Updated(mem.self, d))
-          }
-          allKeys.foreach { k => readFileIntoTx(tx, where / k) }
-        case (_, _) => ???
-      }
-    case (NotExist, Readen(found)) => tx.remember(mount / where, Deleted(found))
-    case (NotExist, NotExist) => NotExist
-    case (that, other) => tx.remember(mount / where, Conflict(that, other))
   }
 
   def readFile(path: String): Out = {
