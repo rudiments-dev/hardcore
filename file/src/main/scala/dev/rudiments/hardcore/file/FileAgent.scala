@@ -105,7 +105,17 @@ class FileAgent(absolutePath: String) {
   }
 
   def writeFileFromNode(node: Memory, where: Location): Out = { //TODO File events?
-    mkDir(absolutePath) //will return AlreadyExist if directory already exist
+    if(where == Root) { //will return AlreadyExist if directory already exist
+      mkDir(absolutePath)
+    } else {
+      mkDir(absolutePath + "/" + where)
+    }
+
+    val branches = node.branches.map { case (id, n) =>
+      //TODO if all leafs and branches Deleted ?
+      mkDir(absolutePath + "/" + (where / id).toString)
+      id -> writeFileFromNode(n, where / id)
+    }
 
     val leafs = node.leafs.map { //TODO more checks on update and delete?
       case (id, Created(data)) => id -> writeFile((where / id).toString, data)
@@ -116,12 +126,6 @@ class FileAgent(absolutePath: String) {
       case (id, Nothing) => id -> writeFile((where / id).toString, Nothing)
       case (id, _) =>
         id -> NotImplemented
-    }
-
-    val branches = node.branches.map { case(id, n) =>
-      //TODO if all leafs and branches Deleted ?
-      mkDir((where / id).toString)
-      id -> writeFileFromNode(n, where / id)
     }
 
     val errors = leafs ++ branches filter {
@@ -137,7 +141,7 @@ class FileAgent(absolutePath: String) {
   }
 
   def mkDir(path: String): Out = {
-    val f = new JavaFile(absolutePath + "/" + path)
+    val f = new JavaFile(path)
     try {
       if(!f.exists()) {
         f.mkdir()
