@@ -16,7 +16,7 @@ object Main extends App {
     case Prepared(cmt) => ctx /! files << cmt
     case _ => throw new IllegalStateException("Unexpected result of load")
   }
-  private val testRouter = new ScalaRouter(ctx).routes
+  private val testRouter = new ScalaRouter(ctx.node).routes
   new RootRouter(
     RootRouter.config(ConfigFactory.load()),
     "example" -> testRouter

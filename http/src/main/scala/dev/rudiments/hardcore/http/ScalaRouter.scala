@@ -9,32 +9,29 @@ import io.circe.Decoder
 
 import scala.language.implicitConversions
 
-class ScalaRouter(val ctx: Context) extends CirceSupport {
-  implicit val de: Decoder[Data] = ThingDecoder.dataDecoder(
-    Type(Field("a", Bool))
-  )
+class ScalaRouter(mem: Memory) extends CirceSupport {
+  implicit val de: Decoder[Data] = mem.leafIs match {
+    case t: Type => ThingDecoder.dataDecoder(t)
+    case _ => throw new IllegalStateException("Only types supported for now")
+  }
 
   val routes: Route = {
-    path("last-commit") {
-      get {
-        responseWith(NotExist)
-      }
-    } ~ path(Segment) { str =>
+    path(Segment) { str =>
       val id = ID(str)
       get {
-        ctx ? id
+        mem ? id
       } ~ delete {
-        ctx -= id
+        mem -= id
       } ~ entity(as[Data]) { data =>
         post {
-          ctx += id -> data
+          mem += id -> data
         } ~ put {
-          ctx *= id -> data
+          mem *= id -> data
         }
       }
     } ~ pathSingleSlash {
       get {
-        ctx << Find(All)
+        mem << Find(All)
       }
     }
   }

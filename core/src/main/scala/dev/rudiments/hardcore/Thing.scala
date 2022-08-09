@@ -12,7 +12,7 @@ trait Agent extends Thing {
   def ?? (where: Location): CRUD.O = find(where, All)
 
   def !(where: Location): Link = this ? where match {
-    case Readen(Memory(_, leafs, _)) =>
+    case Readen(Memory(_, leafs, _, _, _)) =>
       val selected = leafs.values.collect {
         case l: Link => l
       }.toSeq

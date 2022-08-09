@@ -1,15 +1,16 @@
 package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.CRUD.{Evt, I, O}
-import dev.rudiments.hardcore.Predicate.All
+import dev.rudiments.hardcore.Predicate.{All, Anything}
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
 case class Memory(
   var self: Thing = Nothing,
   leafs: mutable.Map[ID, Thing] = mutable.Map.empty,
-  branches: mutable.Map[ID, Memory] = mutable.Map.empty
+  branches: mutable.Map[ID, Memory] = mutable.Map.empty,
+  keyIs: Predicate = Text(1024),
+  leafIs: Predicate = Anything
 ) extends AgentCrud {
   override def read(where: Location): O = where match {
     case Root => Readen(this)
@@ -133,7 +134,6 @@ case class Memory(
 
       case other => throw new IllegalArgumentException(s"Not supported location: $other")
     }
-
   }
 
   def execute(in: I): O = in match {
