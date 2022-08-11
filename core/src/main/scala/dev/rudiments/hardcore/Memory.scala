@@ -242,6 +242,27 @@ case class Memory(
     store ++= branches.flatMap { case (id, b) => b.allLeafs.map { case (k, v) => id / k -> v }}
     store.toMap
   }
+
+  def decodeAndReadLocation(s: Seq[String]): (Location, Thing) = s.size match {
+    case 0 => (Root, this)
+    case 1 =>
+      val id = decodeKey(s.head)
+      (id, read(id))
+    case _ =>
+      val id = decodeKey(s.head)
+      branches.get(id) match {
+        case Some(found) =>
+          val rec = found.decodeAndReadLocation(s.tail)
+          id / rec._1 -> rec._2 //some pattern are looking at me, like `id / (pair) => id / pair._1 -> pair._2`
+        case None => Location(s) -> NotFound(Location(s))
+      }
+  }
+
+  private def decodeKey(s: String): ID = keyIs match {
+    case Text(_) => ID(s)
+    case Number(Long.MinValue, Long.MaxValue) => ID(s.toLong)
+    case other => throw new IllegalArgumentException(s"Not supported key decoding: $other")
+  }
 }
 
 

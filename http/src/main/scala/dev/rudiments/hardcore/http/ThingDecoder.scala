@@ -7,6 +7,17 @@ import io.circe.Decoder.Result
 import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
 object ThingDecoder {
+  def thingDecoder(over: Thing): Decoder[Thing] = over match {
+    case p: Plain => plainDecoder(p).map(_.asInstanceOf[Thing])
+    case t: Type => dataDecoder(t).map(_.asInstanceOf[Thing])
+    case Link(p: Path, t: Type) if p.ids.head == ID("types") => dataDecoder(t).map(_.asInstanceOf[Thing])
+    case Link(p: Path, _) => throw new IllegalArgumentException(s"Link not pointing '/types': $p")
+    case many: AnyOf => anyDecoder(many).map(_.asInstanceOf[Thing])
+
+    case Anything => throw new IllegalArgumentException("Not supported, use AnyOf(<all things>) instead")
+    case _ => ??? //TODO Predicate as AnyOf(<each predicate available>)
+  }
+
   def decoder(thing: Thing): Decoder[_] = thing match {
       case p: Plain => plainDecoder(p)
       case Enlist(of) => Decoder.decodeSeq(decoder(of))

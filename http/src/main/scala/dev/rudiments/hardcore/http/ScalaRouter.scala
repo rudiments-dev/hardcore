@@ -10,28 +10,36 @@ import io.circe.Decoder
 import scala.language.implicitConversions
 
 class ScalaRouter(mem: Memory) extends CirceSupport {
-  implicit val de: Decoder[Data] = mem.leafIs match {
-    case t: Type => ThingDecoder.dataDecoder(t)
-    case _ => throw new IllegalStateException("Only types supported for now")
-  }
+  implicit val de: Decoder[Thing] = ThingDecoder.thingDecoder(mem.leafIs)
 
   val routes: Route = {
-    path(Segment) { str =>
-      val id = ID(str)
+    path(Segments(1, 128) ~ Slash) { segments =>
       get {
-        mem ? id
-      } ~ delete {
-        mem -= id
-      } ~ entity(as[Data]) { data =>
-        post {
-          mem += id -> data
-        } ~ put {
-          mem *= id -> data
+        mem.decodeAndReadLocation(segments) match {
+          case (_, m: Memory) => m << Find(All)
+          case (_, _) => NotImplemented
         }
       }
-    } ~ pathSingleSlash {
-      get {
-        mem << Find(All)
+    } ~ path(Segments(1, 128)) { segments =>
+      val (loc, ifErr) = mem.decodeAndReadLocation(segments)
+      ifErr match {
+        case err: Error => err
+        case _ =>
+          loc match {
+            case Unmatched => NotExist
+            case l =>
+              get {
+                mem ? l
+              } ~ delete {
+                mem -= l
+              } ~ entity(as[Thing]) { data =>
+                post {
+                  mem += l -> data
+                } ~ put {
+                  mem *= l -> data
+                }
+              }
+          }
       }
     }
   }

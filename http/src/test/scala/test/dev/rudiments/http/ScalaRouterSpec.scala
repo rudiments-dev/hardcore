@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
-import io.circe.{Decoder, Json}
+import io.circe.Decoder
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -23,7 +23,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   private val mem: Memory = new Memory(Nothing, leafIs = t)
   private val router = new ScalaRouter(mem)
   private val routes = router.seal("example")
-  private implicit val de: Decoder[Data] = router.de
+  private implicit val de: Decoder[Thing] = router.de
 
   private val sample: Thing = t.data(42, "sample", "non-optional comment")
 
@@ -37,24 +37,24 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   "put item into repository" in {
     Post("/example/42", sample) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      responseAs[Data] should be (sample)
+      responseAs[Thing] should be (sample)
     }
     mem ? ID("42") should be (Readen(sample))
 
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Data] should be (sample)
+      responseAs[Thing] should be (sample)
     }
   }
 
   "update item in repository" in {
     Put("/example/42", t.data(42L, "test", "non-optional comment")) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Data] should be (t.data(42L, "test", "non-optional comment"))
+      responseAs[Thing] should be (t.data(42L, "test", "non-optional comment"))
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Data] should be (t.data(42L, "test", "non-optional comment"))
+      responseAs[Thing] should be (t.data(42L, "test", "non-optional comment"))
     }
   }
 
