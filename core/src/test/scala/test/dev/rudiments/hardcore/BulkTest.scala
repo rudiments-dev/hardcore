@@ -14,7 +14,7 @@ class BulkTest extends AnyWordSpec with Matchers {
   private val rFill = Range(1, sampleSize + 1)
   private val rRead = Range(sampleSize + 1, 1)
 
-  private val ctx: Context = new Context()
+  private val ctx: Memory = new Memory()
   private val tx: Tx = new Tx(ctx)
 
 

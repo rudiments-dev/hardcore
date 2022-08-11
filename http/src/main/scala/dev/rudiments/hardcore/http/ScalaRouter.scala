@@ -9,14 +9,14 @@ import io.circe.Decoder
 
 import scala.language.implicitConversions
 
-class ScalaRouter(mem: Memory) extends CirceSupport {
+class ScalaRouter(mem: Node) extends CirceSupport {
   implicit val de: Decoder[Thing] = ThingDecoder.thingDecoder(mem.leafIs)
 
   val routes: Route = {
     path(Segments(1, 128) ~ Slash) { segments =>
       get {
         mem.decodeAndReadLocation(segments) match {
-          case (_, Readen(m: Memory)) => m << Find(All)
+          case (_, Readen(m: Node)) => m << Find(All)
           case (l, t) =>
             NotImplemented
         }
@@ -77,7 +77,7 @@ class ScalaRouter(mem: Memory) extends CirceSupport {
     case Readen(value) =>        complete(StatusCodes.OK, value)
     case Updated(_, newValue) => complete(StatusCodes.OK, newValue)
     case Deleted(_) =>           complete(StatusCodes.NoContent)
-    case Found(_, values) =>     complete(StatusCodes.OK, Memory.fromMap(values))
+    case Found(_, values) =>     complete(StatusCodes.OK, Node.fromMap(values))
     case NotExist =>             complete(StatusCodes.NotFound)
     case AlreadyExist(_) =>      complete(StatusCodes.Conflict)
     case out: CRUD.O =>          complete(StatusCodes.OK, out)

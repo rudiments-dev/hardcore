@@ -30,7 +30,7 @@ class Tx(ctx: Agent) extends AgentCrud {
       case (Readen(found), Created(_))                       => AlreadyExist(found)
       case (r@Readen(r1), Readen(r2)) if r1 == r2            => r
       case (Readen(found), Updated(u2, data)) if found == u2 => unsafeUpdateState(subj, Updated(found, data))
-      case (Readen(mem: Memory), Updated(u, data)) if mem.self == u => unsafeUpdateState(subj, Updated(u, data))
+      case (Readen(mem: Node), Updated(u, data)) if mem.self == u => unsafeUpdateState(subj, Updated(u, data))
       case (Readen(found), Deleted(d2))       if found == d2 => unsafeUpdateState(subj, Deleted(found))
       case (found, other)                                    =>
         Conflict(found, other)
@@ -38,7 +38,7 @@ class Tx(ctx: Agent) extends AgentCrud {
   }
 
   override def find(where: Location, p: Predicate): O =
-    Memory
+    Node
       .fromMap(this.prepare())
       .find(where, p)
 

@@ -12,9 +12,9 @@ import org.scalatestplus.junit.JUnitRunner
 class FileSpec extends AnyWordSpec with Matchers {
   private val files = ID("files")
   private val fileAgent = new FileAgent("src/test/resources/file-test")
-  private val ctx: Context = new Context
+  private val ctx: Memory = new Memory
 
-  ctx += files -> Memory.empty
+  ctx += files -> Node.empty
 
   private val initialFound = ctx ?? Root match {
     case Found(All, values) =>
@@ -36,7 +36,7 @@ class FileSpec extends AnyWordSpec with Matchers {
     ID("folder1") / ID("folder2") -> Created(Data(Folder.typeOf, Map(ID("123.json") -> File.textFile))),
     ID("folder1") / ID("folder2") / ID("123.json") -> Created(Data(TextFile.typeOf, Seq("{", "  \"b\": false", "}"))),
   )
-  private val commitMemory: Memory = Memory(
+  private val commitMemory: Node = Node(
     Data(Folder.typeOf, Map(
       ID("folder1") -> File.folder,
       ID("24.bin") -> File.unknownFile,
@@ -47,11 +47,11 @@ class FileSpec extends AnyWordSpec with Matchers {
       ID("42.json") -> Data(TextFile.typeOf, Seq("{", "  \"a\": true", "}")),
     ),
     Map(
-      ID("folder1") -> Memory(
+      ID("folder1") -> Node(
         Data(Folder.typeOf, Map(ID("folder2") -> File.folder)),
         Map.empty[ID, Thing],
         Map(
-          ID("folder2") -> Memory(
+          ID("folder2") -> Node(
             Data(Folder.typeOf, Map(ID("123.json") -> File.textFile)),
             Map(
               ID("123.json") -> Data(TextFile.typeOf, Seq("{", "  \"b\": false", "}"))
@@ -103,7 +103,7 @@ class FileSpec extends AnyWordSpec with Matchers {
       case (l, other) => fail(s"Unexpected: $other")
     }
     val cmt = Commit(commitEvents.map { case (k, v) => files / k -> v })
-    val commit = Context.commits / ID(cmt.hashCode().toString) -> cmt
+    val commit = Memory.commits / ID(cmt.hashCode().toString) -> cmt
     val shouldBe = committedData + commit
 
     val found = ctx ?? Root match {
@@ -118,14 +118,14 @@ class FileSpec extends AnyWordSpec with Matchers {
 
   "can write Commit into files elsewhere" in {
     val otherFile = new FileAgent("build/tmp/test-files")
-    val node = Memory.fromMap(commitEvents.toMap[Location, CRUD.O])
+    val node = Node.fromMap(commitEvents.toMap[Location, CRUD.O])
     otherFile.writeFileFromNode(node, Root) should be (WrittenTextFile(Data.empty))
   }
 
   "can write commit into json file" in {
     val otherFile = new FileAgent("build/tmp/test-files")
-    ctx ? Context.commits match {
-      case Readen(node: Memory) => otherFile.writeFileFromNode(node, Root)
+    ctx ? Memory.commits match {
+      case Readen(node: Node) => otherFile.writeFileFromNode(node, Root)
       case other => fail("Expecting initial commit")
     }
   }

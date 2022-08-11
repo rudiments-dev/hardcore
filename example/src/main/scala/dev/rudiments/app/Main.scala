@@ -8,10 +8,10 @@ import dev.rudiments.hardcore.http.{RootRouter, ScalaRouter}
 
 object Main extends App {
   private implicit val actorSystem: ActorSystem = ActorSystem()
-  private val ctx: Context = new Context()
+  private val ctx: Memory = new Memory()
   private val files = ID("files")
   private val fileAgent = new FileAgent("./core/src")
-  ctx += files -> Memory.empty
+  ctx += files -> Node.empty
   fileAgent.reconsFor(ctx /! files) match {
     case Prepared(cmt) =>
       ctx /! files << cmt

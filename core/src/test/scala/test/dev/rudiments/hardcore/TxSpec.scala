@@ -9,7 +9,7 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class TxSpec extends AnyWordSpec with Matchers {
-  private val ctx: Context = new Context()
+  private val ctx: Memory = new Memory()
   private val tx: Tx = new Tx(ctx)
 
   private val id = ID("42")
@@ -67,26 +67,26 @@ class TxSpec extends AnyWordSpec with Matchers {
   }
 
   "can prepare commit comparing memory" in {
-    val to = Memory(Nothing,
+    val to = Node(Nothing,
       Map(
         ID("example-true") -> Data(Bool, true),
         ID("example-false") -> Data(Bool, false)
       ),
       Map(
-        ID("nested-1") -> Memory(Nothing,
+        ID("nested-1") -> Node(Nothing,
           Map(ID("inside") -> Data(Text(20), "content of inside"))
         ),
-        ID("nested-2") -> Memory(Nothing,
+        ID("nested-2") -> Node(Nothing,
           Map.empty[ID, Thing],
-          Map(ID("nested-3") -> Memory(Nothing,
+          Map(ID("nested-3") -> Node(Nothing,
             Map(ID("deep-inside") -> Data(Number(0, 100), 42))
           ))
         )
       ),
     )
 
-    val compared = Memory.empty.compareWith(to)
-    val recreated = Memory.fromMap(compared)
+    val compared = Node.empty.compareWith(to)
+    val recreated = Node.fromMap(compared)
     recreated should be (to)
   }
 }

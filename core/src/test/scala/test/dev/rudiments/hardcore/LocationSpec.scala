@@ -23,11 +23,11 @@ class LocationSpec extends AnyWordSpec with Matchers {
   )
 
   "can build hierarchical Node from paths" in {
-    Memory.fromMap(paths) should be (Memory(
+    Node.fromMap(paths) should be (Node(
       Nothing,
       Map(id5 -> Nothing),
       Map(
-        id1 -> Memory(
+        id1 -> Node(
           Nothing,
           Map(
             id2 -> Nothing,

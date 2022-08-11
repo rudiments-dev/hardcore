@@ -12,7 +12,7 @@ object ThingEncoder {
 
   def encodeData(data: Data): Json = encode(data.what, data.data)
 
-  def encodeMem(node: Memory): Json = {
+  def encodeMem(node: Node): Json = {
     val leafs = node.leafs.toSeq.map{ case (k, v) => k -> encodeAnything(v) }
     val branches = node.branches.toSeq.map { case (k, v) => k -> encodeMem(v) }
     val all: Seq[(ID, Json)] = if(node.self != Nothing) {
@@ -29,8 +29,8 @@ object ThingEncoder {
     case Data(p, v) => encode(p, v)
     case o: CRUD.O => encodeOut(o)
     case p: Predicate => encodePredicate(p)
-    case c: Commit => Json.obj(discriminator -> Json.fromString("Commit"), "crud" -> encodeMem(Memory.fromMap(c.crud)))
-    case mem: Memory => if(mem.branches.isEmpty) { //TODO specify relations via Memory constraints and fields
+    case c: Commit => Json.obj(discriminator -> Json.fromString("Commit"), "crud" -> encodeMem(Node.fromMap(c.crud)))
+    case mem: Node => if(mem.branches.isEmpty) { //TODO specify relations via Memory constraints and fields
       val links = mem.leafs.collect { case (_, l:Link) => l }.toSeq
       if(links.size == mem.leafs.size) {
         encodePredicate(AnyOf(links :_*))
@@ -104,7 +104,7 @@ object ThingEncoder {
     case NotImplemented => Json.obj("type" -> Json.fromString("NotImplemented"))
     case Prepared(cmt) => Json.obj(
       discriminator -> Json.fromString("Prepared"),
-      "CRUD" -> encodeMem(Memory.fromMap(cmt.crud))
+      "CRUD" -> encodeMem(Node.fromMap(cmt.crud))
     )
     case other =>
       Json.fromString(s"NOT IMPLEMENTED Out: $other")
@@ -126,7 +126,7 @@ object ThingEncoder {
     )
     case Committed(cmt) => Json.obj(
       discriminator -> Json.fromString("Committed"),
-      "CRUD" -> encodeMem(Memory.fromMap(cmt.crud))
+      "CRUD" -> encodeMem(Node.fromMap(cmt.crud))
     )
   }
 

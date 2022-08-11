@@ -20,7 +20,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
     Field("comment", Text(Int.MaxValue))
   )
 
-  private val mem: Memory = new Memory(Nothing, leafIs = t)
+  private val mem: Node = new Node(Nothing, leafIs = t)
   private val router = new ScalaRouter(mem)
   private val routes = router.seal("example")
   private implicit val de: Decoder[Thing] = router.de

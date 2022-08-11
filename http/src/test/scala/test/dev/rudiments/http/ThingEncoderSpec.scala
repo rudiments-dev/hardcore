@@ -1,5 +1,6 @@
 package test.dev.rudiments.http
 
+import dev.rudiments.hardcore.Predicate.All
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.ThingEncoder.encodeMem
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
@@ -11,7 +12,7 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class ThingEncoderSpec extends AnyWordSpec with Matchers with CirceSupport {
-  private val ctx: Context = new Context()
+  private val ctx: Memory = new Memory()
   private val t = Type(
     Field("id", Number(Long.MinValue, Long.MaxValue)),
     Field("name", Text(Int.MaxValue)),
@@ -19,12 +20,19 @@ class ThingEncoderSpec extends AnyWordSpec with Matchers with CirceSupport {
   )
 
   private val types = ID("types")
-  private val mem: Memory = new Memory(Nothing, leafIs = t)
+  private val mem: Node = new Node(Nothing, leafIs = t)
   private val router = new ScalaRouter(mem)
 
-  private val initial = ctx ? (ID("commits") / ID("-1089338897")) match {
-    case Readen(cmt: Commit) => cmt
-    case _ => throw new IllegalStateException("Expecting initial commit")
+  private val initial = ctx /! ID("commits") << Find(All) match {
+    case Found(All, values) => if(values.size == 1) {
+      values.head._2 match {
+        case c: Commit =>
+          c
+        case other => fail(s"Expecting commit, got $other")
+      }
+    } else {
+      fail(s"Expecting 1 initial commit, got ${values.size}")
+    }
   }
 
   "can encode links" in {
@@ -48,7 +56,7 @@ class ThingEncoderSpec extends AnyWordSpec with Matchers with CirceSupport {
   "can encode first commit" in {
     router.thingEncoder(initial) should be(Json.obj(
       "type" -> Json.fromString("Commit"),
-      "crud" -> encodeMem(Memory.fromMap(initial.crud))
+      "crud" -> encodeMem(Node.fromMap(initial.crud))
       )
     )
   }

@@ -25,13 +25,13 @@ class FileAgent(absolutePath: String) {
         val errors = loaded.collect { case p@(_, _: Error) => p }
 
         if(errors.isEmpty) {
-          val branches: Map[ID, Memory] = loaded.collect { case (id, m: Memory) => id -> m }
+          val branches: Map[ID, Node] = loaded.collect { case (id, m: Node) => id -> m }
           val data: Map[ID, Thing] = loaded.collect {
             case (_, _: Out) => None //TODO more invalid options
-            case (_, _: Memory) => None
+            case (_, _: Node) => None
             case p@(_, _) => Some(p)
           }.flatten.toMap
-          Memory(
+          Node(
             d,
             data,
             branches
@@ -44,11 +44,11 @@ class FileAgent(absolutePath: String) {
     }
   }
 
-  def reconsFor(mem: Memory): Out = {
+  def reconsFor(mem: Node): Out = {
     compose(Root) match {
       case err: Error => err
       case out: Out => out
-      case m: Memory =>
+      case m: Node =>
         val compared = mem.compareWith(m)
         val changes = compared.collect { case (l, evt: Evt) => l -> evt }
         val errors = changes.collect { case (l, err: Error) => l -> err }
@@ -104,7 +104,7 @@ class FileAgent(absolutePath: String) {
     }
   }
 
-  def writeFileFromNode(node: Memory, where: Location): Out = { //TODO File events?
+  def writeFileFromNode(node: Node, where: Location): Out = { //TODO File events?
     if(where == Root) { //will return AlreadyExist if directory already exist
       mkDir(absolutePath)
     } else {

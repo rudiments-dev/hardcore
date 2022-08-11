@@ -16,7 +16,7 @@ class ThingDecoderSpec extends AnyWordSpec with Matchers with CirceSupport {
     Field("comment", Text(Int.MaxValue))
   )
 
-  private val mem: Memory = new Memory(Nothing, leafIs = t)
+  private val mem: Node = new Node(Nothing, leafIs = t)
   private val router = new ScalaRouter(mem)
 
   "data decoder can decode" in {

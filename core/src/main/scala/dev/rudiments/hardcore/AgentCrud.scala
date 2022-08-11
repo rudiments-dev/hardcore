@@ -46,8 +46,8 @@ trait AgentCrud extends Agent {
     case (Readen(r), Nothing) => this.remember(pair._1, Deleted(r))
   }
 
-  def /! (where: Location): Memory = read(where) match {
-    case Readen(mem: Memory) => mem
+  def /! (where: Location): Node = read(where) match {
+    case Readen(mem: Node) => mem
     case _ => throw new IllegalArgumentException("Not a memory")
   }
 }
