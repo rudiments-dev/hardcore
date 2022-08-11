@@ -35,10 +35,20 @@ object ThingEncoder {
       if(links.size == mem.leafs.size) {
         encodePredicate(AnyOf(links :_*))
       } else {
-        ???
+        Json.obj(
+          "type" -> Json.fromString("Node"),
+          "self" -> encodeAnything(mem.self),
+          "leaf-is" -> encodePredicate(mem.leafIs),
+          "key-is" -> encodePredicate(mem.keyIs)
+        )
       }
     } else {
-      ???
+      Json.obj(
+        "type" -> Json.fromString("Node"),
+        "self" -> encodeAnything(mem.self),
+        "leaf-is" -> encodePredicate(mem.leafIs),
+        "key-is" -> encodePredicate(mem.keyIs)
+      )
     }
     case other =>
       Json.fromString(s"NOT IMPLEMENTED something: $other")
@@ -91,6 +101,7 @@ object ThingEncoder {
       "thing" -> encodeAnything(t)
     )
     case NotExist => Json.fromString("NotExist")
+    case NotImplemented => Json.obj("type" -> Json.fromString("NotImplemented"))
     case Prepared(cmt) => Json.obj(
       discriminator -> Json.fromString("Prepared"),
       "CRUD" -> encodeMem(Memory.fromMap(cmt.crud))
@@ -122,6 +133,20 @@ object ThingEncoder {
   def encodePredicate(p: Predicate): Json = p match {
     case Anything => Json.obj(discriminator -> Json.fromString("Anything"))
     case Nothing => Json.obj(discriminator -> Json.fromString("Nothing"))
+    case p: Plain => p match {
+      case Number(from, upTo) => Json.obj(
+        "type" -> Json.fromString("Number"),
+        "from" -> Json.fromString(from.toString),
+        "upTo" -> Json.fromString(upTo.toString)
+      )
+      case Text(maxSize) => Json.obj(
+        "type" -> Json.fromString("Text"),
+        "maxSize" -> Json.fromString(maxSize.toString),
+      )
+      case Bool => Json.obj("type" -> Json.fromString("Bool"))
+      case Binary => Json.obj("type" -> Json.fromString("Binary"))
+      case other => Json.fromString(s"OTHER PREDICATE: $other")
+    }
     case t: Type => Json.obj((discriminator -> Json.fromString("Type")) +: t.fields.map{ f => f.name -> encodePredicate(f.of) } :_*)
     case Declared(l) => Json.obj(discriminator -> Json.fromString(l.lastString))
     case Enlist(p) => Json.obj(discriminator -> Json.fromString("Enlist"), "of" -> encodePredicate(p))

@@ -16,7 +16,8 @@ case class Memory(
     case Root => Readen(this)
     case id: ID =>
       (leafs.get(id), branches.get(id)) match {
-        case (Some(_), Some(_)) => throw new IllegalStateException(s"Have both branch and leaf by #$id")
+        case (Some(_), Some(_)) =>
+          throw new IllegalStateException(s"Have both branch and leaf by #$id")
         case (Some(leaf), None) => Readen(leaf)
         case (None, Some(b)) => Readen(b)
         case (None, None) => NotExist
@@ -97,8 +98,10 @@ case class Memory(
                 }
               case Created(_) =>
                 AlreadyExist(branch)
-              case u@Updated(old, m: Memory) => ???
-              case u@Updated(old, t) => ???
+              case u@Updated(old, m: Memory) =>
+                ???
+              case u@Updated(old, t) =>
+                ???
               case d@Deleted(m: Memory) if m == branch =>
                 branches -= id
                 d
@@ -124,7 +127,12 @@ case class Memory(
           case None =>
             what match {
               case c: Created =>
-                val m = Memory.empty
+                val m = leafs.get(h) match {
+                  case Some(s) =>
+                    leafs -= h
+                    Memory(s)
+                  case None => Memory.empty
+                }
                 branches += h -> m
                 m.remember(tail, c)
               case other =>
@@ -139,7 +147,8 @@ case class Memory(
   def execute(in: I): O = in match {
     case c: Commit => commit(c)
     case Find(All) => Found(All, find())
-    case _ => NotImplemented
+    case _ =>
+      NotImplemented
   }
 
   override def find(where: Location, p: Predicate): O = this ? where match {
@@ -289,6 +298,7 @@ object Memory {
           acc
         case t: Thing =>
           acc ? el._1 match {
+            case Readen(mem: Memory) if mem.self != t && mem.self == Nothing => acc.remember(el._1, Created(t))
             case Readen(mem: Memory) if mem.self != t => acc.remember(el._1, Updated(mem.self, t))
             case Readen(mem: Memory) if mem.self == t => //OK, self with self
             case Readen(Nothing) if t == Nothing =>

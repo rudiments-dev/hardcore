@@ -83,7 +83,8 @@ class Tx(ctx: Agent) extends AgentCrud {
         case Valid => Prepared(Commit(prepare().collect { case (l, evt: Event) => (l, evt) }))
         case other => other
       }
-    case _ => NotImplemented
+    case _ =>
+      NotImplemented
   }
 
   def prepare(): Map[Location, O] =

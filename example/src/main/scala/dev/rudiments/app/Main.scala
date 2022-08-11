@@ -13,8 +13,10 @@ object Main extends App {
   private val fileAgent = new FileAgent("./core/src")
   ctx += files -> Memory.empty
   fileAgent.reconsFor(ctx /! files) match {
-    case Prepared(cmt) => ctx /! files << cmt
-    case _ => throw new IllegalStateException("Unexpected result of load")
+    case Prepared(cmt) =>
+      ctx /! files << cmt
+    case _ =>
+      throw new IllegalStateException("Unexpected result of load")
   }
   private val testRouter = new ScalaRouter(ctx.node).routes
   new RootRouter(

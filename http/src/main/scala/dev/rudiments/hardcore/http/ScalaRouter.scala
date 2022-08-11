@@ -16,8 +16,9 @@ class ScalaRouter(mem: Memory) extends CirceSupport {
     path(Segments(1, 128) ~ Slash) { segments =>
       get {
         mem.decodeAndReadLocation(segments) match {
-          case (_, m: Memory) => m << Find(All)
-          case (_, _) => NotImplemented
+          case (_, Readen(m: Memory)) => m << Find(All)
+          case (l, t) =>
+            NotImplemented
         }
       }
     } ~ path(Segments(1, 128)) { segments =>

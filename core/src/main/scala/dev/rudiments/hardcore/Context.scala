@@ -63,7 +63,8 @@ case class Context(
   def execute(in: I): O = in match {
     case c: Commit => commit(c)
     case Find(All) => Found(All, node.find())
-    case _ => NotImplemented
+    case _ =>
+      NotImplemented
   }
 
   def << (in: I) : O = this.execute(in)
