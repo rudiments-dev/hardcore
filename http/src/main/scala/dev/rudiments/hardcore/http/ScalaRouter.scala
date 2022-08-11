@@ -22,6 +22,33 @@ class ScalaRouter(mem: Memory) extends CirceSupport {
       }
     } ~ path(Segments(1, 128)) { segments =>
       val (loc, ifErr) = mem.decodeAndReadLocation(segments)
+      get {
+        (loc, ifErr) match {
+          case (Unmatched, _) => NotExist
+          case (_, err: Error) => err
+          case (l, _) => mem ? l
+        }
+      } ~ delete {
+        (loc, ifErr) match {
+          case (Unmatched, _) => NotExist
+          case (_, err: Error) => err
+          case (l, _) => mem -= l
+        }
+      } ~ entity(as[Thing]) { data =>
+        post {
+          (loc, ifErr) match {
+            case (Unmatched, _) => NotExist
+            case (_, err: Error) => err
+            case (l, _) => mem += l -> data
+          }
+        } ~ put {
+          (loc, ifErr) match {
+            case (Unmatched, _) => NotExist
+            case (_, err: Error) => err
+            case (l, _) => mem *= l -> data
+          }
+        }
+      }
       ifErr match {
         case err: Error => err
         case _ =>

@@ -72,4 +72,12 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
       response.status should be (StatusCodes.NotFound)
     }
   }
+
+  "can create deep into memory" in {
+    val path = ID("34") / "43" / "10"
+    Post("/example/34/43/10", t.data(0L, "deep", "test")) ~> routes ~> check {
+      response.status should be (StatusCodes.Created)
+      mem ? path should be (Readen(t.data(0L, "deep", "test")))
+    }
+  }
 }
