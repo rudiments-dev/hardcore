@@ -20,7 +20,8 @@ class TxSpec extends AnyWordSpec with Matchers {
 
   private val initialCommit = ctx ?? ID("commits") match {
     case Found(All, values) => values
-    case _ => fail("Can't read initial commits")
+    case other =>
+      fail("Can't read initial commits")
   }
 
   "can't read non-existing ID in Tx" in { tx ? ID("not exist") should be (NotExist) }

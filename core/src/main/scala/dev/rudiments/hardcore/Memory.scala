@@ -10,7 +10,7 @@ case class Memory(
 
   Initial.init(this)
 
-  private def unsafeUpdateState(where: Location, what: Evt): Evt = node.remember(where, what) match {
+  private def nodeEvent(where: Location, what: Evt): Evt = node.remember(where, what) match {
     case evt: Evt => evt
     case other =>
       throw new IllegalArgumentException(s"whut? $other")
@@ -20,54 +20,44 @@ case class Memory(
 
   override def remember(where: Location, via: O): O = {
     (this ? where, via) match {
-      case (NotExist, c: Created)                  => unsafeUpdateState(where, c)
-      case (NotFound(_), c: Created)               => unsafeUpdateState(where, c)
-      case (Readen(_: Node), c@Created(_: Data))   => unsafeUpdateState(where, c)
-      case (Readen(n: Node), u@Updated(old, _: Data)) if n.self == old => unsafeUpdateState(where, u)
+      case (NotExist, c: Created)                  => nodeEvent(where, c)
+      case (NotFound(_), c: Created)               => nodeEvent(where, c)
+      case (Readen(_: Node), c@Created(_: Data))   => nodeEvent(where, c)
+      case (Readen(n: Node), u@Updated(old, _: Data)) if n.self == old => nodeEvent(where, u)
       case (Readen(r), Created(_))                 =>
         AlreadyExist(r)
-      case (Readen(r), Updated(u, data)) if r == u => unsafeUpdateState(where, Updated(r, data))
-      case (Readen(r), Deleted(d)) if r == d       => unsafeUpdateState(where, Deleted(r))
+      case (Readen(r), Updated(u, data)) if r == u => nodeEvent(where, Updated(r, data))
+      case (Readen(r), Deleted(d)) if r == d       => nodeEvent(where, Deleted(r))
+      case (NotExist, Committed(cmt))              =>
+        val n = Node.empty
+        node += where -> n
+        commit(where, n, cmt) //assuming commit contains create for root
+      case (NotFound(miss), Committed(cmt))        =>
+        val n = Node.empty
+        node += where -> n
+        commit(where, n, cmt)
+      case (Readen(n: Node), Committed(cmt))       => commit(where, n, cmt)
       case (found, other)                          => Conflict(found, other)
     }
   }
 
   override def find(where: Location, p: Predicate): O = node.find(where, p)
 
-  def commit(c: Commit): O = {
-    val outputs = c.crud
-      .map { case (id, evt: Evt) =>
-        id -> remember(id, evt)
-      }
-
-    val crudErrors = outputs.collect {
-        case (id, err: Error) => (id, err)
-        case (id, NotExist) => (id, NotExist)
-      }
-
-    val p = commits / ID(c.hashCode().toString)
-    val errors = this += p -> c match {
-      case _: Created => crudErrors
-      case m: MultiError => crudErrors + (p -> m)
-      case e: Error => crudErrors + (p -> e)
-      case other => crudErrors + (p -> Conflict(c, other))
-    }
-
-    if(errors.isEmpty) {
-      Committed(c)
-    } else {
-      MultiError(errors) //TODO rollback?
-    }
-  }
-
   def execute(in: I): O = in match {
-    case c: Commit => commit(c)
     case Find(All) => Found(All, node.find())
     case _ =>
       NotImplemented
   }
 
-  def << (in: I) : O = this.execute(in)
+  private def commit(where: Location, n: Node, cmt: Commit): O = {
+    val remember = Commit(cmt.crud.map { case (l, evt) => where / l -> evt })
+    node += commits / remember.hashCode().toString -> remember match {
+      case _: Created => n.commit(cmt)
+      case err: Error => err
+    }
+  }
+
+  def << (c: Commit) : O = this.remember(Root, Committed(c))
 }
 
 object Memory {

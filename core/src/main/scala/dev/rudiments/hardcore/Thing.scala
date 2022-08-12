@@ -37,6 +37,9 @@ final case class Declared(where: Location) extends Predicate {
 final case class Data(what: Predicate, data: Any) extends Thing {
   override def toString: String = what match {
     case l: Link => l.toString + " {" + data.toString + "}"
+    case t: Type => data match {
+      case s: Seq[Any] => t.fields.map(_.name).zip(s).mkString("{", ",", "}")
+    }
     case Binary =>
       data match {
         case Nothing => "Nothing"

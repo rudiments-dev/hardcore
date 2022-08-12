@@ -272,6 +272,8 @@ case class Node(
     case Number(Long.MinValue, Long.MaxValue) => ID(s.toLong)
     case other => throw new IllegalArgumentException(s"Not supported key decoding: $other")
   }
+
+  override def toString: String = s"Node(key: $keyIs, leafs: $leafIs, total: ${leafs.size}/${branches.size})"
 }
 
 
