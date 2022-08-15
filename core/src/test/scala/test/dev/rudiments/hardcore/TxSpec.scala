@@ -1,6 +1,7 @@
 package test.dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.Predicate.All
+import dev.rudiments.hardcore.CRUD.Evt
+import dev.rudiments.hardcore.Predicate.{All, ThingsOnly}
 import dev.rudiments.hardcore._
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -18,7 +19,7 @@ class TxSpec extends AnyWordSpec with Matchers {
   private val data = Data(t, Seq(true))
   private val data2 = Data(t, Seq(false))
 
-  private val initialCommit = ctx ?? ID("commits") match {
+  private val initialCommit = ctx ?** ID("commits") match {
     case Found(All, values) => values
     case other =>
       fail("Can't read initial commits")
@@ -56,12 +57,13 @@ class TxSpec extends AnyWordSpec with Matchers {
   }
 
   "can Change Context" in {
-    val c = tx.>>.asInstanceOf[Prepared].commit
-    ctx << c should be (Committed(c))
+    tx.>> match {
+      case Prepared(cmt) => ctx << cmt should be (Committed(cmt))
+    }
   }
 
   "can see commits of Context" in {
-    ctx ?? ID("commits") should be(Found(All, initialCommit ++ Map(
+    ctx ?? ID("commits") should be(Found(ThingsOnly, initialCommit ++ Map(
       ID("1240340089") -> Commit(Map(id -> Created(data))),
       ID("-847544541") -> Commit(Map(id -> Deleted(data)))
     )))
@@ -87,7 +89,7 @@ class TxSpec extends AnyWordSpec with Matchers {
     )
 
     val compared = Node.empty.compareWith(to)
-    val recreated = Node.fromMap(compared)
+    val recreated = Node.fromEventMap(compared.collect { case (l, evt: Evt) => l -> evt })
     recreated should be (to)
   }
 }

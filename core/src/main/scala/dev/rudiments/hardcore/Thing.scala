@@ -1,6 +1,6 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.Predicate.All
+import dev.rudiments.hardcore.Predicate.{All, Structure, ThingsOnly}
 
 sealed trait Thing {}
 
@@ -8,8 +8,10 @@ trait Agent extends Thing {
   def read(where: Location): CRUD.O
   def ?(where: Location): CRUD.O = read(where)
 
-  def find(where: Location, p: Predicate = All): CRUD.O
-  def ?? (where: Location): CRUD.O = find(where, All)
+  def find(where: Location, p: Predicate): CRUD.O
+  def ?? (where: Location): CRUD.O = find(where, ThingsOnly)
+  def ?* (where: Location): CRUD.O = find(where, Structure)
+  def ?** (where: Location): CRUD.O = find(where, All)
 
   def !(where: Location): Link = this ? where match {
     case Readen(Node(_, leafs, _, _, _)) =>
@@ -55,6 +57,11 @@ object Data {
 sealed trait Predicate extends Thing {}
 object Predicate {
   case object All extends Predicate
+  case object ThingsOnly extends Predicate
+  case object DeepNodes extends Predicate
+  case object Structure extends Predicate
+  case object ThatNode extends Predicate
+
   case object Anything extends Predicate
 }
 final case class Type(fields: Field*) extends Predicate {
@@ -81,6 +88,10 @@ final case class Text(maxSize: Int) extends Plain
 final case class Number(from: AnyVal, upTo: AnyVal) extends Plain //TODO replace with more strict version
 case object Bool extends Plain {} // funny thing - in scala we can't extend object, so, or 'AnyBool' under trait, or no True and False under Bool object
 case object Binary extends Plain {} // Array[Byte]
+sealed trait Temporal extends Plain {}
+case object Date extends Temporal
+case object Time extends Temporal
+case object Timestamp extends Temporal
 
 sealed trait Abstraction extends Thing {}
 case object Nothing extends Predicate {}

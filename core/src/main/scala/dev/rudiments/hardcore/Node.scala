@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.CRUD.{Evt, I, O}
-import dev.rudiments.hardcore.Predicate.{All, Anything}
+import dev.rudiments.hardcore.Predicate.{All, Anything, DeepNodes, Structure, ThatNode, ThingsOnly}
 
 import scala.collection.mutable
 
@@ -144,32 +144,31 @@ case class Node(
     }
   }
 
-  def execute(in: I): O = in match {
-    case c: Commit => commit(c)
-    case Find(All) => Found(All, find())
-    case _ =>
-      NotImplemented
-  }
-
   override def find(where: Location, p: Predicate): O = this ? where match {
-    case Readen(n: Node) => Found(All, n.find())
+    case Readen(n: Node) => Found(p, n.find(p))
     case r: Readen => Conflict(r, Find(p))
-    case other => other
+    case err: Error => err
+    case other => ???
   }
 
-  def find(): Map[Location, Thing] = {
-    val b: Map[Location, Thing] = branches.toMap.flatMap { case (id, b) =>
-      val found: Map[Location, Thing] = b.find()
-      found.map {
-        case (Root, v) => id -> v
-        case (k, v) => id / k -> v
-      }
+  def find(p: Predicate): Map[Location, Thing] = p match {
+    case ThingsOnly => leafs.toMap
+    case DeepNodes => deepNodes()
+    case Structure => structure
+    case ThatNode =>
+      (leafs.toMap ++
+        branches.map { case (id, n) => id.asInstanceOf[Location] -> n.self }
+        ).toMap ++ Map(Root -> self)
+    case All => structure ++ allLeafs
+  }
+
+  private def deepNodes(): Map[Location, Thing] = {
+    val b = branches.toMap
+    val f = b.flatMap { case (id, n) =>
+      val found = n.find(DeepNodes)
+      found.map { case (k, v) => id / k -> v }
     }
-    if(this.self != Nothing) {
-      b + (Root -> self) ++ leafs.toMap
-    } else {
-      b ++ leafs.toMap
-    }
+    f
   }
 
   def commit(c: Commit): O = {
@@ -184,7 +183,10 @@ case class Node(
     }
   }
 
-  def << (in: I) : O = this.execute(in)
+  def << (in: I) : O = in match {
+    case c: Commit => this.commit(c)
+    case Find(p) => Found(p, this.find(p))
+  }
 
   def flatten(): Map[Location, Thing] = structure ++ allLeafs
 
@@ -289,15 +291,19 @@ object Node {
     case other => throw new IllegalArgumentException(s"$other not supported in MemoryNode")
   }
 
+  def fromEventMap(from: Map[Location, Evt]): Node = {
+    from.foldLeft(Node.empty) { (acc, el) =>
+      acc.remember(el._1, el._2) match {
+        case err: Error => throw new IllegalArgumentException(s"Error from event map: '$err'")
+        case other => //OK
+      }
+      acc
+    }
+  }
+
   def fromMap(from: Map[Location, Thing]): Node = {
     from.foldLeft(Node.empty) { (acc, el) =>
       el._2 match {
-        case o: O =>
-          acc.remember(el._1, o) match {
-            case err: Error => throw new IllegalArgumentException(s"Error from map: '$err'")
-            case other => //OK
-          }
-          acc
         case t: Thing =>
           acc ? el._1 match {
             case Readen(mem: Node) if mem.self != t && mem.self == Nothing => acc.remember(el._1, Created(t))

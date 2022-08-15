@@ -16,7 +16,7 @@ class FileSpec extends AnyWordSpec with Matchers {
 
   ctx += files -> Node.empty
 
-  private val initialFound = ctx ?? Root match {
+  private val initialFound = ctx ?** Root match {
     case Found(All, values) =>
       values
     case _ => fail("Can't read initial memory state")
@@ -92,28 +92,32 @@ class FileSpec extends AnyWordSpec with Matchers {
     val out = fileAgent.reconsFor(ctx /! files)
     out match {
       case Prepared(cmt) =>
-        val result = ctx /! files << cmt
+        val result = ctx.remember(files, Committed(cmt))
         result should be (Committed(cmt))
+
+        val committedData = commitEvents.map {
+          case (l, Created(data)) => files / l -> data
+          case (l, Updated(_, data)) => files / l -> data
+          case (l, other) => fail(s"Unexpected: $other")
+        }
+
+        val c = Commit(commitEvents.map { case (k, v) => files / k -> v })
+
+        ctx ?** Root match {
+          case Found(All, values) =>
+            val diff = values -- initialFound.keys
+            val committed = Memory.commits / ID(c.hashCode().toString) -> c
+            val shouldBe = committedData + committed
+
+            shouldBe.keys.foreach { k =>
+              diff(k) should be (shouldBe(k))
+            }
+
+            diff should be(shouldBe)
+          case other => fail("expecting Found All")
+        }
       case _ => fail("Unexpected result of load")
     }
-
-    val committedData = commitEvents.map {
-      case (l, Created(data)) => files / l -> data
-      case (l, Updated(_, data)) => files / l -> data
-      case (l, other) => fail(s"Unexpected: $other")
-    }
-    val cmt = Commit(commitEvents.map { case (k, v) => files / k -> v })
-    val commit = Memory.commits / ID(cmt.hashCode().toString) -> cmt
-    val shouldBe = committedData + commit
-
-    val found = ctx ?? Root match {
-      case Found(All, values) => values
-      case other => fail("expecting Found All")
-    }
-
-    val diff = found -- initialFound.keys
-
-    diff should be (committedData) //TODO refine file manipulation from internal memory work
   }
 
   "can write Commit into files elsewhere" in {

@@ -43,12 +43,6 @@ case class Memory(
 
   override def find(where: Location, p: Predicate): O = node.find(where, p)
 
-  def execute(in: I): O = in match {
-    case Find(All) => Found(All, node.find())
-    case _ =>
-      NotImplemented
-  }
-
   private def commit(where: Location, n: Node, cmt: Commit): O = {
     val remember = Commit(cmt.crud.map { case (l, evt) => where / l -> evt })
     node += commits / remember.hashCode().toString -> remember match {

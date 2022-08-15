@@ -30,28 +30,25 @@ object ThingEncoder {
     case o: CRUD.O => encodeOut(o)
     case p: Predicate => encodePredicate(p)
     case c: Commit => Json.obj(discriminator -> Json.fromString("Commit"), "crud" -> encodeMem(Node.fromMap(c.crud)))
-    case mem: Node => if(mem.branches.isEmpty) { //TODO specify relations via Memory constraints and fields
-      val links = mem.leafs.collect { case (_, l:Link) => l }.toSeq
-      if(links.size == mem.leafs.size) {
-        encodePredicate(AnyOf(links :_*))
+    case mem: Node =>
+      val links = mem.leafs.collect { case (_, l: Link) => l }.toSeq
+      val isEnum = links.nonEmpty && mem.branches.isEmpty && links.size == mem.leafs.size
+      if(isEnum) {
+        encodePredicate(AnyOf(links: _*))
       } else {
-        Json.obj(
-          "type" -> Json.fromString("Node"),
-          "self" -> encodeAnything(mem.self),
-          "leaf-is" -> encodePredicate(mem.leafIs),
-          "key-is" -> encodePredicate(mem.keyIs)
-        )
+        encodeNode(mem)
       }
-    } else {
-      Json.obj(
-        "type" -> Json.fromString("Node"),
-        "self" -> encodeAnything(mem.self),
-        "leaf-is" -> encodePredicate(mem.leafIs),
-        "key-is" -> encodePredicate(mem.keyIs)
-      )
-    }
     case other =>
       Json.fromString(s"NOT IMPLEMENTED something: $other")
+  }
+
+  def encodeNode(n: Node): Json = {
+    Json.obj(
+      "type" -> Json.fromString("Node"),
+      "self" -> encodeAnything(n.self),
+      "leaf-is" -> encodePredicate(n.leafIs),
+      "key-is" -> encodePredicate(n.keyIs)
+    )
   }
 
   def encode(p: Predicate, v: Any): Json = (p, v) match {
@@ -74,6 +71,7 @@ object ThingEncoder {
     case (Number(_, _), l: Long) => Json.fromLong(l)
     case (Bool, b: Boolean) => Json.fromBoolean(b)
     case (Binary, Nothing) => Json.fromString("∅")
+    case (Binary, _) => Json.fromString("TBD")
     case (_, None) => Json.Null
     case (_, _) => throw new IllegalArgumentException(s"Can't encode [$v] of $p ")
   }
