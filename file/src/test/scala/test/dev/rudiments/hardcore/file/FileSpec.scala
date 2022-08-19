@@ -1,6 +1,5 @@
 package test.dev.rudiments.hardcore.file
 
-import dev.rudiments.hardcore.Predicate.All
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.file._
 import org.junit.runner.RunWith
@@ -14,13 +13,13 @@ class FileSpec extends AnyWordSpec with Matchers {
   private val fileAgent = new FileAgent("src/test/resources/file-test")
   private val ctx: Memory = new Memory
 
-  ctx += files -> Node.empty
-
   private val initialFound = ctx ?** Root match {
     case Found(All, values) =>
       values
     case _ => fail("Can't read initial memory state")
   }
+
+  ctx += files -> Node.empty
 
   private val commitEvents: Map[Location, CRUD.Evt] = Map(
     Root -> Created(Data(Folder.typeOf, Map(
@@ -29,11 +28,11 @@ class FileSpec extends AnyWordSpec with Matchers {
       ID("42.json") -> File.textFile
     ))),
 
-    ID("folder1") -> Created(Data(Folder.typeOf, Map(ID("folder2") -> File.folder))),
+    ID("folder1") -> Created(Node(Data(Folder.typeOf, Map(ID("folder2") -> File.folder)))),
     ID("24.bin") -> Created(Data(Binary, Seq[Byte](117, 110, 107, 110, 111, 119, 110, 32, 102, 105, 108, 101, 32, 101, 120, 97, 109, 112, 108, 101))),
     ID("42.json") -> Created(Data(TextFile.typeOf, Seq("{", "  \"a\": true", "}"))),
 
-    ID("folder1") / ID("folder2") -> Created(Data(Folder.typeOf, Map(ID("123.json") -> File.textFile))),
+    ID("folder1") / ID("folder2") -> Created(Node(Data(Folder.typeOf, Map(ID("123.json") -> File.textFile)))),
     ID("folder1") / ID("folder2") / ID("123.json") -> Created(Data(TextFile.typeOf, Seq("{", "  \"b\": false", "}"))),
   )
   private val commitMemory: Node = Node(
@@ -85,6 +84,18 @@ class FileSpec extends AnyWordSpec with Matchers {
 
   "can prepare commit via Agent" in {
     val out = fileAgent.reconsFor(ctx /! files)
+    out match {
+      case Prepared(Commit(events, _)) =>
+        events.foreach { case (l, evt) =>
+          withClue(s"location: $l") {
+            commitEvents.get(l) match {
+              case Some(found) =>
+                evt should be (found)
+              case None => fail("Not found")
+            }
+          }
+        }
+    }
     out should be(Prepared(Commit(commitEvents)))
   }
 
@@ -96,6 +107,7 @@ class FileSpec extends AnyWordSpec with Matchers {
         result should be (Committed(cmt))
 
         val committedData = commitEvents.map {
+          case (Root, Created(data)) => files -> Node(data)
           case (l, Created(data)) => files / l -> data
           case (l, Updated(_, data)) => files / l -> data
           case (l, other) => fail(s"Unexpected: $other")

@@ -3,7 +3,6 @@ package dev.rudiments.hardcore.http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, StandardRoute}
-import dev.rudiments.hardcore.Predicate.{All, ThatNode, ThingsOnly}
 import dev.rudiments.hardcore._
 import io.circe.Decoder
 
@@ -14,60 +13,51 @@ class ScalaRouter(mem: Node) extends CirceSupport {
 
   val routes: Route = {
     path(Segments(1, 128) ~ Slash) { segments =>
-      get {
-        mem.decodeAndReadLocation(segments) match {
-          case (_, Readen(m: Node)) => m << Find(ThatNode)
-          case (l, t) =>
-            NotImplemented
+        get {
+          mem.decodeAndReadLocation(segments) match {
+            case (_, Readen(m: Node)) => m << Find(ThatNode)
+            case (l, t) =>
+              NotImplemented
+          }
         }
-      }
     } ~ path(Segments(1, 128)) { segments =>
       val (loc, ifErr) = mem.decodeAndReadLocation(segments)
-      get {
-        (loc, ifErr) match {
-          case (Unmatched, _) => NotExist
-          case (_, err: Error) => err
-          case (l, _) => mem ? l
-        }
-      } ~ delete {
-        (loc, ifErr) match {
-          case (Unmatched, _) => NotExist
-          case (_, err: Error) => err
-          case (l, _) => mem -= l
-        }
-      } ~ entity(as[Thing]) { data =>
-        post {
+      parameterMultiMap { params =>
+        get {
           (loc, ifErr) match {
             case (Unmatched, _) => NotExist
             case (_, err: Error) => err
-            case (l, _) => mem += l -> data
-          }
-        } ~ put {
-          (loc, ifErr) match {
-            case (Unmatched, _) => NotExist
-            case (_, err: Error) => err
-            case (l, _) => mem *= l -> data
-          }
-        }
-      }
-      ifErr match {
-        case err: Error => err
-        case _ =>
-          loc match {
-            case Unmatched => NotExist
-            case l =>
-              get {
-                mem ? l
-              } ~ delete {
-                mem -= l
-              } ~ entity(as[Thing]) { data =>
-                post {
-                  mem += l -> data
-                } ~ put {
-                  mem *= l -> data
+            case (l, _) =>
+              if (params.contains("structure")) {
+                mem ? l match {
+                  case Readen(m: Node) => m << Find(Structure)
+                  case other => other
                 }
+              } else {
+                mem ? l
               }
           }
+        } ~ delete {
+          (loc, ifErr) match {
+            case (Unmatched, _) => NotExist
+            case (_, err: Error) => err
+            case (l, _) => mem -= l
+          }
+        } ~ entity(as[Thing]) { data =>
+          post {
+            (loc, ifErr) match {
+              case (Unmatched, _) => NotExist
+              case (_, err: Error) => err
+              case (l, _) => mem += l -> data
+            }
+          } ~ put {
+            (loc, ifErr) match {
+              case (Unmatched, _) => NotExist
+              case (_, err: Error) => err
+              case (l, _) => mem *= l -> data
+            }
+          }
+        }
       }
     }
   }

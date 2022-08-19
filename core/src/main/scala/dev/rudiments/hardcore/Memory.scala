@@ -1,8 +1,7 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.CRUD.{Evt, I, O}
+import dev.rudiments.hardcore.CRUD.{Evt, O}
 import dev.rudiments.hardcore.Memory.commits
-import dev.rudiments.hardcore.Predicate.All
 
 case class Memory(
   node: Node = Node.empty

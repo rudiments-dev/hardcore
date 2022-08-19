@@ -1,7 +1,5 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.Predicate.{All, Structure, ThingsOnly}
-
 sealed trait Thing {}
 
 trait Agent extends Thing {
@@ -56,14 +54,15 @@ object Data {
 
 sealed trait Predicate extends Thing {}
 object Predicate {
-  case object All extends Predicate
-  case object ThingsOnly extends Predicate
-  case object DeepNodes extends Predicate
-  case object Structure extends Predicate
-  case object ThatNode extends Predicate
-
   case object Anything extends Predicate
 }
+sealed trait NodeSearch extends Predicate {}
+case object All extends NodeSearch
+case object ThingsOnly extends NodeSearch
+case object DeepNodes extends NodeSearch
+case object Structure extends NodeSearch
+case object ThatNode extends NodeSearch
+
 final case class Type(fields: Field*) extends Predicate {
   override def toString: String = fields.mkString("{", ",", "}")
 

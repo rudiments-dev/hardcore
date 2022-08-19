@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.CRUD.{Evt, I, O}
-import dev.rudiments.hardcore.Predicate.{All, Anything, DeepNodes, Structure, ThatNode, ThingsOnly}
+import dev.rudiments.hardcore.Predicate.Anything
 
 import scala.collection.mutable
 
@@ -33,8 +33,17 @@ case class Node(
     where match {
       case Root =>
         what match {
-          case Created(_: Node) =>
-            throw new IllegalArgumentException("Not supported")
+          case Created(in: Node) =>
+            if(in.keyIs == this.keyIs && in.leafIs == this.leafIs) {
+              if(this.self == Nothing && in.self != Nothing) {
+                this.self = in.self
+                Created(in.self)
+              } else {
+                NotImplemented
+              }
+            } else {
+              NotImplemented
+            }
           case c@Created(t: Thing) if self != t =>
             if(self == Nothing) {
               self = t
@@ -69,6 +78,12 @@ case class Node(
           case (Some(_), Some(_)) => throw new IllegalStateException(s"Have both leaf and branch by $id")
           case (Some(leaf), None) =>
             what match {
+              case Created(d: Data) =>
+                if(d == leaf) {
+                  Identical
+                } else {
+                  AlreadyExist(leaf)
+                }
               case Created(_) =>
                 AlreadyExist(leaf)
               case u@Updated(old, t) if old == leaf =>
@@ -95,6 +110,27 @@ case class Node(
                   Identical
                 } else {
                   Conflict(Created(Nothing), Readen(Nothing))
+                }
+              case Created(n: Node) =>
+                if(branch.leafs.isEmpty && branch.branches.isEmpty) {
+                  branches += id -> n
+                  Updated(branch, n)
+                } else if (
+                  branch.leafIs == n.leafIs &&
+                    branch.keyIs == n.keyIs &&
+                    branch.self == n.self
+                ) {
+                  Identical
+                } else if(
+                  branch.self == Nothing &&
+                    n.self != Nothing &&
+                    branch.keyIs == n.keyIs &&
+                    branch.leafIs == branch.leafIs
+                ) {
+                  branch.self = n.self
+                  Created(n.self)
+                } else {
+                  AlreadyExist(branch)
                 }
               case Created(_) =>
                 AlreadyExist(branch)
@@ -237,9 +273,7 @@ case class Node(
 
   def structure: Map[Location, Thing] = {
     val store = mutable.Map.empty[Location, Thing]
-    if(this.self != Nothing) {
-      store += Root -> this.self
-    }
+    store += Root -> this.copy(leafs = mutable.Map.empty, branches = mutable.Map.empty)
     this.branches.foreach { case (id, m) =>
       store ++= m.structure.map { case (k, v) => id / k -> v }
     }
@@ -292,12 +326,12 @@ object Node {
   }
 
   def fromEventMap(from: Map[Location, Evt]): Node = {
-    from.foldLeft(Node.empty) { (acc, el) =>
-      acc.remember(el._1, el._2) match {
-        case err: Error => throw new IllegalArgumentException(s"Error from event map: '$err'")
-        case other => //OK
+    from.foldLeft(Node.empty) { case (acc, (path, evt)) =>
+      acc.remember(path, evt) match {
+        case err: Error =>
+          throw new IllegalArgumentException(s"Error from event map: '$err'")
+        case other => acc //OK
       }
-      acc
     }
   }
 

@@ -1,10 +1,9 @@
 package test.dev.rudiments.http
 
-import dev.rudiments.hardcore.Predicate.All
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.ThingEncoder.encodeMem
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
-import io.circe.{Decoder, Json}
+import io.circe.Json
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -23,8 +22,8 @@ class ThingEncoderSpec extends AnyWordSpec with Matchers with CirceSupport {
   private val mem: Node = new Node(Nothing, leafIs = t)
   private val router = new ScalaRouter(mem)
 
-  private val initial = ctx /! ID("commits") << Find(All) match {
-    case Found(All, values) => if(values.size == 1) {
+  private val initial = ctx /! ID("commits") << Find(ThingsOnly) match {
+    case Found(ThingsOnly, values) => if(values.size == 1) {
       values.head._2 match {
         case c: Commit =>
           c
