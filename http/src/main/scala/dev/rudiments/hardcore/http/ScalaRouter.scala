@@ -58,6 +58,20 @@ class ScalaRouter(mem: Node) extends CirceSupport {
           }
         }
       }
+    } ~ pathEnd {
+      parameterMultiMap { params =>
+        get {
+          if (params.contains("structure")) {
+            mem ?* Root
+          } else {
+            mem ? Root
+          }
+        }
+      }
+    } ~ pathSingleSlash {
+      get {
+        mem ?? Root
+      }
     }
   }
 
