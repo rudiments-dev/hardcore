@@ -6,10 +6,19 @@ trait Agent extends Thing {
   def read(where: Location): CRUD.O
   def ?(where: Location): CRUD.O = read(where)
 
-  def find(where: Location, p: Predicate): CRUD.O
-  def ?? (where: Location): CRUD.O = find(where, ThingsOnly)
-  def ?* (where: Location): CRUD.O = find(where, Structure)
-  def ?** (where: Location): CRUD.O = find(where, All)
+  def report(q: Query): CRUD.O
+  def ?? (where: Location): CRUD.O = read(where) match {
+    case Readen(n: Node) => n.report(Find(All))
+    case other => Conflict(other, Find(All))
+  }
+  def ?* (where: Location): CRUD.O = read(where) match {
+    case Readen(n: Node) => n.report(LookFor(All))
+    case other => Conflict(other, LookFor(All))
+  }
+  def ?** (where: Location): CRUD.O = read(where) match {
+    case Readen(n: Node) => n.report(Dump(All))
+    case other => Conflict(other, Dump(All))
+  }
 
   def !(where: Location): Link = this ? where match {
     case Readen(Node(_, leafs, _, _, _)) =>
@@ -56,12 +65,7 @@ sealed trait Predicate extends Thing {}
 object Predicate {
   case object Anything extends Predicate
 }
-sealed trait NodeSearch extends Predicate {}
-case object All extends NodeSearch
-case object ThingsOnly extends NodeSearch
-case object DeepNodes extends NodeSearch
-case object Structure extends NodeSearch
-case object ThatNode extends NodeSearch
+case object All extends Predicate
 
 final case class Type(fields: Field*) extends Predicate {
   override def toString: String = fields.mkString("{", ",", "}")

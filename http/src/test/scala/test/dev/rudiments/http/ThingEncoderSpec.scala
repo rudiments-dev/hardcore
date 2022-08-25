@@ -22,8 +22,8 @@ class ThingEncoderSpec extends AnyWordSpec with Matchers with CirceSupport {
   private val mem: Node = new Node(Nothing, leafIs = t)
   private val router = new ScalaRouter(mem)
 
-  private val initial = ctx /! ID("commits") << Find(ThingsOnly) match {
-    case Found(ThingsOnly, values) => if(values.size == 1) {
+  private val initial = ctx ?? ID("commits") match {
+    case Found(_, values) => if(values.size == 1) {
       values.head._2 match {
         case c: Commit =>
           c

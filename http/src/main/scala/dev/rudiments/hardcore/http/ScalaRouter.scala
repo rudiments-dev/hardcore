@@ -15,8 +15,10 @@ class ScalaRouter(mem: Node) extends CirceSupport {
     path(Segments(1, 128) ~ Slash) { segments =>
         get {
           mem.decodeAndReadLocation(segments) match {
-            case (_, Readen(m: Node)) => m << Find(ThatNode)
-            case (l, t) =>
+            case (l, Readen(_: Node)) => mem ?? l
+            case (l, err: Error) =>
+              err
+            case (l, other) =>
               NotImplemented
           }
         }
@@ -29,10 +31,7 @@ class ScalaRouter(mem: Node) extends CirceSupport {
             case (_, err: Error) => err
             case (l, _) =>
               if (params.contains("structure")) {
-                mem ? l match {
-                  case Readen(m: Node) => m << Find(Structure)
-                  case other => other
-                }
+                mem ?* l
               } else {
                 mem ? l
               }

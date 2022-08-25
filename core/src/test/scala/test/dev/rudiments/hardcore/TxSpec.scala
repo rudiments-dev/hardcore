@@ -19,7 +19,7 @@ class TxSpec extends AnyWordSpec with Matchers {
   private val data2 = Data(t, Seq(false))
 
   private val initialCommit = ctx ?** ID("commits") match {
-    case Found(All, values) => values - Root
+    case Found(_, values) => values - Root
     case other =>
       fail("Can't read initial commits")
   }
@@ -63,7 +63,7 @@ class TxSpec extends AnyWordSpec with Matchers {
 
   "can see commits of Context" in {
     val found = ctx ?? ID("commits")
-    val expected = Found(ThingsOnly, initialCommit ++ Map(
+    val expected = Found(Find(All), initialCommit ++ Map(
       ID("1240340089") -> Commit(Map(id -> Created(data))),
       ID("-847544541") -> Commit(Map(id -> Deleted(data)))
     ))

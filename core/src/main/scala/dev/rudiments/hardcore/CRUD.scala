@@ -14,12 +14,14 @@ case object       Read extends Query with CRUD
 final case class  Update(what: Thing) extends Command with CRUD
 case object       Delete extends Command with CRUD
 final case class  Find(p: Predicate) extends Query with CRUD
+final case class  LookFor(p: Predicate) extends Query with CRUD
+final case class  Dump(p: Predicate) extends Query with CRUD
 
 final case class Created(data: Thing) extends Event with CRUD
 final case class Readen(data: Thing) extends Report with CRUD
 final case class Updated(old: Thing, data: Thing) extends Event with CRUD
 final case class Deleted(old: Thing) extends Event with CRUD
-final case class Found(p: Predicate, values: Map[Location, Thing]) extends Report with CRUD
+final case class Found(query: Query, values: Map[Location, Thing]) extends Report with CRUD
 case object NotExist extends Report with CRUD
 case class NotFound(missing: Location) extends Report with CRUD
 

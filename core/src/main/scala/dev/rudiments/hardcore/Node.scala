@@ -180,31 +180,20 @@ case class Node(
     }
   }
 
-  override def find(where: Location, p: Predicate): O = this ? where match {
-    case Readen(n: Node) => Found(p, n.find(p))
-    case r: Readen => Conflict(r, Find(p))
-    case err: Error => err
-    case other => ???
-  }
+  /* ThatNode
+   (leafs.toMap ++
+    branches.map { case (id, n) => id.asInstanceOf[Location] -> n.self }
+   ).toMap ++ Map(Root -> self)
+ */
 
-  def find(p: Predicate): Map[Location, Thing] = p match {
-    case ThingsOnly => leafs.toMap
-    case DeepNodes => deepNodes()
-    case Structure => structure
-    case ThatNode =>
-      (leafs.toMap ++
-        branches.map { case (id, n) => id.asInstanceOf[Location] -> n.self }
-        ).toMap ++ Map(Root -> self)
-    case All => structure ++ allLeafs
-  }
-
-  private def deepNodes(): Map[Location, Thing] = {
-    val b = branches.toMap
-    val f = b.flatMap { case (id, n) =>
-      val found = n.find(DeepNodes)
-      found.map { case (k, v) => id / k -> v }
-    }
-    f
+  def report(q: Query): O = q match {
+    case Read => Readen(this)
+    case f@Find(All) => Found(f, leafs.toMap)
+    case lf@LookFor(All) => Found(lf, structure)
+    case d@Dump(All) => Found(d, everything())
+    case Prepare => NotImplemented
+    case Verify => ???
+    case other => NotImplemented
   }
 
   def commit(c: Commit): O = {
@@ -221,10 +210,22 @@ case class Node(
 
   def << (in: I) : O = in match {
     case c: Commit => this.commit(c)
-    case Find(p) => Found(p, this.find(p))
+    case q: Query => this.report(q)
   }
 
-  def flatten(): Map[Location, Thing] = structure ++ allLeafs
+  def everything(prefix: Location = Root): Map[Location, Thing] = {
+    val all = this.leafs.toMap[Location, Thing] ++ branches.flatMap { case (id, b) => b.everything(id) }
+    prefix match {
+      case Root => all
+      case Unmatched => ???
+      case _: ID    => all.map { case (k, v) => prefix / k -> v }
+      case _: Path  => all.map { case (k, v) => prefix / k -> v }
+    }
+  }
+
+  def everything[K <: Thing, V <: Thing](prefix: Location, f: K => V): Map[Location, V] = {
+    everything(prefix).map { case (k, v: K) => k -> f(v) }
+  }
 
   def compareWith(another: Node): Map[Location, Event] = {
     if (this == another) {
@@ -260,9 +261,9 @@ case class Node(
         (this.branches.get(k), another.branches.get(k)) match {
           case (None, None) => throw new IllegalArgumentException("How this happened?")
           case (Some(found), None) =>
-            store ++= found.flatten().map { case (l, v) => k / l -> Deleted(v) }
+            store ++= found.everything(k, v => Deleted(v))
           case (None, Some(loaded)) =>
-            store ++= loaded.flatten().map { case (l, v) => k / l -> Created(v) }
+            store ++= loaded.everything(k, v => Created(v))
           case (Some(found), Some(loaded)) if found != loaded =>
             store ++= found.compareWith(loaded).map { case (l, v) => k / l -> v }
         }
@@ -273,18 +274,10 @@ case class Node(
 
   def structure: Map[Location, Thing] = {
     val store = mutable.Map.empty[Location, Thing]
-    store += Root -> this.copy(leafs = mutable.Map.empty, branches = mutable.Map.empty)
     this.branches.foreach { case (id, m) =>
+      store += id -> m.copy(leafs = mutable.Map.empty, branches = mutable.Map.empty)
       store ++= m.structure.map { case (k, v) => id / k -> v }
     }
-
-    store.toMap
-  }
-
-  def allLeafs: Map[Location, Thing] = {
-    val store = mutable.Map.empty[Location, Thing]
-    store ++= this.leafs
-    store ++= branches.flatMap { case (id, b) => b.allLeafs.map { case (k, v) => id / k -> v }}
     store.toMap
   }
 
@@ -315,15 +308,6 @@ case class Node(
 
 object Node {
   def empty: Node = Node(Nothing)
-  def wrap(l: Location, t: Thing): Node = (l, t) match {
-    case (Root, _: Node) => throw new IllegalArgumentException("Memory node in root is forbidden")
-    case (Root, thing) => Node(thing)
-    case (id: ID, mem: Node) => Node(branches = mutable.Map(id -> mem))
-    case (id: ID, thing) => Node(leafs = mutable.Map(id -> thing))
-    case (path: Path, _) =>
-      Node(branches = mutable.Map(path.ids.head -> wrap(path -/ path.ids.head, t)))
-    case other => throw new IllegalArgumentException(s"$other not supported in MemoryNode")
-  }
 
   def fromEventMap(from: Map[Location, Evt]): Node = {
     from.foldLeft(Node.empty) { case (acc, (path, evt)) =>

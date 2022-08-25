@@ -45,9 +45,7 @@ class BulkTest extends AnyWordSpec with Matchers {
           Data(t, Seq(-i, "!" + i.toString, "!")),
         ))
         val cmt = localTx.>>.asInstanceOf[Prepared].commit
-        ctx << (localTx.>>.asInstanceOf[Prepared].commit) should be(Committed(cmt))
-
-
+        ctx << cmt should be(Committed(cmt))
         ctx ? ID(i) should be(Readen(Data(t, Seq(-i, "!" + i.toString, "!"))))
       }
     }

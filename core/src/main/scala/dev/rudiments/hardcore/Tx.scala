@@ -37,11 +37,6 @@ class Tx(ctx: Agent) extends AgentCrud {
     }
   }
 
-  override def find(where: Location, p: Predicate): O =
-    Node
-      .fromMap(this.prepare())
-      .find(where, p)
-
   private def unsafeUpdateState(where: Location, what: O): O = {
     last.get(where) match {
       case Some(_) =>
@@ -76,7 +71,7 @@ class Tx(ctx: Agent) extends AgentCrud {
     }
   }
 
-  def report(in: I): O = in match {
+  override def report(q: Query): O = q match {
     case Verify => this.verify()
     case Prepare =>
       this.verify() match {

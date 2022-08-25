@@ -40,7 +40,7 @@ case class Memory(
     }
   }
 
-  override def find(where: Location, p: Predicate): O = node.find(where, p)
+  override def report(q: Query): O = node.report(q)
 
   private def commit(where: Location, n: Node, cmt: Commit): O = {
     val remember = Commit(cmt.crud.map { case (l, evt) => where / l -> evt })
