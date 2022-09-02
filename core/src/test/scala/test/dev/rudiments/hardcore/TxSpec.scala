@@ -89,9 +89,8 @@ class TxSpec extends AnyWordSpec with Matchers {
       ),
     )
 
-    val compared = Node.empty.compareWith(to)
-    val events = compared.collect { case (l, evt: Evt) => l -> evt }
-    val recreated = Node.fromEventMap(events)
+    val compared = Node.empty.reconcile(to)
+    val recreated = Node.fromEventMap(compared)
     recreated should be (to)
   }
 }

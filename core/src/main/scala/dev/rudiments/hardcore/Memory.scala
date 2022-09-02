@@ -6,8 +6,9 @@ import dev.rudiments.hardcore.Memory.commits
 case class Memory(
   node: Node = Node.empty
 ) extends AgentCrud {
-
+  this += commits -> Node.empty
   Initial.init(this)
+
 
   private def nodeEvent(where: Location, what: Evt): Evt = node.remember(where, what) match {
     case evt: Evt => evt
@@ -35,7 +36,8 @@ case class Memory(
         val n = Node.empty
         node += where -> n
         commit(where, n, cmt)
-      case (Readen(n: Node), Committed(cmt))       => commit(where, n, cmt)
+      case (Readen(n: Node), Committed(cmt))       =>
+        commit(where, n, cmt)
       case (found, other)                          => Conflict(found, other)
     }
   }
@@ -44,9 +46,12 @@ case class Memory(
 
   private def commit(where: Location, n: Node, cmt: Commit): O = {
     val remember = Commit(cmt.crud.map { case (l, evt) => where / l -> evt })
-    node += commits / remember.hashCode().toString -> remember match {
-      case _: Created => n.commit(cmt)
-      case err: Error => err
+    val p = commits / remember.hashCode().toString
+    node += p -> remember match {
+      case _: Created =>
+        n.commit(cmt)
+      case err: Error =>
+        err
     }
   }
 

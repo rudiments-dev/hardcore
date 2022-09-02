@@ -1,16 +1,31 @@
 package dev.rudiments.hardcore.file
 
-import dev.rudiments.hardcore.CRUD.Evt
+import dev.rudiments.hardcore.CRUD.{Evt, O}
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.ThingEncoder
 
 import java.io.{FileWriter, File => JavaFile}
+import java.lang
 import java.nio.charset.Charset
 import java.nio.file.{Files, Paths}
+import scala.collection.mutable
 import scala.io.Source
 import scala.util.Using
 
 class FileAgent(absolutePath: String) {
+  def everything(prefix: Location = Root): Map[Location, Thing] = {
+    read(prefix) match {
+      case Readen(d@Data(Folder.typeOf, folders: Map[ID, File])) =>
+        val s = Map[Location, Thing](prefix -> Node(d))
+        val files = folders.keySet.flatMap { k => everything(prefix / k) }.toMap
+        s ++ files
+      case Readen(d: Data) =>
+        Map[Location, Thing](prefix -> d)
+      case other =>
+        throw new IllegalArgumentException(s"Unexpected read result of $absolutePath/$prefix}")
+    }
+  }
+
   def read(where: Location): Out = where match {
     case Root => readFile(absolutePath)
     case id: ID => readFile(absolutePath + "/" + id.key.toString)
@@ -49,16 +64,12 @@ class FileAgent(absolutePath: String) {
       case err: Error => err
       case out: Out => out
       case m: Node =>
-        val compared = mem.compareWith(m)
+        val compared = mem.reconcile(m)
         val changes = compared.collect { case (l, evt: Evt) => l -> evt }
-        val errors = changes.collect { case (l, err: Error) => l -> err }
+        val errors = compared.collect { case (l, err: Error) => l -> err }
         if (errors.isEmpty && changes.nonEmpty) {
-          if(changes.size == 1) {
-            if(changes.keys.head == Root) {
-              changes(Root)
-            } else {
-              Prepared(Commit(changes))
-            }
+          if (changes.size == 1 && changes.contains(Root)) {
+            changes(Root)
           } else {
             Prepared(Commit(changes))
           }
@@ -75,6 +86,22 @@ class FileAgent(absolutePath: String) {
           case (Nothing, s) => Deleted(s)
         }
     }
+  }
+
+  def reconcile(to: Node): Map[Location, O] = {
+    val source = to.everything()
+    val target = this.everything()
+    val keys = (source.keySet ++ target.keySet).toSeq.sorted(Location)
+
+    keys.map { k =>
+      (source.get(k), target.get(k)) match {
+        case (None, None) => throw new IllegalStateException("How this happen?")
+        case (None, Some(incoming)) => k -> Created(incoming)
+        case (Some(existing), Some(incoming)) if existing == incoming => k -> Identical
+        case (Some(existing), Some(incoming)) if existing != incoming => k -> Updated(existing, incoming)
+        case (Some(existing), None) => k -> Deleted(existing)
+      }
+    }.toMap
   }
 
   def readFile(path: String): Out = {

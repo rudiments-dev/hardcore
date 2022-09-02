@@ -1,7 +1,7 @@
 package test.dev.rudiments.http
 
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.ThingEncoder.encodeMem
+import dev.rudiments.hardcore.http.ThingEncoder.encodeNode
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
 import io.circe.Json
 import org.junit.runner.RunWith
@@ -55,7 +55,7 @@ class ThingEncoderSpec extends AnyWordSpec with Matchers with CirceSupport {
   "can encode first commit" in {
     router.thingEncoder(initial) should be(Json.obj(
       "type" -> Json.fromString("Commit"),
-      "crud" -> encodeMem(Node.fromMap(initial.crud))
+      "crud" -> encodeNode(Node.fromMap(initial.crud))
       )
     )
   }

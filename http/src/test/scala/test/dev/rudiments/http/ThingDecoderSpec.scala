@@ -26,4 +26,20 @@ class ThingDecoderSpec extends AnyWordSpec with Matchers with CirceSupport {
       "comment" -> Json.fromString("non-optional comment")
     )) should be (Right(t.data(42, "sample", "non-optional comment")))
   }
+
+  "can encode and decode empty Node" ignore {
+    val encoded = thingEncoder(Node.empty)
+    encoded should be (Json.obj(
+      "type" -> Json.fromString("Node"),
+      "self" -> Json.obj("type" -> Json.fromString("Nothing")),
+      "leaf-is" -> Json.obj("type" -> Json.fromString("Anything")),
+      "key-is" -> Json.obj(
+        "type" -> Json.fromString("Text"),
+        "maxSize" -> Json.fromString("1024")
+      )
+    ))
+
+    val decoded = router.de.decodeJson(encoded)
+    decoded should be (Node.empty)
+  }
 }

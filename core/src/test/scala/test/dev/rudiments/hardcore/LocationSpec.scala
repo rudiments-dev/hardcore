@@ -17,6 +17,7 @@ class LocationSpec extends AnyWordSpec with Matchers {
   private val paths: Map[Location, Thing] = Map(
     id5 -> Nothing,
     Root -> Nothing,
+    id1 -> Node.empty, //is it ok?
     id1 / id2 -> Nothing,
     id1 / id3 -> Nothing,
     id1 / id4 -> Nothing,

@@ -3,190 +3,165 @@ package dev.rudiments.hardcore
 import dev.rudiments.hardcore.CRUD.{Evt, I, O}
 import dev.rudiments.hardcore.Predicate.Anything
 
+import java.lang
+import java.lang.IllegalStateException
 import scala.collection.mutable
 
 case class Node(
   var self: Thing = Nothing,
   leafs: mutable.Map[ID, Thing] = mutable.Map.empty,
   branches: mutable.Map[ID, Node] = mutable.Map.empty,
+  relations: mutable.Map[Location, Seq[Location]] = mutable.Map.empty,
   keyIs: Predicate = Text(1024),
   leafIs: Predicate = Anything
 ) extends AgentCrud {
-  override def read(where: Location): O = where match {
-    case Root => Readen(this)
-    case id: ID =>
-      (leafs.get(id), branches.get(id)) match {
-        case (Some(_), Some(_)) =>
-          throw new IllegalStateException(s"Have both branch and leaf by #$id")
-        case (Some(leaf), None) => Readen(leaf)
-        case (None, Some(b)) => Readen(b)
-        case (None, None) => NotExist
-      }
-    case path: Path => branches.get(path.ids.head) match {
-      case Some(node) => node ? (path -/ path.ids.head)
-      case None => NotFound(where)
+  override def read(where: Location): O = {
+    where match {
+      case Root => Readen(this)
+
+      case id: ID =>
+        (leafs.get(id), branches.get(id)) match {
+          case (Some(l), Some(b)) =>
+            Conflict(Readen(l), Readen(b))
+          case (Some(leaf), None) => Readen(leaf)
+          case (None, Some(b)) => Readen(b)
+          case (None, None) => NotExist
+        }
+
+      case path: Path =>
+        branches.get(path.ids.head) match {
+          case Some(node) => node.read(path.dropHead)
+          case None => NotFound(path)
+        }
+
+      case _ =>
+        NotImplemented
     }
-    case _ => throw new IllegalArgumentException("Not supported")
+  }
+
+//  from.get(Root) match {
+//    case Some(Identical) => Node.empty
+//    case Some(Created(n: Node)) => n
+//    case Some(Created(t: Thing)) => Node(t)
+//    case Some(Updated(n1, n2: Node)) if n1 == Node.empty => n2
+//    case None => Node.empty
+//    case other => throw new IllegalArgumentException(s"What happened? $other")
+//  }
+
+  def rememberSelf(what: O): O = what match {
+    case Identical => Identical
+    case Created(n: Node) =>
+      NotSupported
+    case c@Created(thing) => if(tags().contains(Node.Self)) {
+      AlreadyExist(this.self)
+    } else {
+      this.self = thing
+      c
+    }
+    case u@Updated(old: Node, n: Node) =>
+      this.self = n.self //TODO - update checks
+      u
+    case Updated(old: Thing, n: Node) =>
+      NotSupported
+    case Updated(old: Node, n: Thing) =>
+      NotSupported
+    case u@Updated(old, newby) => if(tags().contains(Node.Self)) {
+      if(old == this.self) {
+        this.self = newby
+        u
+      } else {
+        Conflict(Readen(this.self), u)
+      }
+    } else {
+      NotExist
+    }
+    case d@Deleted(old) => if(tags().contains(Node.Self)) {
+      if(old == this.self) {
+        this.self = Nothing
+        d
+      } else {
+        Conflict(Readen(this.self), d)
+      }
+    } else {
+      NotExist
+    }
+    case other =>
+      NotSupported
+  }
+
+  def redirect(path: Path, what: O): O = {
+    this.read(path.dropTail) match {
+      case Readen(n: Node) =>
+        n.read(path.last) match {
+          case Readen(l: Node) => l.rememberSelf(what)
+          case Readen(thing) => n.asContainer(path.last, what)
+          case NotExist =>
+            n.asContainer(path.last, what)
+        }
+      case err: Error => err
+      case nf: NotFound => nf
+      case NotExist =>
+        NotExist
+      case other => Conflict(other, what)
+    }
+  }
+
+  def asContainer(id: ID, what: O): O = {
+    this.read(id) match {
+      case NotExist =>
+        what match {
+          case c@Created(n: Node) =>
+            this.branches += id -> n
+            c
+          case c@Created(thing) =>
+            this.leafs += id -> thing
+            c
+          case other => NotExist
+        }
+
+      case r@Readen(n: Node) =>
+        what match {
+          case c@Created(_) => AlreadyExist(n)
+          case u: Updated => ???
+          case d@Deleted(old) if old == n =>
+              this.branches -= id
+              d
+          case d: Deleted => Conflict(r, d)
+          case other => n.rememberSelf(other)
+        }
+      case r@Readen(thing) =>
+        what match {
+          case _: Created => AlreadyExist(thing)
+
+          case u@Updated(old, t) if old == thing =>
+            this.leafs += id -> t
+            u
+          case u: Updated => Conflict(r, u)
+
+          case d@Deleted(old) if old == thing =>
+            this.leafs -= id
+            d
+          case d@Deleted(old) => Conflict(r, d)
+
+          case other => NotImplemented
+        }
+    }
   }
 
   override def remember(where: Location, what: O): O = {
     where match {
       case Root =>
-        what match {
-          case Created(in: Node) =>
-            if(in.keyIs == this.keyIs && in.leafIs == this.leafIs) {
-              if(this.self == Nothing && in.self != Nothing) {
-                this.self = in.self
-                Created(in.self)
-              } else {
-                NotImplemented
-              }
-            } else {
-              NotImplemented
-            }
-          case c@Created(t: Thing) if self != t =>
-            if(self == Nothing) {
-              self = t
-              c
-            } else {
-              AlreadyExist(self)
-            }
-          case Updated(_, _: Node) =>
-            throw new IllegalArgumentException("Not supported")
-          case u@Updated(old, t) =>
-            if (self != t && self == old) { //TODO seen update from (main, test) to (scala, resources) means some folder self-updating with children
-              self = t
-              u
-            } else if (self ==t) {
-              Identical
-            } else {
-              Conflict(Readen(self), u)
-            }
-
-          case d@Deleted(t) =>
-            if(self != Nothing && self == t) {
-              self = Nothing
-              d
-            } else {
-              Conflict(Readen(self), d)
-            }
-          case other => throw new IllegalArgumentException(s"Expecting CRUD Event, got $other")
-        }
-
+        this.rememberSelf(what)
       case id: ID =>
-        (leafs.get(id), branches.get(id)) match {
-          case (Some(_), Some(_)) => throw new IllegalStateException(s"Have both leaf and branch by $id")
-          case (Some(leaf), None) =>
-            what match {
-              case Created(d: Data) =>
-                if(d == leaf) {
-                  Identical
-                } else {
-                  AlreadyExist(leaf)
-                }
-              case Created(_) =>
-                AlreadyExist(leaf)
-              case u@Updated(old, t) if old == leaf =>
-                leafs += id -> t
-                u
-              case d@Deleted(old) if old == leaf =>
-                leafs -= id
-                d
-              case other => throw new IllegalArgumentException(s"Expecting CRUD Event, got $other")
-            }
-          case (None, Some(branch)) =>
-            what match {
-              case Created(d: Data) =>
-                if(branch.self != Nothing) {
-                  val old = branch.self
-                  branch.self = d
-                  Updated(old, d)
-                } else {
-                  branch.self = d
-                  Created(d)
-                }
-              case Created(Nothing) =>
-                if (branch.self == Nothing) {
-                  Identical
-                } else {
-                  Conflict(Created(Nothing), Readen(Nothing))
-                }
-              case Created(n: Node) =>
-                if(branch.leafs.isEmpty && branch.branches.isEmpty) {
-                  branches += id -> n
-                  Updated(branch, n)
-                } else if (
-                  branch.leafIs == n.leafIs &&
-                    branch.keyIs == n.keyIs &&
-                    branch.self == n.self
-                ) {
-                  Identical
-                } else if(
-                  branch.self == Nothing &&
-                    n.self != Nothing &&
-                    branch.keyIs == n.keyIs &&
-                    branch.leafIs == branch.leafIs
-                ) {
-                  branch.self = n.self
-                  Created(n.self)
-                } else {
-                  AlreadyExist(branch)
-                }
-              case Created(_) =>
-                AlreadyExist(branch)
-              case u@Updated(old, m: Node) =>
-                ???
-              case u@Updated(old, t) =>
-                ???
-              case d@Deleted(m: Node) if m == branch =>
-                branches -= id
-                d
-              case other => throw new IllegalArgumentException(s"Expecting CRUD Event, got $other")
-            }
-          case (None, None) =>
-            what match {
-              case c@Created(m: Node) =>
-                branches += id -> m
-                c
-              case c@Created(t) =>
-                leafs += id -> t
-                c
-              case other => NotExist
-            }
-        }
-
+        this.asContainer(id, what)
       case path: Path =>
-        val h = path.ids.head
-        val tail = path -/ h
-        branches.get(h) match {
-          case Some(found) => found.remember(tail, what)
-          case None =>
-            what match {
-              case c: Created =>
-                val m = leafs.get(h) match {
-                  case Some(s) =>
-                    leafs -= h
-                    Node(s)
-                  case None => Node.empty
-                }
-                branches += h -> m
-                m.remember(tail, c)
-              case other =>
-                NotFound(path)
-            }
-        }
-
-      case other => throw new IllegalArgumentException(s"Not supported location: $other")
+        this.redirect(path, what)
+      case other =>
+        throw new IllegalArgumentException(s"Not supported location: $other")
     }
   }
 
-  /* ThatNode
-   (leafs.toMap ++
-    branches.map { case (id, n) => id.asInstanceOf[Location] -> n.self }
-   ).toMap ++ Map(Root -> self)
- */
-
-  def report(q: Query): O = q match {
+  override def report(q: Query): O = q match {
     case Read => Readen(this)
     case f@Find(All) => Found(f, leafs.toMap)
     case lf@LookFor(All) => Found(lf, structure)
@@ -197,9 +172,13 @@ case class Node(
   }
 
   def commit(c: Commit): O = {
-    val errors = c.crud
-      .map { case (id, evt: Evt) => id -> remember(id, evt) }
-      .collect { case (id, err: Error) => (id, err) }
+    val ordered = c.crud.keys.toSeq.sorted(Location)
+    val output = ordered.map { l => l -> remember(l, c.crud(l)) }.toMap
+    val errors = output.collect {
+      case p@(_, _: Error) => p
+      case p@(_, NotExist) => p
+      case p@(_, _: NotFound) => p
+    }
 
     if(errors.isEmpty) {
       Committed(c)
@@ -209,17 +188,18 @@ case class Node(
   }
 
   def << (in: I) : O = in match {
-    case c: Commit => this.commit(c)
     case q: Query => this.report(q)
+    case c: Commit => this.commit(c)
   }
 
   def everything(prefix: Location = Root): Map[Location, Thing] = {
-    val all = this.leafs.toMap[Location, Thing] ++ branches.flatMap { case (id, b) => b.everything(id) }
-    prefix match {
-      case Root => all
-      case Unmatched => ???
-      case _: ID    => all.map { case (k, v) => prefix / k -> v }
-      case _: Path  => all.map { case (k, v) => prefix / k -> v }
+    val s = Map[Location, Thing](Root -> this.selfCopy())
+    val l = this.leafs.toMap
+    val b = branches.map { case (k, v) => k -> v.selfCopy() }.toMap
+    val deep = branches.flatMap { case (id, b) => b.everything(id) }.toMap
+    val all = s ++ l ++ b ++ deep
+    all.map { case (k, v) =>
+      prefix / k -> v
     }
   }
 
@@ -227,49 +207,20 @@ case class Node(
     everything(prefix).map { case (k, v: K) => k -> f(v) }
   }
 
-  def compareWith(another: Node): Map[Location, Event] = {
-    if (this == another) {
-      Map.empty
-    } else {
-      val store = mutable.Map.empty[Location, Event]
+  def reconcile(to: Node): Map[Location, O] = {
+    val source = this.everything()
+    val target = to.everything()
+    val keys = (source.keySet ++ target.keySet).toSeq.sorted(Location)
 
-      if (this.self != another.self) {
-        if(another.self == Nothing) {
-          store += Root -> Deleted(this.self)
-        } else if(this.self == Nothing) {
-          store += Root -> Created(another.self)
-        } else {
-          store += Root -> Updated(this.self, another.self)
-        }
+    keys.map { k =>
+      (source.get(k), target.get(k)) match {
+        case (None, None) => throw new IllegalStateException("How this happen?")
+        case (None, Some(incoming)) => k -> Created(incoming)
+        case (Some(existing), Some(incoming)) if existing == incoming => k -> Identical
+        case (Some(existing), Some(incoming)) if existing != incoming => k -> Updated(existing, incoming)
+        case (Some(existing), None) => k -> Deleted(existing)
       }
-
-      val leafKeys = this.leafs.keys ++ another.leafs.keys
-      leafKeys.foreach { k =>
-        (this.leafs.get(k), another.leafs.get(k)) match {
-          case (None, None) => throw new IllegalArgumentException("How this happened?")
-          case (Some(found), None) =>
-            store += k -> Deleted(found)
-          case (None, Some(loaded)) =>
-            store += k -> Created(loaded)
-          case (Some(found), Some(loaded)) if found != loaded =>
-            store += k -> Updated(found, loaded)
-        }
-      }
-
-      val branchKeys = this.branches.keys ++ another.branches.keys
-      branchKeys.foreach { k =>
-        (this.branches.get(k), another.branches.get(k)) match {
-          case (None, None) => throw new IllegalArgumentException("How this happened?")
-          case (Some(found), None) =>
-            store ++= found.everything(k, v => Deleted(v))
-          case (None, Some(loaded)) =>
-            store ++= loaded.everything(k, v => Created(v))
-          case (Some(found), Some(loaded)) if found != loaded =>
-            store ++= found.compareWith(loaded).map { case (l, v) => k / l -> v }
-        }
-      }
-      store.toMap
-    }
+    }.toMap
   }
 
   def structure: Map[Location, Thing] = {
@@ -303,46 +254,92 @@ case class Node(
   }
 
   override def toString: String = s"Node(key: $keyIs, leafs: $leafIs, total: ${leafs.size}/${branches.size})"
+
+  def tags(): Set[Node.Tag] = { //TODO Agent on Tag + control of update
+    Seq(
+      (self != Nothing) -> Node.Self,
+      branches.nonEmpty -> Node.Branches,
+      leafs.nonEmpty -> Node.Leafs,
+      (branches.nonEmpty || leafs.nonEmpty) -> Node.Container,
+      relations.nonEmpty -> Node.Relations
+    ).collect { case (true, n) => n }.toSet
+  }
+
+  def selfCopy(): Node = this.copy(
+    leafs = mutable.Map.empty,
+    branches = mutable.Map.empty
+  )
 }
 
 
 object Node {
+  sealed trait Tag {}
+  case object Self extends Tag
+  case object Container extends Tag
+  case object Leafs extends Tag
+  case object Branches extends Tag
+  case object Relations extends Tag
+
   def empty: Node = Node(Nothing)
 
-  def fromEventMap(from: Map[Location, Evt]): Node = {
-    from.foldLeft(Node.empty) { case (acc, (path, evt)) =>
-      acc.remember(path, evt) match {
-        case err: Error =>
-          throw new IllegalArgumentException(s"Error from event map: '$err'")
-        case other => acc //OK
+  def fromEventMap(from: Map[Location, O]): Node = {
+    val initial = from.get(Root) match {
+      case Some(Identical) => Node.empty
+      case Some(Created(n: Node)) => n
+      case Some(Created(t: Thing)) => Node(t)
+      case Some(Updated(n1, n2: Node)) if n1 == Node.empty => n2
+      case None => Node.empty
+      case other => throw new IllegalArgumentException(s"What happened? $other")
+    }
+    val ordered = (from.keySet - Root).toSeq.sorted(Location)
+    ordered.foldLeft(initial) { case (acc, l) =>
+      from(l) match {
+        case Identical => acc //DO nothing
+        case evt: Evt =>
+          acc.remember(l, evt) match {
+            case _: Evt => acc
+            case Identical => acc
+            case err: Error => throw new IllegalStateException(s"Error while recreating node: $l -> $err")
+            case other => throw new IllegalStateException(s"Unexpected while recreating node: $l -> $other")
+          }
+        case report: Report =>
+          throw new IllegalArgumentException(s"Expecting CRUD event, got report $l -> $report")
+        case other =>
+          throw new IllegalArgumentException(s"Expecting CRUD event, got $l -> $other")
       }
     }
   }
 
   def fromMap(from: Map[Location, Thing]): Node = {
-    from.foldLeft(Node.empty) { (acc, el) =>
-      el._2 match {
-        case t: Thing =>
-          acc ? el._1 match {
-            case Readen(mem: Node) if mem.self != t && mem.self == Nothing => acc.remember(el._1, Created(t))
-            case Readen(mem: Node) if mem.self != t => acc.remember(el._1, Updated(mem.self, t))
-            case Readen(mem: Node) if mem.self == t => //OK, self with self
-            case Readen(Nothing) if t == Nothing =>
-            //OK, nothing with nothing
-            case Readen(_: Thing) =>
-              throw new IllegalArgumentException(s"Error from map: '${el._1} already exist'")
-            case NotExist => acc.remember(el._1, Created(t))
-            case NotFound(_) => acc.remember(el._1, Created(t))
-          }
-          acc
-        case other => //TODO do not ignore errors
-          throw new IllegalArgumentException(s"Wrong type of thing: $other")
+    val ordered = from.keys.toSeq.sorted(Location)
+
+    ordered.foldLeft(Node.empty) { (n, l) =>
+      if(l == Root) {
+        n.self = from.get(l) match {
+          case Some(nd: Node) => nd.self
+          case Some(t: Thing) => t
+          case None => Nothing
+        }
+        n
+      } else {
+        (from(l), n ? l) match {
+          case (t, NotExist) =>
+            n.remember(l, Created(t))
+            n
+          case (t, nf: NotFound) =>
+            //TODO create empty nodes from nf.missing
+            n.remember(l, Created(t))
+            n
+          case (t, other) =>
+            throw new IllegalArgumentException(s"$other not supported")
+        }
       }
     }
   }
 
-  def leafs(prefix: Location, from: Map[String, Predicate]): Node = {
-    Node(leafs = mutable.Map.from(from.map { case (k, v) => ID(k) -> Link(prefix / k, v) }))
+  def partnership(prefix: Location, from: Map[String, Predicate]): Node = {
+    Node(relations = mutable.Map(
+      (ID("types") / "Partners") -> from.map { case (k, _) => prefix / k }.toSeq ))
   }
 
   def apply(self: Thing, leafs: Map[ID, Thing], branches: Map[ID, Node]): Node = new Node(self, mutable.Map.from(leafs), mutable.Map.from(branches))

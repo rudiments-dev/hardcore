@@ -89,6 +89,8 @@ class ScalaRouter(mem: Node) extends CirceSupport {
       complete(StatusCodes.OK, node)
     case NotExist =>
       complete(StatusCodes.NotFound)
+    case _: NotFound =>
+      complete(StatusCodes.NotFound)
     case AlreadyExist(_) =>
       complete(StatusCodes.Conflict)
     case out: CRUD.O =>

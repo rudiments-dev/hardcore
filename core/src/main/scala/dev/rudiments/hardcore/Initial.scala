@@ -3,11 +3,12 @@ package dev.rudiments.hardcore
 import dev.rudiments.hardcore.Predicate.Anything
 
 object Initial {
-  val types: ID = ID("types")
+    val types: ID = ID("types")
   private val predicate: Declared = Declared(types / "Predicate")
 
   def init(ctx: Memory): Unit = {
     val tx = new Tx(ctx)
+    tx += types -> Node.empty
     locations(tx)
     plain(tx)
     predicates(tx)
@@ -24,7 +25,8 @@ object Initial {
 
     prepared match {
       case Prepared(c) => ctx << c match {
-        case Committed(_) =>
+        case Committed(cmt) =>
+          cmt
         case _ => throw new IllegalStateException("Initial commit failed")
       }
       case _ => throw new IllegalStateException("Initial commit not prepared")
@@ -79,33 +81,33 @@ object Initial {
       tx += types / k -> v
     }
 
-    tx += types / "CRUD" -> Node.leafs(types, crud)
-    tx += types / "In" -> Node.leafs(types, crudIn)
-    tx += types / "Out" -> Node.leafs(types, crudOut)
-    tx += types / "Error" -> Node.leafs(types, crudErrors)
+    tx += types / "CRUD" -> Node.partnership(types, crud)
+    tx += types / "In" -> Node.partnership(types, crudIn)
+    tx += types / "Out" -> Node.partnership(types, crudOut)
+    tx += types / "Error" -> Node.partnership(types, crudErrors)
 
-    tx += types / "Command" -> Node.leafs(types, Map(
+    tx += types / "Command" -> Node.partnership(types, Map(
       "Create" -> crud("Create"),
       "Update" -> crud("Update"),
       "Delete" -> crud("Delete"),
       "Commit" -> crud("Commit"),
     ))
 
-    tx += types / "Event" -> Node.leafs(types, Map(
+    tx += types / "Event" -> Node.partnership(types, Map(
       "Created" -> crud("Created"),
       "Updated" -> crud("Updated"),
       "Deleted" -> crud("Deleted"),
       "Committed" -> crud("Committed")
     ))
 
-    tx += types / "Query" -> Node.leafs(types, Map(
+    tx += types / "Query" -> Node.partnership(types, Map(
       "Read" -> crud("Read"),
       "Find" -> crud("Find"),
       "Prepare" -> crud("Prepare"),
       "Verify" -> crud("Verify")
     ))
 
-    tx += types / "Report" -> Node.leafs(types, Map(
+    tx += types / "Report" -> Node.partnership(types, Map(
       "Readen" -> crud("Readen"),
       "Found" -> crud("Found"),
       "NotExist" -> crud("NotExist"),
@@ -146,7 +148,7 @@ object Initial {
 
     composite.foreach { case (k, v) => tx += types / k -> v }
 
-    tx += types / "Predicate" -> Node.leafs(types, composite)
+    tx += types / "Predicate" -> Node.partnership(types, composite)
   }
 
   private def plain(tx: Tx): Unit = {
@@ -162,7 +164,7 @@ object Initial {
       "Binary" -> Nothing
     )
     plainTypes.foreach { case (k, v) => tx += types / k -> v }
-    tx += types / "Plain" -> Node.leafs(types, plainTypes)
+    tx += types / "Plain" -> Node.partnership(types, plainTypes)
   }
 
   private def locations(tx: Tx): Unit = {
@@ -178,6 +180,6 @@ object Initial {
     )
 
     loc foreach { case (k, v) => tx += types / k -> v }
-    tx += types / "Location" -> Node.leafs(types, loc)
+    tx += types / "Location" -> Node.partnership(types, loc)
   }
 }

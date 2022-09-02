@@ -6,49 +6,52 @@ import io.circe.{Encoder, Json, KeyEncoder}
 
 object ThingEncoder {
   val discriminator = "type"
+  val partners: Location = ID("types") / "Partners"
 
   implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.key.toString)
   implicit val pathEncoder: KeyEncoder[Path] = KeyEncoder.encodeKeyString.contramap(path => path.toString)
 
   def encodeData(data: Data): Json = encode(data.what, data.data)
 
-  def encodeMem(node: Node): Json = {
-    val leafs = node.leafs.toSeq.map{ case (k, v) => k -> encodeAnything(v) }
-    val branches = node.branches.toSeq.map { case (k, v) => k -> encodeMem(v) }
-    val all: Seq[(ID, Json)] = if(node.self != Nothing) {
-      leafs ++ branches :+ (ID("self") -> encodeAnything(node.self))
+  def encodeNode(node: Node): Json = {
+    if(node.leafs.isEmpty && node.branches.isEmpty) {
+      if(node.relations.contains(partners)) {
+        Json.obj(
+          "type" -> Json.fromString("Node"),
+          "values" -> Json.arr(
+            node.relations(partners).map(v => Json.fromString(v.lastString)):_*
+          )
+        )
+      } else {
+        Json.obj(
+          "type" -> Json.fromString("Node"),
+          "self" -> encodeAnything(node.self),
+          "leaf-is" -> encodePredicate(node.leafIs),
+          "key-is" -> encodePredicate(node.keyIs)
+        )
+      }
     } else {
-      leafs ++ branches
-    }
-    val keyEncoded = all.map { case (id, j) => idEncoder(id) -> j }
+      val leafs = node.leafs.toSeq.map { case (k, v) => k -> encodeAnything(v) }
+      val branches = node.branches.toSeq.map { case (k, v) => k -> encodeNode(v) }
+      val all: Seq[(ID, Json)] = if (node.self != Nothing) {
+        leafs ++ branches :+ (ID("self") -> encodeAnything(node.self))
+      } else {
+        leafs ++ branches
+      }
+      val keyEncoded = all.map { case (id, j) => idEncoder(id) -> j }
 
-    Json.obj(keyEncoded :_*)
+      Json.obj(keyEncoded: _*)
+    }
   }
 
   def encodeAnything(thing: Thing): Json = thing match {
     case Data(p, v) => encode(p, v)
     case o: CRUD.O => encodeOut(o)
     case p: Predicate => encodePredicate(p)
-    case c: Commit => Json.obj(discriminator -> Json.fromString("Commit"), "crud" -> encodeMem(Node.fromMap(c.crud)))
-    case mem: Node =>
-      val links = mem.leafs.collect { case (_, l: Link) => l }.toSeq
-      val isEnum = links.nonEmpty && mem.branches.isEmpty && links.size == mem.leafs.size
-      if(isEnum) {
-        encodePredicate(AnyOf(links: _*))
-      } else {
-        encodeNode(mem)
-      }
+    case c: Commit => Json.obj(discriminator -> Json.fromString("Commit"), "crud" -> encodeNode(c.crudNode()))
+    case n: Node => encodeNode(n)
     case other =>
       Json.fromString(s"NOT IMPLEMENTED something: $other")
-  }
-
-  def encodeNode(n: Node): Json = {
-    Json.obj(
-      "type" -> Json.fromString("Node"),
-      "self" -> encodeAnything(n.self),
-      "leaf-is" -> encodePredicate(n.leafIs),
-      "key-is" -> encodePredicate(n.keyIs)
-    )
   }
 
   def encode(p: Predicate, v: Any): Json = (p, v) match {
@@ -102,7 +105,7 @@ object ThingEncoder {
     case NotImplemented => Json.obj("type" -> Json.fromString("NotImplemented"))
     case Prepared(cmt) => Json.obj(
       discriminator -> Json.fromString("Prepared"),
-      "CRUD" -> encodeMem(Node.fromMap(cmt.crud))
+      "CRUD" -> encodeNode(cmt.crudNode())
     )
     case other =>
       Json.fromString(s"NOT IMPLEMENTED Out: $other")
@@ -124,7 +127,7 @@ object ThingEncoder {
     )
     case Committed(cmt) => Json.obj(
       discriminator -> Json.fromString("Committed"),
-      "CRUD" -> encodeMem(Node.fromMap(cmt.crud))
+      "CRUD" -> encodeNode(cmt.crudNode())
     )
   }
 
@@ -158,13 +161,17 @@ object ThingEncoder {
         Json.fromString(s"NOT IMPLEMENTED Predicate: $other")
     }
     case a: AnyOf =>
-      val links = a.p.collect { case l: Link => l }.toSeq
+      val links = a.p.collect { case l: Link => l.where }.toSeq
       if(a.p.size == links.size) { // AnyOf(Link*)
-        Json.obj(discriminator -> Json.fromString("AnyOf"), "p" -> Json.arr(links.map(l => Json.fromString(l.where.lastString)) :_*))
+        Json.obj(discriminator -> Json.fromString("AnyOf"), "p" -> encodeEnum(links))
       } else {
         ???
       }
     case other =>
       Json.fromString(s"NOT IMPLEMENTED Predicate: $other")
+  }
+
+  def encodeEnum(values: Seq[Location]): Json = {
+    Json.arr(values.map(v => Json.fromString(v.lastString)): _*)
   }
 }

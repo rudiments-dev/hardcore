@@ -21,15 +21,9 @@ trait Agent extends Thing {
   }
 
   def !(where: Location): Link = this ? where match {
-    case Readen(Node(_, leafs, _, _, _)) =>
-      val selected = leafs.values.collect {
-        case l: Link => l
-      }.toSeq
-      if (selected.nonEmpty) {
-        Link(where, AnyOf(selected: _*))
-      } else {
-        throw new IllegalArgumentException(s"not only links in leafs")
-      }
+    case Readen(Node(_, _, _, relations, _, _)) => relations.get(ID("types") / "Partners") match {
+      case Some(related) => Link(where, AnyOf(related.map(l => this ! l): _*))
+    }
     case Readen(p: Predicate) => Link(where, p)
     case Readen(Data(p, _)) => Link(where, p)
     case other =>
