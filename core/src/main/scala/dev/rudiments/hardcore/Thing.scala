@@ -21,7 +21,7 @@ trait Agent extends Thing {
   }
 
   def !(where: Location): Link = this ? where match {
-    case Readen(Node(_, _, _, relations, _, _)) => relations.get(ID("types") / "Partners") match {
+    case Readen(Node(_, _, _, relations, _, _)) => relations.get(ID("Partners")) match {
       case Some(related) => Link(where, AnyOf(related.map(l => this ! l): _*))
     }
     case Readen(p: Predicate) => Link(where, p)

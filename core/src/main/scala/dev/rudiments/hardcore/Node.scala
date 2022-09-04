@@ -339,7 +339,7 @@ object Node {
 
   def partnership(prefix: Location, from: Map[String, Predicate]): Node = {
     Node(relations = mutable.Map(
-      (ID("types") / "Partners") -> from.map { case (k, _) => prefix / k }.toSeq ))
+      ID("Partners") -> from.map { case (k, _) => prefix / k }.toSeq ))
   }
 
   def apply(self: Thing, leafs: Map[ID, Thing], branches: Map[ID, Node]): Node = new Node(self, mutable.Map.from(leafs), mutable.Map.from(branches))

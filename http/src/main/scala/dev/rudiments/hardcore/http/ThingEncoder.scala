@@ -6,7 +6,7 @@ import io.circe.{Encoder, Json, KeyEncoder}
 
 object ThingEncoder {
   val discriminator = "type"
-  val partners: Location = ID("types") / "Partners"
+  val partners: Location = ID("Partners")
 
   implicit val idEncoder: KeyEncoder[ID] = KeyEncoder.encodeKeyString.contramap(id => id.key.toString)
   implicit val pathEncoder: KeyEncoder[Path] = KeyEncoder.encodeKeyString.contramap(path => path.toString)
