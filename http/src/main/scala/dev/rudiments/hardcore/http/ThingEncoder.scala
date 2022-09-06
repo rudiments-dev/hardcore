@@ -3,6 +3,7 @@ package dev.rudiments.hardcore.http
 import dev.rudiments.hardcore.Predicate.Anything
 import dev.rudiments.hardcore._
 import io.circe.{Encoder, Json, KeyEncoder}
+import java.sql
 
 object ThingEncoder {
   val discriminator = "type"
@@ -18,6 +19,7 @@ object ThingEncoder {
       if(node.relations.contains(partners)) {
         Json.obj(
           "type" -> Json.fromString("Node"),
+          "self" -> encodeAnything(node.self),
           "values" -> Json.arr(
             node.relations(partners).map(v => Json.fromString(v.lastString)):_*
           )
@@ -74,7 +76,8 @@ object ThingEncoder {
     case (Number(_, _), l: Long) => Json.fromLong(l)
     case (Bool, b: Boolean) => Json.fromBoolean(b)
     case (Binary, Nothing) => Json.fromString("∅")
-    case (Binary, _) => Json.fromString("TBD")
+    case (Binary, _) => Json.fromString("--BINARY--")
+    case (Date, d: sql.Date) => Json.fromString(d.toString)
     case (_, None) => Json.Null
     case (_, _) => throw new IllegalArgumentException(s"Can't encode [$v] of $p ")
   }

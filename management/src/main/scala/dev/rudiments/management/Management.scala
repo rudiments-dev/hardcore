@@ -4,15 +4,16 @@ import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.Initial.types
 
 object Management {
-  private val userType = Type(
-    Field("name", Text(1024))
+  val userType = Type(
+    Field("name", Text(1024)),
+    Field("email", Text(1024))
   )
-  private val userLink = Link(types / "User", userType)
-  private val taskType = Type(
+  val userLink = Link(types / "User", userType)
+  val taskType = Type(
     Field("name", Text(4096)),
     Field("summary", Text(4 * 1024 * 1024)),
-    Field("deadline", Date),
-    Field("assigned", userLink)
+    Field("deadline", Date)
+//    Field("assigned", userLink)
   )
   private val taskLink = Link(types / "Task", taskType)
 

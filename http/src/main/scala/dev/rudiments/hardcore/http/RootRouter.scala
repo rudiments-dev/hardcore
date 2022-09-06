@@ -22,14 +22,24 @@ class RootRouter(
   private implicit val ec: ExecutionContext = actorSystem.getDispatcher
   val routers = new Memory()
 
-  def route: Route =
-    CorsDirectives.cors(config.cors) {
+  def route: Route = CorsDirectives.cors(config.cors) {
+    if (config.prefix != "") {
       Directives.pathPrefix(config.prefix) {
         routes.map {
-            case (p, router: Route) => Directives.pathPrefix(p) { router }
-          }.reduce(_ ~ _)
-        }
+          case (p, router: Route) => Directives.pathPrefix(p) {
+            router
+          }
+        }.reduce(_ ~ _)
       }
+    } else {
+      routes.map {
+        case (p, router: Route) => Directives.pathPrefix(p) {
+          router
+        }
+      }.reduce(_ ~ _)
+    }
+  }
+
 
   def bind(): Done = {
     Http().newServerAt(
@@ -54,7 +64,7 @@ object RootRouter {
   case class RootConfig(
     host: String,
     port: Int,
-    prefix: String = "api",
+    prefix: String = "",
     cors: CorsSettings
   )
 
@@ -62,7 +72,7 @@ object RootRouter {
   def config(c: Config): RootConfig = RootConfig(
     c.getString(hostPath),
     c.getInt(portPath),
-    if(c.hasPath(prefixPath)) c.getString(prefixPath) else "api",
+    if(c.hasPath(prefixPath)) c.getString(prefixPath) else "",
     CorsSettings(c.getConfig(rootPath))
   )
 }

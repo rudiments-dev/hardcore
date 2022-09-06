@@ -16,12 +16,12 @@ class ManagementSpec extends AnyWordSpec with Matchers {
   mem << Management.typesCommit
 
   "all types should exist" in {
-    mem ? (types / "User") should be(Readen(Type(Field("name", Text(1024)))))
+    mem ? (types / "User") should be(Readen(Type(Field("name", Text(1024)), Field("email", Text(1024)))))
     mem ? (types / "Task") should be(Readen(Type(
       Field("name", Text(4096)),
       Field("summary", Text(4 * 1024 * 1024)),
-      Field("deadline", Date),
-      Field("assigned", Link(types / "User", Type(Field("name", Text(1024)))))
+      Field("deadline", Date)
+//      Field("assigned", Link(types / "User", Type(Field("name", Text(1024)))))
     )))
   }
 

@@ -6,6 +6,8 @@ import dev.rudiments.hardcore.http.ThingEncoder.discriminator
 import io.circe.Decoder.Result
 import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
+import java.sql
+
 object ThingDecoder {
   def thingDecoder(over: Thing): Decoder[Thing] = over match {
     case p: Plain => plainDecoder(p).map(_.asInstanceOf[Thing])
@@ -47,6 +49,9 @@ object ThingDecoder {
     case Bool => Decoder.decodeBoolean
     case Text(_) => Decoder.decodeString
     case Number(_, _) => Decoder.decodeLong
+    case Date => Decoder.decodeString.map(sql.Date.valueOf)
+    case Time => Decoder.decodeString.map(sql.Time.valueOf)
+    case Timestamp => Decoder.decodeString.map(sql.Timestamp.valueOf)
     case other => throw new IllegalArgumentException(s"Not supported: $other")
   }
 

@@ -15,13 +15,13 @@ object Main extends App {
   mem << Management.locationsCommit
 
   val files = ID("files")
-  mem += files -> Node.empty
-  mem /! files << uploadFiles
+//  mem += files -> Node.empty
+//  mem /! files << uploadFiles
 
-  private val testRouter = new ScalaRouter(mem.node).routes
+  private val router = new ScalaRouter(mem.node).routes
   new RootRouter(
     RootRouter.config(ConfigFactory.load()),
-    "example" -> testRouter
+    "api" -> router
   ).bind()
 
   private def uploadFiles: Commit = {

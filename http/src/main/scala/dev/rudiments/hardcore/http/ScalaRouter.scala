@@ -102,5 +102,11 @@ class ScalaRouter(mem: Node) extends CirceSupport {
       complete(StatusCodes.InternalServerError)
   }
 
-  def seal(prefix: String): Route = Route.seal(pathPrefix(prefix) { routes })
+  def seal(): Route = this.seal("")
+
+  def seal(prefix: String): Route = if(prefix != ""){
+    Route.seal(pathPrefix(prefix) { routes })
+  } else {
+    Route.seal(routes)
+  }
 }

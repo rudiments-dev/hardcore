@@ -33,6 +33,8 @@ trait Agent extends Thing {
 
 final case class Link(where: Location, what: Predicate) extends Predicate {
   override def toString: String = "#" + where
+
+  def data(values: Any*): Data = Data(this, values.toSeq)
 }
 final case class Declared(where: Location) extends Predicate {
   override def toString: String = "!" + where
@@ -85,10 +87,12 @@ final case class Text(maxSize: Int) extends Plain
 final case class Number(from: AnyVal, upTo: AnyVal) extends Plain //TODO replace with more strict version
 case object Bool extends Plain {} // funny thing - in scala we can't extend object, so, or 'AnyBool' under trait, or no True and False under Bool object
 case object Binary extends Plain {} // Array[Byte]
+
 sealed trait Temporal extends Plain {}
 case object Date extends Temporal
 case object Time extends Temporal
 case object Timestamp extends Temporal
+
 
 sealed trait Abstraction extends Thing {}
 case object Nothing extends Predicate {}
