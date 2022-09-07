@@ -23,15 +23,24 @@ class ManagementSpec extends AnyWordSpec with Matchers {
       Field("deadline", Date)
 //      Field("assigned", Link(types / "User", Type(Field("name", Text(1024)))))
     )))
+
+    val readen = mem ? (types / "Board")
+    val expected = Readen(Type(
+      Field("columns", Index(Text(1024), Type(
+        Field("tasks", Enlist(mem ! (types / "Task")))
+      )))
+    ))
+    readen should be (expected)
   }
 
   "all locations should exist" in {
     mem << Management.locationsCommit
     mem ? Management.work should be (Readen(Node(
       branches = mutable.Map(
-        ID("docs") -> Node.empty,
         ID("team") -> Node(leafIs = mem ! types / "User"),
         ID("tasks") -> Node(leafIs = mem ! types / "Task"),
+        ID("boards") -> Node(leafIs = mem ! types / "Board"),
+        ID("docs") -> Node.empty,
         ID("meetings") -> Node.empty
       )
     )))
