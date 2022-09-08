@@ -3,7 +3,7 @@ package dev.rudiments.hardcore
 import dev.rudiments.hardcore.Predicate.Anything
 
 object Initial {
-    val types: ID = ID("types")
+  val types: ID = ID("types")
   private val predicate: Declared = Declared(types / "Predicate")
 
   def init(ctx: Memory): Unit = {

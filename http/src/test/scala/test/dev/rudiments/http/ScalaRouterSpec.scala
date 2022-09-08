@@ -48,7 +48,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   }
 
   "update item in repository" in {
-    Put("/example/42", t.data(42L, "test", "non-optional comment")) ~> routes ~> check {
+    Put("/example/42", t.data(42L, "test", "non-optional comment").asInstanceOf[Thing]) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
       responseAs[Thing] should be (t.data(42L, "test", "non-optional comment"))
     }
@@ -59,7 +59,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   }
 
   "second POST with same item conflicts with existing" in {
-    Post("/example/42", t.data(42L, "test", "non-optional comment")) ~> routes ~> check {
+    Post("/example/42", t.data(42L, "test", "non-optional comment").asInstanceOf[Thing]) ~> routes ~> check {
       response.status should be (StatusCodes.Conflict)
     }
   }
@@ -78,7 +78,7 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
     mem += (ID("34") / "43") -> Node.empty
 
     val path = ID("34") / "43" / "10"
-    Post("/example/34/43/10", t.data(0L, "deep", "test")) ~> routes ~> check {
+    Post("/example/34/43/10", t.data(0L, "deep", "test").asInstanceOf[Thing]) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
       mem ? path should be (Readen(t.data(0L, "deep", "test")))
     }

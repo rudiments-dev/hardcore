@@ -86,7 +86,7 @@ class ScalaRouter(mem: Node) extends CirceSupport {
       complete(StatusCodes.NoContent)
     case Found(_, values) =>
       val node = Node.fromMap(values)
-      complete(StatusCodes.OK, node)
+      complete(StatusCodes.OK, node.asInstanceOf[Thing])
     case NotExist =>
       complete(StatusCodes.NotFound)
     case _: NotFound =>
@@ -94,7 +94,7 @@ class ScalaRouter(mem: Node) extends CirceSupport {
     case AlreadyExist(_) =>
       complete(StatusCodes.Conflict)
     case out: CRUD.O =>
-      complete(StatusCodes.OK, out)
+      complete(StatusCodes.OK, out.asInstanceOf[Thing])
 
     case _: Error =>
       complete(StatusCodes.InternalServerError)

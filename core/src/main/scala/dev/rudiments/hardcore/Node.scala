@@ -3,8 +3,6 @@ package dev.rudiments.hardcore
 import dev.rudiments.hardcore.CRUD.{Evt, I, O}
 import dev.rudiments.hardcore.Predicate.Anything
 
-import java.lang
-import java.lang.IllegalStateException
 import scala.collection.mutable
 
 case class Node(
@@ -280,6 +278,8 @@ object Node {
   case object Branches extends Tag
   case object Relations extends Tag
 
+  val partnersId: ID = ID("Partners")
+
   def empty: Node = Node(Nothing)
 
   def fromEventMap(from: Map[Location, O]): Node = {
@@ -337,9 +337,13 @@ object Node {
     }
   }
 
+  def partnership(prefix: Location, ids: Seq[String]): Node = {
+    new Node(relations = mutable.Map(
+      partnersId -> ids.map(prefix / _)
+    ))
+  }
   def partnership(prefix: Location, from: Map[String, Predicate]): Node = {
-    Node(relations = mutable.Map(
-      ID("Partners") -> from.map { case (k, _) => prefix / k }.toSeq ))
+    partnership(prefix, from.keys.toSeq)
   }
 
   def apply(self: Thing, leafs: Map[ID, Thing], branches: Map[ID, Node]): Node = new Node(self, mutable.Map.from(leafs), mutable.Map.from(branches))

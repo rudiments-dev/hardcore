@@ -13,33 +13,31 @@ import scala.collection.mutable
 @RunWith(classOf[JUnitRunner])
 class ManagementSpec extends AnyWordSpec with Matchers {
   private val mem: Memory = new Memory()
-  mem << Management.typesCommit
+  Management.init(mem.node)
 
   "all types should exist" in {
     mem ? (types / "User") should be(Readen(Type(Field("name", Text(1024)), Field("email", Text(1024)))))
     mem ? (types / "Task") should be(Readen(Type(
       Field("name", Text(4096)),
       Field("summary", Text(4 * 1024 * 1024)),
-      Field("deadline", Date)
+      Field("deadline", Date),
+      Field("status", mem ! (types / "TaskStatus"))
 //      Field("assigned", Link(types / "User", Type(Field("name", Text(1024)))))
     )))
 
-    val readen = mem ? (types / "Board")
+    val readen = mem ? (types / "BoardColumn")
     val expected = Readen(Type(
-      Field("columns", Index(Text(1024), Type(
-        Field("tasks", Enlist(mem ! (types / "Task")))
-      )))
+      Field("tasks", Enlist(mem ! (types / "Task")))
     ))
     readen should be (expected)
   }
 
   "all locations should exist" in {
-    mem << Management.locationsCommit
     mem ? Management.work should be (Readen(Node(
       branches = mutable.Map(
         ID("team") -> Node(leafIs = mem ! types / "User"),
         ID("tasks") -> Node(leafIs = mem ! types / "Task"),
-        ID("boards") -> Node(leafIs = mem ! types / "Board"),
+        ID("boards") -> Node.empty, //TODO check node constraint
         ID("docs") -> Node.empty,
         ID("meetings") -> Node.empty
       )

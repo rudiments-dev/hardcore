@@ -11,8 +11,7 @@ object Main extends App {
   private implicit val actorSystem: ActorSystem = ActorSystem()
 
   private val mem: Memory = new Memory()
-  mem << Management.typesCommit
-  mem << Management.locationsCommit
+  Management.init(mem.node)
 
   val files = ID("files")
 //  mem += files -> Node.empty

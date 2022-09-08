@@ -6,7 +6,7 @@ import dev.rudiments.hardcore.http.ThingEncoder.discriminator
 import io.circe.Decoder.Result
 import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
-import java.sql
+import java.{lang, sql}
 
 object ThingDecoder {
   def thingDecoder(over: Thing): Decoder[Thing] = over match {
@@ -28,8 +28,9 @@ object ThingDecoder {
       case Enlist(of) => Decoder.decodeSeq(decoder(of))
       case Index(Text(_), over) => Decoder.decodeMap(KeyDecoder.decodeKeyString, decoder(over))
       case t: Type => dataDecoder(t)
-      case Link(p: Path, t: Type) if p.ids.head == ID("types") => dataDecoder(t)
-      case Link(p: Path, _) => throw new IllegalArgumentException(s"Link not pointing '/types': $p")
+      case Link(p: Path, t: Type) => dataDecoder(t)
+      case Link(p: Path, other) =>
+        throw new IllegalArgumentException(s"On $p not a type: $other")
       case many: AnyOf => anyDecoder(many)
 
       case Anything => throw new IllegalArgumentException("Not supported, use AnyOf(<all things>) instead")

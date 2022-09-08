@@ -3,10 +3,12 @@ package test.dev.rudiments.app
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import dev.rudiments.hardcore.Initial.types
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
 import dev.rudiments.management.Management
 import io.circe.{Decoder, Json}
+import org.junit.Ignore
 
 import java.sql
 import org.junit.runner.RunWith
@@ -18,16 +20,18 @@ import org.scalatestplus.junit.JUnitRunner
 class TasksSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with CirceSupport {
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private val mem = new Memory()
-  mem << Management.typesCommit
-  mem << Management.locationsCommit
+  Management.init(mem.node)
 
   private val n: Node = mem /! Management.tasks
   private val router = new ScalaRouter(n)
   private val routes = router.seal()
   private implicit val de: Decoder[Thing] = router.de
-  private val t = Management.taskType
+  private val t = mem ? (types / "Task") match {
+    case Readen(found: Type) => found
+    case other => fail(s"unexpected read of types/Task: $other")
+  }
 
-  mem /! Management.team += ID("alice") -> Management.userLink.data("Alice", "alice@test.org")
+//  mem /! Management.team += ID("alice") -> Management.userLink.data("Alice", "alice@test.org")
 
   private val sample: Thing = t.data(
     "task-1", "summ of task #1", sql.Date.valueOf("2022-06-06")
