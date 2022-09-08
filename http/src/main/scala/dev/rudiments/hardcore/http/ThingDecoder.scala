@@ -29,6 +29,20 @@ object ThingDecoder {
       case Index(Text(_), over) => Decoder.decodeMap(KeyDecoder.decodeKeyString, decoder(over))
       case t: Type => dataDecoder(t)
       case Link(p: Path, t: Type) => dataDecoder(t)
+      case Link(p: Path, any: AnyOf) =>
+        val options: Map[Location, Link] = any.p.collect {
+          case l@Link(id: ID, Nothing) => id -> l
+          case l@Link(pa: Path, Nothing) => pa.last -> l
+        }.toMap
+
+        Decoder.decodeString.map { s =>
+          options.get(Location(s)) match {
+            case Some(found) => found
+            case None =>
+                DecodingFailure.fromThrowable(
+                  new IllegalArgumentException(s"$s Not a value from AnyOf"), List.empty)
+          }
+        }
       case Link(p: Path, other) =>
         throw new IllegalArgumentException(s"On $p not a type: $other")
       case many: AnyOf => anyDecoder(many)

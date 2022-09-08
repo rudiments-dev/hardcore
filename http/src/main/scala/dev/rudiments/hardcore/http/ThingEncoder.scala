@@ -1,11 +1,39 @@
 package dev.rudiments.hardcore.http
 
+import dev.rudiments.hardcore.Initial.types
 import dev.rudiments.hardcore.Predicate.Anything
 import dev.rudiments.hardcore._
 import io.circe.{Encoder, Json, KeyEncoder}
-import java.sql
+
+import java.{lang, sql}
 
 object ThingEncoder {
+  val codecs: ID = ID("codecs")
+  val jsonCodec: Location = codecs / "json"
+
+  def init(ctx: Node): Commit = {
+    val tx = new Tx(ctx)
+    tx += codecs -> Node.empty
+    tx += jsonCodec -> Node(leafIs = Internal)
+
+    val foundTypes = ctx ?** types match {
+      case Found(_, values) => values
+      case other => throw new IllegalStateException(s"Can't read /types, got $other")
+    }
+
+    foundTypes
+
+    val prepared = tx.>>
+    prepared match {
+      case Prepared(c) => ctx << c match {
+        case Committed(cmt) =>
+          cmt
+        case _ => throw new IllegalStateException("Json Encoder commit failed")
+      }
+      case _ => throw new IllegalStateException("Json Encoder  commit not prepared")
+    }
+  }
+
   val discriminator = "type"
   val partners: Location = ID("Partners")
 
@@ -57,6 +85,15 @@ object ThingEncoder {
   }
 
   def encode(p: Predicate, v: Any): Json = (p, v) match {
+    case (Link(_, any: AnyOf), l: Link) =>
+      val found = any.p.collect {
+        case f: Link if f == l => f
+      }
+      if(found.size == 1) {
+        Json.fromString(found.head.where.lastString)
+      } else {
+        throw new IllegalArgumentException(s"Linked $l link not in AnyOf")
+      }
     case (l: Link, values) => encode(l.what, values) //TODO add 'type' from Link's location
     case (t: Type, values: Seq[Any]) =>
       Json.obj(t.fields.zip(values).map { case (f, v) => (f.name, encode(f.of, v)) }:_*)

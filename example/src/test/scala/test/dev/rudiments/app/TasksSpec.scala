@@ -34,17 +34,24 @@ class TasksSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with C
 //  mem /! Management.team += ID("alice") -> Management.userLink.data("Alice", "alice@test.org")
 
   private val sample: Thing = t.data(
-    "task-1", "summ of task #1", sql.Date.valueOf("2022-06-06")
+    "task-1",
+    "summ of task #1",
+    sql.Date.valueOf("2022-06-06"),
+    Link(types / "InProgress", Nothing)
   )
   private val sample2: Thing = t.data(
-    "task-2", "summ of task #2", sql.Date.valueOf("2022-05-07")
+    "task-2",
+    "summ of task #2",
+    sql.Date.valueOf("2022-05-07"),
+    Link(types / "TODO", Nothing)
   )
 
   "can encode task" in {
     router.thingEncoder(sample) should be (Json.obj(
       "name" -> Json.fromString("task-1"),
       "summary" -> Json.fromString("summ of task #1"),
-      "deadline" -> Json.fromString("2022-06-06")
+      "deadline" -> Json.fromString("2022-06-06"),
+      "status" -> Json.fromString("InProgress")
     ))
   }
 
@@ -52,7 +59,8 @@ class TasksSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with C
     router.de.decodeJson(Json.obj(
       "name" -> Json.fromString("task-1"),
       "summary" -> Json.fromString("summ of task #1"),
-      "deadline" -> Json.fromString("2022-06-06")
+      "deadline" -> Json.fromString("2022-06-06"),
+      "status" -> Json.fromString("InProgress")
     )) should be (Right(sample))
   }
 

@@ -31,6 +31,8 @@ trait Agent extends Thing {
   }
 }
 
+case object Internal extends Predicate
+
 final case class Link(where: Location, what: Predicate) extends Predicate {
   override def toString: String = "#" + where
 
@@ -124,6 +126,16 @@ sealed trait Location extends Thing {
   def lastString: String
 }
 object Location extends Ordering[Location] {
+  def apply(s: String): Location = {
+    if(s == "/") {
+      Root
+    } else if(!s.contains("/")) {
+      ID(s)
+    } else {
+      this.apply(s.split("/"))
+    }
+  }
+
   def apply(s: Seq[String]): Location = {
     s.size match {
       case 0 => Root
