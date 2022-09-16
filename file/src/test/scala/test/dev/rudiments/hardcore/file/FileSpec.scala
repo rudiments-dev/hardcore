@@ -16,7 +16,7 @@ class FileSpec extends AnyWordSpec with Matchers {
   private val fileAgent = new FileAgent("src/test/resources/file-test")
   private val ctx: Memory = new Memory
 
-  private val initialFound = ctx ?** Root match {
+  private val initialFound = ctx ??* Root match {
     case Found(_, values) =>
       values
     case _ => fail("Can't read initial memory state")
@@ -125,7 +125,7 @@ class FileSpec extends AnyWordSpec with Matchers {
     val result = ctx.remember(files, Committed(cmt))
     result should be (Committed(cmt))
 
-    ctx ?** files match {
+    ctx ??* files match {
       case Found(_, values) =>
         val expecting = commitMemory.everything()
         values.keySet.toSeq.sorted(Location).foreach { k =>

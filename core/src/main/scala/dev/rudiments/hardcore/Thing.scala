@@ -15,7 +15,7 @@ trait Agent extends Thing {
     case Readen(n: Node) => n.report(LookFor(All))
     case other => Conflict(other, LookFor(All))
   }
-  def ?** (where: Location): CRUD.O = read(where) match {
+  def ??* (where: Location): CRUD.O = read(where) match {
     case Readen(n: Node) => n.report(Dump(All))
     case other => Conflict(other, Dump(All))
   }

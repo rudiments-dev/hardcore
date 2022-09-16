@@ -16,7 +16,7 @@ object ThingEncoder {
     tx += codecs -> Node.empty
     tx += jsonCodec -> Node(leafIs = Internal)
 
-    val foundTypes = ctx ?** types match {
+    val foundTypes = ctx ??* types match {
       case Found(_, values) => values
       case other => throw new IllegalStateException(s"Can't read /types, got $other")
     }
@@ -68,7 +68,7 @@ object ThingEncoder {
       } else {
         leafs ++ branches
       }
-      val keyEncoded = all.map { case (id, j) => idEncoder(id) -> j }
+      val keyEncoded = all.map { case (id, j) => idEncoder(id) -> j } :+ ("type", Json.fromString("Node"))
 
       Json.obj(keyEncoded: _*)
     }

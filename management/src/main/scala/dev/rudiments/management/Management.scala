@@ -35,7 +35,7 @@ object Management {
     tx += work -> Node.empty
     tx += team -> Node(leafIs = tx ! (types / "User"))
     tx += tasks -> Node(leafIs = tx ! (types / "Task"))
-    tx += boards -> Node.empty//TODO add node constraint - only `node = Node(leafIs = #BoardColumn)` allowed
+    tx += boards -> Node(leafIs = Nothing)//TODO add node constraint - only `node = Node(leafIs = #BoardColumn)` allowed
     tx += docs -> Node.empty
     tx += meetings -> Node.empty
 

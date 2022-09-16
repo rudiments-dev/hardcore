@@ -37,7 +37,7 @@ class ManagementSpec extends AnyWordSpec with Matchers {
       branches = mutable.Map(
         ID("team") -> Node(leafIs = mem ! types / "User"),
         ID("tasks") -> Node(leafIs = mem ! types / "Task"),
-        ID("boards") -> Node.empty, //TODO check node constraint
+        ID("boards") -> Node(leafIs = Nothing), //TODO check node constraint
         ID("docs") -> Node.empty,
         ID("meetings") -> Node.empty
       )

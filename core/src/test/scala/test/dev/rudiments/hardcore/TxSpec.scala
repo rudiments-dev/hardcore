@@ -1,6 +1,5 @@
 package test.dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.CRUD.Evt
 import dev.rudiments.hardcore._
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -18,7 +17,7 @@ class TxSpec extends AnyWordSpec with Matchers {
   private val data = Data(t, Seq(true))
   private val data2 = Data(t, Seq(false))
 
-  private val initialCommit = ctx ?** ID("commits") match {
+  private val initialCommit = ctx ??* ID("commits") match {
     case Found(_, values) => values - Root
     case other =>
       fail("Can't read initial commits")
