@@ -8,16 +8,16 @@ trait Agent extends Thing {
 
   def report(q: Query): CRUD.O
   def ?? (where: Location): CRUD.O = read(where) match {
-    case Readen(n: Node) => n.report(Find(All))
-    case other => Conflict(other, Find(All))
+    case Readen(n: Node) => n.report(Find(Anything))
+    case other => Conflict(other, Find(Anything))
   }
   def ?* (where: Location): CRUD.O = read(where) match {
-    case Readen(n: Node) => n.report(LookFor(All))
-    case other => Conflict(other, LookFor(All))
+    case Readen(n: Node) => n.report(LookFor(Anything))
+    case other => Conflict(other, LookFor(Anything))
   }
   def ??* (where: Location): CRUD.O = read(where) match {
-    case Readen(n: Node) => n.report(Dump(All))
-    case other => Conflict(other, Dump(All))
+    case Readen(n: Node) => n.report(Dump(Anything))
+    case other => Conflict(other, Dump(Anything))
   }
 
   def !(where: Location): Link = this ? where match {
@@ -60,10 +60,6 @@ object Data {
 }
 
 sealed trait Predicate extends Thing {}
-object Predicate {
-  case object Anything extends Predicate
-}
-case object All extends Predicate
 
 final case class Type(fields: Field*) extends Predicate {
   override def toString: String = fields.mkString("{", ",", "}")
@@ -86,7 +82,7 @@ final case class AnyOf(p: Predicate*) extends Predicate {
 
 sealed trait Plain extends Predicate {}
 final case class Text(maxSize: Int) extends Plain
-final case class Number(from: AnyVal, upTo: AnyVal) extends Plain //TODO replace with more strict version
+final case class Number(from: Any, upTo: Any) extends Plain //TODO replace with more strict version
 case object Bool extends Plain {} // funny thing - in scala we can't extend object, so, or 'AnyBool' under trait, or no True and False under Bool object
 case object Binary extends Plain {} // Array[Byte]
 
@@ -95,8 +91,7 @@ case object Date extends Temporal
 case object Time extends Temporal
 case object Timestamp extends Temporal
 
-
-sealed trait Abstraction extends Thing {}
+case object Anything extends Predicate {}
 case object Nothing extends Predicate {}
 
 trait Message extends Thing {} //TODO separate CRUD+ from Message

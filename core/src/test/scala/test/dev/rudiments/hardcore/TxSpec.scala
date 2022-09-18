@@ -62,7 +62,7 @@ class TxSpec extends AnyWordSpec with Matchers {
 
   "can see commits of Context" in {
     val found = ctx ?? ID("commits")
-    val expected = Found(Find(All), initialCommit ++ Map(
+    val expected = Found(Find(Anything), initialCommit ++ Map(
       ID("1240340089") -> Commit(Map(id -> Created(data))),
       ID("-847544541") -> Commit(Map(id -> Deleted(data)))
     ))

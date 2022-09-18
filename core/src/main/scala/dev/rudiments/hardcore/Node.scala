@@ -1,7 +1,6 @@
 package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.CRUD.{Evt, I, O}
-import dev.rudiments.hardcore.Predicate.Anything
 
 import scala.collection.mutable
 
@@ -161,9 +160,9 @@ case class Node(
 
   override def report(q: Query): O = q match {
     case Read => Readen(this)
-    case f@Find(All) => Found(f, leafs.toMap)
-    case lf@LookFor(All) => Found(lf, structure)
-    case d@Dump(All) => Found(d, everything())
+    case f@Find(Anything) => Found(f, leafs.toMap)
+    case lf@LookFor(Anything) => Found(lf, structure)
+    case d@Dump(Anything) => Found(d, everything())
     case Prepare => NotImplemented
     case Verify => ???
     case other => NotImplemented

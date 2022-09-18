@@ -1,7 +1,5 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.Predicate.Anything
-
 object Initial {
   val types: ID = ID("types")
   private val predicate: Declared = Declared(types / "Predicate")
@@ -20,21 +18,25 @@ object Initial {
     }
 
     {
-      tx += types / "Text" -> Type(
-        Field("maxSize", Anything)
-      )
       tx += types / "Number" -> Type(
         Field("from", Anything),
         Field("to", Anything)
       )
+      tx += types / "Text" -> Type(
+        Field("maxSize", Number(0, Int.MaxValue))
+      )
       tx += types / "Bool" -> Nothing
       tx += types / "Binary" -> Nothing
 
-      tx += types / "Plain" -> Node.partnership(types, Seq("Text", "Number", "Bool", "Binary"))
+      tx += types / "Date" -> Nothing
+      tx += types / "Time" -> Nothing
+      tx += types / "Timestamp" -> Nothing
+      tx += types / "Temporal" -> Node.partnership(types, Seq("Date", "Time", "Timestamp"))
+
+      tx += types / "Plain" -> Node.partnership(types, Seq("Text", "Number", "Bool", "Binary", "Temporal"))
     }
 
     {
-      tx += types / "All" -> Nothing
       tx += types / "Anything" -> Nothing
       tx += types / "Nothing" -> Nothing
 
@@ -55,7 +57,9 @@ object Initial {
       tx += types / "Declared" -> Type(Field("where", tx ! (types / "Location")))
 
       tx += types / "Predicate" -> Node.partnership(types, Seq(
-        "Anything", "Nothing", "Type", "Enlist", "Index", "AnyOf", "Link", "Declared", "All"
+        "Anything", "Nothing", "Plain",
+        "Type", "Enlist", "Index", "AnyOf",
+        "Link", "Declared"
       ))
     }
 
@@ -77,7 +81,7 @@ object Initial {
       tx += types / "Message" -> Node.partnership(types, Seq("In", "Out"))
       tx += types / "In" -> Node.partnership(types, Seq("Query", "Command"))
       tx += types / "Out" -> Node.partnership(types, Seq("Report", "Event", "Error"))
-      tx += types / "Query" -> Node.partnership(types, Seq("Read", "Find", "Prepare", "Verify"))
+      tx += types / "Query" -> Node.partnership(types, Seq("Read", "Find", "LookFor", "Dump", "Prepare", "Verify"))
       tx += types / "Command" -> Node.partnership(types, Seq("Create", "Update", "Delete", "Commit"))
       tx += types / "Report" -> Node.partnership(types, Seq("Readen", "Found", "NotExist", "NotFound", "Prepared", "Valid"))
       tx += types / "Event" -> Node.partnership(types, Seq("Created", "Updated", "Deleted", "Committed"))
@@ -96,6 +100,8 @@ object Initial {
       tx += types / "Update" -> Type(Field("what", Anything))
       tx += types / "Delete" -> Nothing
       tx += types / "Find" -> Type(Field("p", predicate))
+      tx += types / "LookFor" -> Type(Field("p", predicate))
+      tx += types / "Dump" -> Type(Field("p", predicate))
       tx += types / "Prepare" -> Nothing
       tx += types / "Verify" -> Nothing
       tx += types / "Commit" -> Type(
@@ -107,21 +113,26 @@ object Initial {
       tx += types / "Updated" -> Type(Field("old", Anything), Field("data", Anything))
       tx += types / "Deleted" -> Type(Field("old", Anything))
       tx += types / "Found" -> Type(
-        Field("p", predicate),
+        Field("query", tx ! types / ID("Query")),
         Field("values", Index(tx ! types / "Location", Anything))
       )
       tx += types / "NotExist" -> Nothing
       tx += types / "NotFound" -> Type(Field("missing", tx ! types / "Location"))
-      tx += types / "Prepared" -> Type(Field("commit", tx ! types / "Commit"))
-      tx += types / "Committed" -> Type(Field("commit", tx ! types / "Commit"))
+      tx += types / "Prepared" -> Type(Field("commit", Declared(types / "Commit")))
+      tx += types / "Identical" -> Nothing
       tx += types / "Valid" -> Nothing
+      tx += types / "Committed" -> Type(Field("commit", Declared(types / "Commit")))
 
       tx += types / "AlreadyExist" -> Type(Field("data", Anything))
       tx += types / "Conflict" -> Type(
         Field("that", Declared(types / "Message")),
         Field("other", Declared(types / "Message"))
       )
+      tx += types / "MultiError" -> Type(
+        Field("errors", Index(tx ! types / "Location", Declared(types / "Out")))
+      )
       tx += types / "NotImplemented" -> Nothing
+      tx += types / "NotSupported" -> Nothing
     }
 
     val prepared = tx.>>

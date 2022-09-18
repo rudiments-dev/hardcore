@@ -1,11 +1,10 @@
 package dev.rudiments.hardcore.http
 
 import dev.rudiments.hardcore.Initial.types
-import dev.rudiments.hardcore.Predicate.Anything
 import dev.rudiments.hardcore._
-import io.circe.{Encoder, Json, KeyEncoder}
+import io.circe.{Json, KeyEncoder}
 
-import java.{lang, sql}
+import java.sql
 
 object ThingEncoder {
   val codecs: ID = ID("codecs")
@@ -184,8 +183,8 @@ object ThingEncoder {
         "type" -> Json.fromString("Text"),
         "maxSize" -> Json.fromString(maxSize.toString),
       )
-      case Bool => Json.obj("type" -> Json.fromString("Bool"))
-      case Binary => Json.obj("type" -> Json.fromString("Binary"))
+      case Bool => Json.obj(discriminator -> Json.fromString("Bool"))
+      case Binary => Json.obj(discriminator -> Json.fromString("Binary"))
       case other => Json.fromString(s"OTHER PREDICATE: $other")
     }
     case t: Type => Json.obj((discriminator -> Json.fromString("Type")) +: t.fields.map{ f => f.name -> encodePredicate(f.of) } :_*)

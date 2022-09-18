@@ -13,12 +13,12 @@ class TypeSystemSpec extends AnyWordSpec with Matchers {
 
   "can make TypeSystem from /types node" in {
     val ts = new TypeSystem(tNode)
-    ts.types.size should be (27)
-    ts.noThings.size should be (14)
+    ts.types.size should be (30)
+    ts.noThings.size should be (18)
   }
 
   "can seal type system" in {
     val ts = new TypeSystem(tNode)
-    ts.seal().size should be (40)
+    ts.seal().size should be (62)
   }
 }

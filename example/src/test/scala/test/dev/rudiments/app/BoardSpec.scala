@@ -27,7 +27,7 @@ class BoardSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with C
   private val router = new ScalaRouter(n)
   private val routes = router.seal()
   private implicit val de: Decoder[Thing] = router.de
-  private val nodeDe = new ThingDecoder(mem /! types).discriminatedDecoder
+  private val nodeDe = new ThingDecoder(new TypeSystem(mem /! types)).anythingDecoder
   private val colType = mem ? (types / "BoardColumn") match {
     case Readen(found: Type) => found
     case other => fail(s"unexpected read of types/BoardColumn: $other")

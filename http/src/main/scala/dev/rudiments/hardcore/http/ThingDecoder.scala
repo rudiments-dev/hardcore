@@ -1,55 +1,195 @@
 package dev.rudiments.hardcore.http
 
-import dev.rudiments.hardcore.Predicate.Anything
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.ThingDecoder.{dataDecoder, predicateDecoder}
 import dev.rudiments.hardcore.http.ThingEncoder.discriminator
 import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
 import java.sql
+import scala.collection.Factory
 
-class ThingDecoder(tNode: Node) {
-  private val ts = new TypeSystem(tNode).typeSystem
+class ThingDecoder(ts: TypeSystem) {
+  def locKeyDecoder: KeyDecoder[Location] = KeyDecoder { s =>
+    Location(s) match {
+      case Root => Some(Root)
+      case id: ID => Some(id)
+      case path: Path => Some(path)
+      case _ => None
+    }
+  }
 
-  def discriminatedDecoder: Decoder[Thing] = { c: HCursor =>
+  def locDecoder: Decoder[Location] = Decoder { c =>
+    c.downField("missing").as[String].flatMap { s =>
+      Location(s) match {
+        case Root => Right(Root)
+        case id: ID => Right(id)
+        case path: Path => Right(path)
+        case _ => Left(DecodingFailure("Not a location", List.empty))
+      }
+    }
+  }
+
+  def anythingDecoder: Decoder[Thing] = { c: HCursor =>
     c.downField(discriminator).as[String].flatMap { s =>
-      val l = Location(s)
+      val id = ID(s)
+      val d = if(ts.typeSystem.contains(id)) {
+        decoders(id)
+      } else {
+        alwaysFail(s"Not in /types: $s")
+      }
+      d.apply(c)
+    }
+  }
 
-      ts.get(l) match {
-        case Some(p: Predicate) => ???
-        case None => Left(DecodingFailure(s"Not in /types: $s", List.empty))
+  val locationDecoders: Map[ID, Decoder[Thing]] = Map(
+    ID("ID") -> Decoder { c: HCursor =>
+      c.downField("key").as[String].map(s => ID(s).asInstanceOf[Thing])
+    },
+    ID("Path") -> Decoder { c: HCursor =>
+      c.downField("ids").as[String]
+        .map(s => Path.apply(s.split("/").map(ID): _*).asInstanceOf[Thing])
+    },
+    ID("Root") -> staticDecoder(Root),
+    ID("Unmatched") -> staticDecoder(Unmatched),
+  )
+
+  val plainDecoders: Map[ID, Decoder[Predicate]] = Map(
+    ID("Number") -> Decoder {_ => Right(Number(Long.MinValue, Long.MaxValue)) },
+    ID("Text") -> Decoder {_ => Right(Text(1024)) },
+    ID("Bool") -> Decoder {_ => Right(Bool) },
+    ID("Binary") -> Decoder {_ => Right(Binary) },
+
+    ID("Date") -> Decoder {_ => Right(Date) },
+    ID("Time") -> Decoder {_ => Right(Time) },
+    ID("Timestamp") -> Decoder {_ => Right(Timestamp) },
+  )
+
+  def predicateDecoder: Decoder[Predicate] = Decoder { c: HCursor =>
+    c.downField(discriminator).as[String].flatMap { s =>
+      val id = ID(s)
+      if(plainDecoders.contains(id)) {
+        plainDecoders(id).apply(c)
+      } else {
+        if (ts.predicates.contains(id)) {
+          id match {
+            case ID("Type") => typeDecoder.map(_.asInstanceOf[Predicate]).apply(c)
+            case ID("Enlist") => c.downField("of").as(predicateDecoder.map(p => Enlist(p)))
+            case ID("Index") => for {
+              of <- c.downField("of").as(predicateDecoder)
+              over <- c.downField("over").as(predicateDecoder)
+            } yield Index(of, over)
+            case ID("AnyOf") => c.downField("p")
+              .as(Decoder.decodeArray(predicateDecoder, Factory.arrayFactory))
+              .map(arr => AnyOf(arr:_*))
+            case ID("Link") => Left(DecodingFailure("Not supported", List.empty))
+            case ID("Declared") => Left(DecodingFailure("Not supported", List.empty))
+            case _ => Left(DecodingFailure(s"Not implemented Predicate: $id", List.empty))
+          }
+        } else {
+          Left(DecodingFailure(s"Not a Predicate: $id", List.empty))
+        }
       }
     }
   }
 
-  /*
-  if(ts.predicates.contains(l)) {
-    predicateDecoder(l)
-  } else if(ts.partners.contains(l)) {
-    ts.fromTypes.get(l) match {
-      case Some(found) => found match {
-        case Nothing => ???
-      }
-      case None => Left(DecodingFailure(s"Not found $l in type system", List.empty))
-    }
-  } else if (ts.noThings.contains(l)) {
-    Right(Link(l, Nothing))
-  } else if (ts.types.contains(l)) {
-    dataDecoder(ts.types(l)).apply(c)
-  } else {
-    Left(DecodingFailure(s"Not in /types: $s", List.empty))
-  }
-  * */
-
-  val nodeDecoder: Decoder[Node] = { c: HCursor =>
-    val keys = c.keys.getOrElse(Seq.empty).toSet
-
-    ???
+  private def typeDecoder: Decoder[Type] = { c: HCursor =>
+    c.keys.getOrElse(throw new IllegalStateException("How this happened?"))
+      .collect { case k if k != discriminator => c.downField(k).as(predicateDecoder).map(p => Field(k, p)) }
+      .foldRight(Right(scala.Nil): Decoder.Result[scala.List[Field]]) { (e, acc) =>
+        for (xs <- acc.right; x <- e.right) yield x :: xs
+      }.map { l => Type(l: _*) }
   }
 
-  private def plainDecoder: Decoder[Plain] = { c: HCursor =>
-    ???
+  val compositeDecoders: Map[ID, Decoder[Thing]] = Map(
+    ID("Field") -> alwaysFail("Direct Field decoding not supported"),
+    ID("Type") -> typeDecoder.map(_.asInstanceOf[Thing]),
+    ID("Enlist") -> Decoder { c: HCursor => c.downField("of").as(predicateDecoder.map(p => Enlist(p).asInstanceOf[Thing])) },
+    ID("Index") -> Decoder { c: HCursor =>
+      for {
+        of <- c.downField("of").as(predicateDecoder)
+        over <- c.downField("over").as(predicateDecoder)
+      } yield Index(of, over).asInstanceOf[Thing]
+    },
+    ID("AnyOf") -> Decoder { c: HCursor =>
+      c.downField("p")
+        .as(Decoder.decodeArray(predicateDecoder, Factory.arrayFactory))
+        .map(arr => AnyOf(arr: _*))
+    },
+    ID("Link") -> alwaysFail("TODO Link"),
+    ID("Declared") -> alwaysFail("TODO Declared"),
+  )
+
+  def commitDecoder: Decoder[Commit] = Decoder {_ => Left(DecodingFailure("TODO: Commit", List.empty)) }
+
+  val messageDecoders: Map[ID, Decoder[Thing]] = Map(
+    ID("Create") -> anythingDecoder.map(Create),
+    ID("Read") -> staticDecoder(Read),
+    ID("Update") -> anythingDecoder.map(Update),
+    ID("Delete") -> staticDecoder(Delete),
+    ID("Find") -> predicateDecoder.map(Find),
+    ID("LookFor") -> predicateDecoder.map(LookFor),
+    ID("Dump") -> predicateDecoder.map(Dump),
+    ID("Prepare") -> staticDecoder(Prepare),
+    ID("Verify") -> staticDecoder(Verify),
+    ID("Commit") -> commitDecoder.map(_.asInstanceOf[Thing]),
+
+    ID("Created") -> anythingDecoder.map(Created),
+    ID("Readen") -> anythingDecoder.map(Readen),
+    ID("Updated") -> Decoder { c: HCursor =>
+      for {
+        old <- c.downField("old").as(anythingDecoder)
+        what <- c.downField("what").as(anythingDecoder)
+      } yield Updated(old, what)
+    },
+    ID("Deleted") -> anythingDecoder.map(Deleted),
+    ID("Found") -> Decoder { c: HCursor =>
+      for {
+        query <- c.downField("query").as(anythingDecoder).flatMap {
+          case q: Query => Right(q)
+          case other => Left(DecodingFailure("Not supported thing instead of Query", List.empty))
+        }
+        values <- c.downField("what").as(Decoder.decodeMap(locKeyDecoder, anythingDecoder))
+      } yield Found(query, values)
+    },
+
+    ID("NotExist") -> staticDecoder(NotExist),
+    ID("NotFound") -> Decoder { _.downField("missing").as(locDecoder).map(NotFound) },
+    ID("Prepared") -> commitDecoder.map(cmt => Prepared(cmt).asInstanceOf[Thing]),
+    ID("Identical") -> staticDecoder(Identical),
+    ID("Valid") -> staticDecoder(Valid),
+    ID("Committed") -> commitDecoder.map(cmt => Committed(cmt).asInstanceOf[Thing]),
+
+    ID("AlreadyExist") -> anythingDecoder.map(AlreadyExist),
+    ID("Conflict") -> alwaysFail("TODO: Conflict"),
+    ID("MultiError") -> alwaysFail("TODO: MultiError"),
+    ID("NotImplemented") -> staticDecoder(NotImplemented),
+    ID("NotSupported") -> staticDecoder(NotSupported),
+  )
+
+  val linkDecoders: Map[ID, Decoder[Thing]] = ts.typeSystem.collect { // Location, Temporal, Plain, Predicate, Agent
+    case (id: ID, l@Link(_, _: AnyOf)) => id -> staticDecoder(l) // Message, In, Out, Query, Command, Report, Event, Error, CRUD
+  } // total: 14
+
+  val decoders: Map[ID, Decoder[Thing]] = {
+    locationDecoders ++ compositeDecoders ++ messageDecoders ++ linkDecoders ++
+      Map(
+        ID("Anything") -> staticDecoder(Anything),
+        ID("Nothing") -> staticDecoder(Nothing),
+        ID("Data") -> alwaysFail("TODO Data"),
+        ID("Node") -> alwaysFail("TODO Node"),
+      )
   }
+
+  private def staticDecoder(what: Thing): Decoder[Thing] = Decoder { _: HCursor => Right(what) }
+  private def alwaysFail(msg: String): Decoder[Thing] = Decoder { _: HCursor => Left(DecodingFailure(msg, List.empty)) }
+  private def wrapAnythingDecoder(f: Thing => Thing): Decoder[Thing] = anythingDecoder.map(f)
+  private def wrapAnything2Decoder(f: (Thing, Thing) => Thing): Decoder[Thing] = {
+    for {
+      a <- anythingDecoder
+      b <- anythingDecoder
+    } yield f(a, b)
+  }
+
+  private def wrapPredicateDecoder[T <: Thing](f: Predicate => T): Decoder[Thing] = Decoder { c: HCursor => ??? }
 }
 
 object ThingDecoder {
@@ -84,14 +224,12 @@ object ThingDecoder {
       case _ => ??? //TODO Predicate as AnyOf(<each predicate available>)
     }
 
-  def dataDecoder(t: Type): Decoder[Data] = dataValuesDecoder(t).map(values => Data(t, values))
-
-  private def dataValuesDecoder(t: Type): Decoder[scala.List[_]] = { c: HCursor =>
+  def dataDecoder(t: Type): Decoder[Data] = { c: HCursor =>
     t.fields.map {
       case Field(name, p) => c.downField(name).as(decoder(p))
     }.foldRight(Right(scala.Nil): Either[DecodingFailure, scala.List[_]]) {
       (e, acc) => for (xs <- acc.right; x <- e.right) yield x :: xs
-    }
+    }.map { v => Data(t, v) }
   }
 
   private val plainDecoder: PartialFunction[Plain, Decoder[_]] = {
@@ -112,18 +250,4 @@ object ThingDecoder {
       }.head
     }
   }
-
-  private def predicateDecoder(l: Location): Decoder.Result[Predicate] = l match {
-    case ID("Bool") => Right(Bool)
-    case ID("Anything") => Right(Anything)
-    case ID("Nothing") => Right(Nothing)
-
-    case ID("Type") => ??? //hcursor and apply?
-    case ID("Enlist") => ??? //hcursor and apply?
-    case ID("Index") => ??? //hcursor and apply?
-    case ID("AnyOf") => ??? //hcursor and apply?
-    //TODO plain
-  }
-
-
 }

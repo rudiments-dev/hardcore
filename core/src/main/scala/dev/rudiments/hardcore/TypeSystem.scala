@@ -47,10 +47,10 @@ class TypeSystem(tNode: Node) {
         }: _*)
     }
     val complex = fromTypes -- noThings -- types.keys -- adt.keys // Message, In, Out. TODO hierarchical
-    val basic: Map[Location, Predicate] = adt ++ types
+    val basic: Map[Location, Predicate] = adt ++ types ++ noThings.map(l => l -> Link(l, Nothing))
     val resolved = resolveComplex(complex, basic)
 
-    val diff = fromTypes -- resolved.keys -- related.values.flatten.toSet
+    val diff = fromTypes -- resolved.keys
     if(diff.nonEmpty) {
       throw new IllegalStateException(s"Not all types are enum values or types or any of them: ${diff.keys.mkString(",")}")
     }

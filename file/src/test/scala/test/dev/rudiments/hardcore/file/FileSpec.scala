@@ -3,17 +3,17 @@ package test.dev.rudiments.hardcore.file
 import dev.rudiments.hardcore.CRUD.Evt
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.file._
-import org.junit.Ignore
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.junit.JUnitRunner
 
-//@Ignore
 @RunWith(classOf[JUnitRunner])
 class FileSpec extends AnyWordSpec with Matchers {
+  private val filePath = "file/src/test/resources/file-test"
+  private val outFilePath = "file/build/tmp/test-files"
   private val files = ID("files")
-  private val fileAgent = new FileAgent("src/test/resources/file-test")
+  private val fileAgent = new FileAgent(filePath)
   private val ctx: Memory = new Memory
 
   private val initialFound = ctx ??* Root match {
@@ -138,13 +138,13 @@ class FileSpec extends AnyWordSpec with Matchers {
   }
 
   "can write Commit into files elsewhere" in {
-    val otherFile = new FileAgent("build/tmp/test-files")
+    val otherFile = new FileAgent(outFilePath)
     val node = Node.fromEventMap(commitEvents)
     otherFile.writeFileFromNode(node, Root) should be (WrittenTextFile(Data.empty))
   }
 
   "can write commit into json file" in {
-    val otherFile = new FileAgent("build/tmp/test-files")
+    val otherFile = new FileAgent(outFilePath)
     ctx ? Memory.commits match {
       case Readen(node: Node) => otherFile.writeFileFromNode(node, Root)
       case other => fail("Expecting initial commit")
