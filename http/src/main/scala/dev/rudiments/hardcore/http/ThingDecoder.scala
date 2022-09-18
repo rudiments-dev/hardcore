@@ -5,7 +5,7 @@ import dev.rudiments.hardcore.http.ThingEncoder.discriminator
 import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
 import java.sql
-import scala.collection.Factory
+import scala.collection.{Factory, mutable}
 
 class ThingDecoder(ts: TypeSystem) {
   def locKeyDecoder: KeyDecoder[Location] = KeyDecoder { s =>
@@ -16,6 +16,7 @@ class ThingDecoder(ts: TypeSystem) {
       case _ => None
     }
   }
+  def idKeyDecoder: KeyDecoder[ID] = KeyDecoder { k => Some(ID(k)) }
 
   def locDecoder: Decoder[Location] = Decoder { c =>
     c.downField("missing").as[String].flatMap { s =>
@@ -89,6 +90,33 @@ class ThingDecoder(ts: TypeSystem) {
         }
       }
     }
+  }
+
+  def nodeDecoder: Decoder[Node] = Decoder { c =>
+    for {
+      self <- c.getOrElse("self")(Nothing.asInstanceOf[Thing])(anythingDecoder)
+      keyIs <- c.getOrElse("keyIs")(Nothing.asInstanceOf[Predicate])(predicateDecoder)
+      leafIs <- c.getOrElse("leafIs")(Nothing.asInstanceOf[Predicate])(predicateDecoder)
+      leafs <- c.getOrElse("leafs")(Map.empty[ID, Thing])(
+        Decoder.decodeMap(idKeyDecoder, anythingDecoder)
+      ) //TODO propagate leafIs and keyIs predicates for decoding leafs
+      branches <- c.getOrElse("branches")(Map.empty[ID, Node])(
+        Decoder.decodeMap(idKeyDecoder, nodeDecoder)
+      )
+      relations <- c.getOrElse("relations")(Map.empty[Location, Seq[Location]])(
+        Decoder.decodeMap(
+          locKeyDecoder,
+          Decoder
+            .decodeArray(locDecoder, Factory.arrayFactory)
+            .map(_.toSeq)))
+    } yield new Node(
+      self,
+      mutable.Map.from(leafs),
+      mutable.Map.from(branches),
+      mutable.Map.from(relations),
+      keyIs,
+      leafIs,
+    )
   }
 
   private def typeDecoder: Decoder[Type] = { c: HCursor =>
@@ -175,21 +203,12 @@ class ThingDecoder(ts: TypeSystem) {
         ID("Anything") -> staticDecoder(Anything),
         ID("Nothing") -> staticDecoder(Nothing),
         ID("Data") -> alwaysFail("TODO Data"),
-        ID("Node") -> alwaysFail("TODO Node"),
+        ID("Node") -> nodeDecoder.map(_.asInstanceOf[Thing]),
       )
   }
 
   private def staticDecoder(what: Thing): Decoder[Thing] = Decoder { _: HCursor => Right(what) }
   private def alwaysFail(msg: String): Decoder[Thing] = Decoder { _: HCursor => Left(DecodingFailure(msg, List.empty)) }
-  private def wrapAnythingDecoder(f: Thing => Thing): Decoder[Thing] = anythingDecoder.map(f)
-  private def wrapAnything2Decoder(f: (Thing, Thing) => Thing): Decoder[Thing] = {
-    for {
-      a <- anythingDecoder
-      b <- anythingDecoder
-    } yield f(a, b)
-  }
-
-  private def wrapPredicateDecoder[T <: Thing](f: Predicate => T): Decoder[Thing] = Decoder { c: HCursor => ??? }
 }
 
 object ThingDecoder {

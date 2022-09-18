@@ -10,8 +10,8 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class FileSpec extends AnyWordSpec with Matchers {
-  private val filePath = "file/src/test/resources/file-test"
-  private val outFilePath = "file/build/tmp/test-files"
+  private val filePath = "src/test/resources/file-test"
+  private val outFilePath = "build/tmp/test-files"
   private val files = ID("files")
   private val fileAgent = new FileAgent(filePath)
   private val ctx: Memory = new Memory
