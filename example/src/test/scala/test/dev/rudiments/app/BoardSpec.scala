@@ -1,7 +1,6 @@
 package test.dev.rudiments.app
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.Initial.types
 import dev.rudiments.hardcore._
@@ -27,41 +26,47 @@ class BoardSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with C
   private val router = new ScalaRouter(n)
   private val routes = router.seal()
   private implicit val de: Decoder[Thing] = router.de
-  private val nodeDe = new ThingDecoder(new TypeSystem(mem /! types)).anythingDecoder
-  private val colType = mem ? (types / "BoardColumn") match {
-    case Readen(found: Type) => found
-    case other => fail(s"unexpected read of types/BoardColumn: $other")
-  }
-  private val t = mem ? (types / "Task") match {
-    case Readen(found: Type) => found
-    case other => fail(s"unexpected read of types/Task: $other")
-  }
+  private val ts = new TypeSystem(mem /! types)
+  private val nodeDe = new ThingDecoder(ts).anythingDecoder
+  private val c = mem ! (types / "BoardColumn")
+  private val t = mem ! (types / "Task")
 
-  { //TODO move init data into files
-    val tx = new Tx(mem /! Management.tasks)
+  private val board1: Thing = Node(leafIs = c, leafs = mutable.Map(
+    ID("column-1") -> c.data(Seq.empty),
+    ID("column-2") -> c.data(Seq(
+      Management.tasks / "task-1",
+      Management.tasks / "task-2"
+    )),
+    ID("column-3") -> c.data(Seq.empty)
+  ))
 
-    tx += ID("task-1") -> t.data(
-      "task-1",
-      "summ of task #1",
-      sql.Date.valueOf("2022-06-06"),
-      Link(types / "TODO", Nothing)
-    )
-    tx += ID("task-2") -> t.data(
-      "task-2",
-      "summ of task #2",
-      sql.Date.valueOf("2022-05-07"),
-      Link(types / "InProgress", Nothing)
-    )
-    tx += ID("task-3") -> t.data(
-      "task-3",
-      "summ of task #3",
-      sql.Date.valueOf("2022-04-08"),
-      Link(types / "Done", Nothing)
-    )
+  private val tx = new Tx(mem.node)
+  //TODO move init data into files
+  tx += Management.tasks / "task-1" -> t.data(
+    "task-1",
+    "summ of task #1",
+    sql.Date.valueOf("2022-06-06"),
+    Link(types / "TODO", Nothing)
+  )
+  tx += Management.tasks / "task-2" -> t.data(
+    "task-2",
+    "summ of task #2",
+    sql.Date.valueOf("2022-05-07"),
+    Link(types / "InProgress", Nothing)
+  )
+  tx += Management.tasks / "task-3" -> t.data(
+    "task-3",
+    "summ of task #3",
+    sql.Date.valueOf("2022-04-08"),
+    Link(types / "Done", Nothing)
+  )
 
+  tx += Management.boards / "board-1" -> board1
+
+  "can prepare tx" in {
     tx.>> match {
       case Prepared(c1) =>
-        mem /! Management.tasks << c1 match {
+        mem.node << c1 match {
           case Committed(c2) => c2
           case other =>
             fail(s"Failed to commit Tx: $other")
@@ -71,71 +76,61 @@ class BoardSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with C
     }
   }
 
-  private val board1: Thing = Node(branches = mutable.Map(
-    ID("column-1") -> Node(leafIs = colType),
-    ID("column-2") -> Node(leafIs = colType),
-    ID("column-3") -> Node(leafIs = colType)
-  ))
-
-  private val board2: Thing = Node(branches = mutable.Map(
-    ID("column-1") -> Node(leafIs = colType),
-    ID("column-2") -> Node(leafIs = colType),
-    ID("column-3") -> Node(leafIs = colType)
-  ))
-
   "can encode board" in {
-    inside(router.thingEncoder(board1)) { case j: Json =>
-      val s = j.toString()
-      s
-    }
+    router.thingEncoder(board1) should be(Json.obj(
+      "type" -> Json.fromString("Node"),
+      "key-is" -> Json.obj(
+        "type" -> Json.fromString("Text"),
+        "max-size" -> Json.fromString("1024")
+      ),
+      "leaf-is" -> Json.obj("type" -> Json.fromString("BoardColumn")),
+      "leafs" -> Json.obj(
+        "column-1" -> Json.obj("tasks" -> Json.arr()),
+        "column-2" -> Json.obj("tasks" -> Json.arr(
+          Json.fromString((Management.tasks / "task-1").toString),
+          Json.fromString((Management.tasks / "task-2").toString),
+        )),
+        "column-3" -> Json.obj("tasks" -> Json.arr())
+      )
+    ))
+  }
+
+  "can decode location" in {
+    val json = Json.obj(
+      "type" -> Json.fromString("Path"),
+      "ids" -> Json.fromString((Management.tasks / "task-1").toString)
+    )
+
+    nodeDe.decodeJson(json) should be (Right(Management.tasks / "task-1"))
+  }
+
+  "can decode single column" in {
+    val json = Json.obj(
+      "type" -> Json.fromString("BoardColumn"),
+      "tasks" -> Json.arr(
+        Json.fromString((Management.tasks / "task-1").toString),
+        Json.fromString((Management.tasks / "task-2").toString)
+      )
+    )
+    nodeDe.decodeJson(json) should be (Right(
+      c.data(Seq(Location("work/tasks/task-1"), Location("work/tasks/task-2")))
+    ))
   }
 
   "can decode board" in {
     val encoded = router.thingEncoder(board1)
-    inside (nodeDe.decodeJson(encoded)) {
-      case Right(t) =>
-        t
-      case other => fail("Failed to decode")
+    val decoded = nodeDe.decodeJson(encoded)
+    inside(decoded) {
+      case Right(n: Node) =>
+        n.self should be (Nothing)
+        n.keyIs should be (Text(1024))
+        n.leafIs should be (c)
+        n.leafs.size should be (3)
+        n.leafs.get(ID("column-2")) should be (Some(c.data(Seq(
+          Management.tasks / "task-1",
+          Management.tasks / "task-2"
+        ))))
+        n should be (board1)
     }
   }
-
-//  "create task" in {
-//    n ? ID("42") should be (NotExist)
-//    Post("/42", sample) ~> routes ~> check {
-//      response.status should be (StatusCodes.Created)
-//      responseAs[Thing] should be (sample)
-//    }
-//    n ? ID("42") should be (Readen(sample))
-//
-//    Get("/42") ~> routes ~> check {
-//      response.status should be (StatusCodes.OK)
-//      responseAs[Thing] should be (sample)
-//    }
-//  }
-//
-//  "update task" in {
-//    Put("/42", sample2) ~> routes ~> check {
-//      response.status should be (StatusCodes.OK)
-//      responseAs[Thing] should be (sample2)
-//    }
-//    Get("/42") ~> routes ~> check {
-//      response.status should be (StatusCodes.OK)
-//      responseAs[Thing] should be (sample2)
-//    }
-//  }
-//
-//  "can't create second task with same ID" in {
-//    Post("/42", sample2) ~> routes ~> check {
-//      response.status should be (StatusCodes.Conflict)
-//    }
-//  }
-//
-//  "delete task" in {
-//    Delete("/42") ~> routes ~> check {
-//      response.status should be (StatusCodes.NoContent)
-//    }
-//    Get("/42") ~> routes ~> check {
-//      response.status should be (StatusCodes.NotFound)
-//    }
-//  }
 }

@@ -1,6 +1,7 @@
 package dev.rudiments.hardcore.http
 
 import dev.rudiments.hardcore._
+import dev.rudiments.hardcore.http.ThingDecoder.{anyDecoder, dataDecoder, decoder, idKeyDecoder, locDecoder, locKeyDecoder}
 import dev.rudiments.hardcore.http.ThingEncoder.discriminator
 import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
@@ -8,27 +9,6 @@ import java.sql
 import scala.collection.{Factory, mutable}
 
 class ThingDecoder(ts: TypeSystem) {
-  def locKeyDecoder: KeyDecoder[Location] = KeyDecoder { s =>
-    Location(s) match {
-      case Root => Some(Root)
-      case id: ID => Some(id)
-      case path: Path => Some(path)
-      case _ => None
-    }
-  }
-  def idKeyDecoder: KeyDecoder[ID] = KeyDecoder { k => Some(ID(k)) }
-
-  def locDecoder: Decoder[Location] = Decoder { c =>
-    c.downField("missing").as[String].flatMap { s =>
-      Location(s) match {
-        case Root => Right(Root)
-        case id: ID => Right(id)
-        case path: Path => Right(path)
-        case _ => Left(DecodingFailure("Not a location", List.empty))
-      }
-    }
-  }
-
   def anythingDecoder: Decoder[Thing] = { c: HCursor =>
     c.downField(discriminator).as[String].flatMap { s =>
       val id = ID(s)
@@ -54,14 +34,14 @@ class ThingDecoder(ts: TypeSystem) {
   )
 
   val plainDecoders: Map[ID, Decoder[Predicate]] = Map(
-    ID("Number") -> Decoder {_ => Right(Number(Long.MinValue, Long.MaxValue)) },
-    ID("Text") -> Decoder {_ => Right(Text(1024)) },
-    ID("Bool") -> Decoder {_ => Right(Bool) },
-    ID("Binary") -> Decoder {_ => Right(Binary) },
+    ID("Number") -> Decoder { _ => Right(Number(Long.MinValue, Long.MaxValue)) },
+    ID("Text") -> Decoder { _ => Right(Text(1024)) },
+    ID("Bool") -> Decoder { _ => Right(Bool) },
+    ID("Binary") -> Decoder { _ => Right(Binary) },
 
-    ID("Date") -> Decoder {_ => Right(Date) },
-    ID("Time") -> Decoder {_ => Right(Time) },
-    ID("Timestamp") -> Decoder {_ => Right(Timestamp) },
+    ID("Date") -> Decoder { _ => Right(Date) },
+    ID("Time") -> Decoder { _ => Right(Time) },
+    ID("Timestamp") -> Decoder { _ => Right(Timestamp) },
   )
 
   def predicateDecoder: Decoder[Predicate] = Decoder { c: HCursor =>
@@ -86,7 +66,11 @@ class ThingDecoder(ts: TypeSystem) {
             case _ => Left(DecodingFailure(s"Not implemented Predicate: $id", List.empty))
           }
         } else {
-          Left(DecodingFailure(s"Not a Predicate: $id", List.empty))
+          ts.typeSystem.get(id) match {
+            case Some(p) => Right(Link(ID("types") / id, p))
+            case None =>
+              Left(DecodingFailure(s"Not a Predicate: $id", List.empty))
+          }
         }
       }
     }
@@ -95,11 +79,16 @@ class ThingDecoder(ts: TypeSystem) {
   def nodeDecoder: Decoder[Node] = Decoder { c =>
     for {
       self <- c.getOrElse("self")(Nothing.asInstanceOf[Thing])(anythingDecoder)
-      keyIs <- c.getOrElse("keyIs")(Nothing.asInstanceOf[Predicate])(predicateDecoder)
-      leafIs <- c.getOrElse("leafIs")(Nothing.asInstanceOf[Predicate])(predicateDecoder)
-      leafs <- c.getOrElse("leafs")(Map.empty[ID, Thing])(
-        Decoder.decodeMap(idKeyDecoder, anythingDecoder)
-      ) //TODO propagate leafIs and keyIs predicates for decoding leafs
+      keyIs <- c.getOrElse("key-is")(Nothing.asInstanceOf[Predicate])(predicateDecoder)
+      leafIs <- c.getOrElse("leaf-is")(Nothing.asInstanceOf[Predicate])(predicateDecoder)
+      leafs <- c.getOrElse("leafs")(Map.empty[ID, Thing]) {
+        val d = leafIs match {
+          case Link(id: ID, _) if ts.typeSystem.contains(id) => decoders(id)
+          case Link(p: Path, _) if ts.typeSystem.contains(p.last) => decoders(p.last)
+          case other => anythingDecoder
+        }
+        Decoder.decodeMap(idKeyDecoder, d)
+      } //TODO propagate leafIs and keyIs predicates for decoding leafs
       branches <- c.getOrElse("branches")(Map.empty[ID, Node])(
         Decoder.decodeMap(idKeyDecoder, nodeDecoder)
       )
@@ -110,12 +99,12 @@ class ThingDecoder(ts: TypeSystem) {
             .decodeArray(locDecoder, Factory.arrayFactory)
             .map(_.toSeq)))
     } yield new Node(
-      self,
-      mutable.Map.from(leafs),
-      mutable.Map.from(branches),
-      mutable.Map.from(relations),
-      keyIs,
-      leafIs,
+      self = self,
+      leafs = mutable.Map.from(leafs),
+      branches = mutable.Map.from(branches),
+      relations = mutable.Map.from(relations),
+      keyIs = keyIs,
+      leafIs = leafIs
     )
   }
 
@@ -198,13 +187,19 @@ class ThingDecoder(ts: TypeSystem) {
   } // total: 14
 
   val decoders: Map[ID, Decoder[Thing]] = {
-    locationDecoders ++ compositeDecoders ++ messageDecoders ++ linkDecoders ++
+    val provided = locationDecoders ++ compositeDecoders ++ messageDecoders ++ linkDecoders ++
       Map(
         ID("Anything") -> staticDecoder(Anything),
         ID("Nothing") -> staticDecoder(Nothing),
         ID("Data") -> alwaysFail("TODO Data"),
         ID("Node") -> nodeDecoder.map(_.asInstanceOf[Thing]),
       )
+
+    val rawTypes = ts.typeSystem.collect {
+      case (id: ID, t: Type) => id -> dataDecoder(t).map(dt => Data(Link(ID("types") / id, t), dt.data).asInstanceOf[Thing])
+      case (p: Path, t: Type) => p.last -> dataDecoder(t).map(dt => Data(Link(p, t), dt.data).asInstanceOf[Thing])
+    }
+    provided ++ (rawTypes -- provided.keys)
   }
 
   private def staticDecoder(what: Thing): Decoder[Thing] = Decoder { _: HCursor => Right(what) }
@@ -220,6 +215,8 @@ object ThingDecoder {
       case Index(Text(_), over) => Decoder.decodeMap(KeyDecoder.decodeKeyString, decoder(over))
       case t: Type => dataDecoder(t)
       case Link(p: Path, t: Type) => dataDecoder(t)
+      case Link(l, _) if l == ID("types") / "Location" => locDecoder
+      case Link(l, _) if l == ID("Location") => locDecoder
       case Link(p: Path, any: AnyOf) =>
         val options: Map[Location, Link] = any.p.collect {
           case l@Link(id: ID, Nothing) => id -> l
@@ -231,7 +228,7 @@ object ThingDecoder {
             case Some(found) => found
             case None =>
                 DecodingFailure.fromThrowable(
-                  new IllegalArgumentException(s"$s Not a value from AnyOf"), List.empty)
+                  new IllegalArgumentException(s"$s Not a value from AnyOf in $p"), List.empty)
           }
         }
       case Link(p: Path, other) =>
@@ -267,6 +264,26 @@ object ThingDecoder {
         case Link(p: Path, t: Type) if p.ids.last.key == name => dataDecoder(t).apply(c)
         case l@Link(p: Path, Nothing) if p.ids.last.key == name => Right(l) //use links for enums
       }.head
+    }
+  }
+
+  def locKeyDecoder: KeyDecoder[Location] = KeyDecoder { s =>
+    Location(s) match {
+      case Root => Some(Root)
+      case id: ID => Some(id)
+      case path: Path => Some(path)
+      case _ => None
+    }
+  }
+
+  def idKeyDecoder: KeyDecoder[ID] = KeyDecoder { k => Some(ID(k)) }
+
+  def locDecoder: Decoder[Location] = Decoder.decodeString.map { s =>
+    Location(s) match {
+      case Root => Root
+      case id: ID => id
+      case path: Path => path
+      case _ => throw new IllegalArgumentException("Not a location")
     }
   }
 }

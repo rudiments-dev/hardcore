@@ -59,6 +59,8 @@ class Tx(ctx: Agent) extends AgentCrud {
         case (u@Updated(_, u1), Updated(_, u2)) if u1 == u2 => u
         case (d@Deleted(_), Deleted(_)) => d
         case (NotExist, NotExist) => NotExist
+        case (nf@NotFound(nf1), NotFound(nf2)) if nf1 == nf2 => nf
+        case (r@Readen(r1), Readen(r2)) if r1 == r2 => r
         case (that, other) => Conflict(that, other)
       }
       k -> v

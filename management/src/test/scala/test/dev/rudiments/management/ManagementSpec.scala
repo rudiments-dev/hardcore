@@ -27,7 +27,7 @@ class ManagementSpec extends AnyWordSpec with Matchers {
 
     val readen = mem ? (types / "BoardColumn")
     val expected = Readen(Type(
-      Field("tasks", Enlist(mem ! (types / "Task")))
+      Field("tasks", Enlist(mem ! (types / "Location")))
     ))
     readen should be (expected)
   }
@@ -37,7 +37,7 @@ class ManagementSpec extends AnyWordSpec with Matchers {
       branches = mutable.Map(
         ID("team") -> Node(leafIs = mem ! types / "User"),
         ID("tasks") -> Node(leafIs = mem ! types / "Task"),
-        ID("boards") -> Node(leafIs = Nothing), //TODO check node constraint
+        ID("boards") -> Node(leafIs = mem ! types / "BoardColumn"), //TODO check node constraint
         ID("docs") -> Node.empty,
         ID("meetings") -> Node.empty
       )

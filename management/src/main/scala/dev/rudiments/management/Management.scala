@@ -29,13 +29,13 @@ object Management {
       Field("status", tx ! (types / "TaskStatus"))
     )
     tx += types / "BoardColumn" -> Type(
-      Field("tasks", Enlist(tx ! (types / "Task")))
+      Field("tasks", Enlist(tx ! (types / "Location")))
     )
 
     tx += work -> Node.empty
     tx += team -> Node(leafIs = tx ! (types / "User"))
     tx += tasks -> Node(leafIs = tx ! (types / "Task"))
-    tx += boards -> Node(leafIs = Nothing)//TODO add node constraint - only `node = Node(leafIs = #BoardColumn)` allowed
+    tx += boards -> Node(leafIs = tx ! (types / "BoardColumn"))
     tx += docs -> Node.empty
     tx += meetings -> Node.empty
 

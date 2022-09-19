@@ -42,35 +42,32 @@ object ThingEncoder {
   def encodeData(data: Data): Json = encode(data.what, data.data)
 
   def encodeNode(node: Node): Json = {
-    if(node.leafs.isEmpty && node.branches.isEmpty) {
-      if(node.relations.contains(partners)) {
-        Json.obj(
-          "type" -> Json.fromString("Node"),
-          "self" -> encodeAnything(node.self),
-          "values" -> Json.arr(
-            node.relations(partners).map(v => Json.fromString(v.lastString)):_*
-          )
-        )
-      } else {
-        Json.obj(
-          "type" -> Json.fromString("Node"),
-          "self" -> encodeAnything(node.self),
-          "leaf-is" -> encodePredicate(node.leafIs),
-          "key-is" -> encodePredicate(node.keyIs)
-        )
-      }
-    } else {
-      val leafs = node.leafs.toSeq.map { case (k, v) => k -> encodeAnything(v) }
-      val branches = node.branches.toSeq.map { case (k, v) => k -> encodeNode(v) }
-      val all: Seq[(ID, Json)] = if (node.self != Nothing) {
-        leafs ++ branches :+ (ID("self") -> encodeAnything(node.self))
-      } else {
-        leafs ++ branches
-      }
-      val keyEncoded = all.map { case (id, j) => idEncoder(id) -> j } :+ ("type", Json.fromString("Node"))
-
-      Json.obj(keyEncoded: _*)
+    val selfJson = Seq(
+      "self" -> node.self,
+      "key-is" -> node.keyIs,
+      "leaf-is" -> node.leafIs,
+    ).collect {
+      case (s, v) if v != Nothing => s -> encodeAnything(v)
     }
+
+    val leafs = node.leafs.toSeq.map { case (k, v) => idEncoder(k) -> encodeAnything(v) }
+    val branches = node.branches.toSeq.map { case (k, v) => idEncoder(k) -> encodeNode(v) }
+
+    val leafJson = if(leafs.nonEmpty) {
+      Seq("leafs" -> Json.obj(leafs: _*))
+    } else {
+      Seq.empty
+    }
+
+    val branchesJson = if(branches.nonEmpty) {
+      Seq("branches" -> Json.obj(branches: _*))
+    } else {
+      Seq.empty
+    }
+
+    val all = Seq("type" -> Json.fromString("Node")) ++ selfJson ++ leafJson ++ branchesJson
+
+    Json.obj(all: _*)
   }
 
   def encodeAnything(thing: Thing): Json = thing match {
@@ -93,15 +90,20 @@ object ThingEncoder {
       } else {
         throw new IllegalArgumentException(s"Linked $l link not in AnyOf")
       }
-    case (l: Link, values) => encode(l.what, values) //TODO add 'type' from Link's location
+    case (loc: Link, l: Location) if loc.where == types / "Location" =>
+      Json.fromString(l.toString)
+    case (l: Link, values) =>
+      encode(l.what, values) //TODO add 'type' from Link's location
     case (t: Type, values: Seq[Any]) =>
       Json.obj(t.fields.zip(values).map { case (f, v) => (f.name, encode(f.of, v)) }:_*)
     case (p: Plain, v: Any) => encodePlain(p, v)
-    case (Enlist(p), vs: Seq[Any]) => Json.arr(vs.map(v => encode(p, v)):_*)
+    case (Enlist(p), vs: Seq[Any]) =>
+      Json.arr(vs.map(v => encode(p, v)):_*)
     case (Index(_, pv), vs: Map[Location, Any]) => Json.obj(
       vs.toSeq.map { case (k, v) => k.toString -> encode(pv, v) } :_*
     )
     case (a: AnyOf, v: Link) if a.p.contains(v) => Json.fromString(v.where.toString)
+
     case (other, another) =>
       Json.fromString(s"NOT IMPLEMENTED: $another")
   }
@@ -177,11 +179,11 @@ object ThingEncoder {
       case Number(from, upTo) => Json.obj(
         "type" -> Json.fromString("Number"),
         "from" -> Json.fromString(from.toString),
-        "upTo" -> Json.fromString(upTo.toString)
+        "up-to" -> Json.fromString(upTo.toString)
       )
       case Text(maxSize) => Json.obj(
         "type" -> Json.fromString("Text"),
-        "maxSize" -> Json.fromString(maxSize.toString),
+        "max-size" -> Json.fromString(maxSize.toString),
       )
       case Bool => Json.obj(discriminator -> Json.fromString("Bool"))
       case Binary => Json.obj(discriminator -> Json.fromString("Binary"))
