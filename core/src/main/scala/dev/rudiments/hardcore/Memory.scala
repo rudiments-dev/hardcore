@@ -9,7 +9,6 @@ case class Memory(
   this += commits -> Node.empty
   Initial.init(this)
 
-
   private def nodeEvent(where: Location, what: Evt): Evt = node.remember(where, what) match {
     case evt: Evt => evt
     case other =>

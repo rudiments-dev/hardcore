@@ -2,7 +2,8 @@ package test.dev.rudiments.http
 
 import dev.rudiments.hardcore._
 import dev.rudiments.hardcore.http.ThingEncoder.encodeNode
-import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
+import dev.rudiments.hardcore.Initial.types
+import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter, ThingDecoder}
 import io.circe.Json
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -18,9 +19,10 @@ class ThingEncoderSpec extends AnyWordSpec with Matchers with CirceSupport {
     Field("comment", Text(Int.MaxValue))
   )
 
-  private val types = ID("types")
-  private val mem: Node = new Node(Nothing, leafIs = t)
-  private val router = new ScalaRouter(mem)
+  private val mem = new Memory()
+  private val ts = new TypeSystem(mem /! types)
+  private val td = new ThingDecoder(ts)
+  private val router = new ScalaRouter(mem.node)(td)
 
   private val initial = ctx ?? ID("commits") match {
     case Found(_, values) => if(values.size == 1) {

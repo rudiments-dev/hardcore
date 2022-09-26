@@ -1,8 +1,9 @@
 package test.dev.rudiments.http
 
+import dev.rudiments.hardcore.Initial.types
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
-import io.circe.Json
+import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter, ThingDecoder}
+import io.circe.{Decoder, Json}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -16,11 +17,14 @@ class ThingDecoderSpec extends AnyWordSpec with Matchers with CirceSupport {
     Field("comment", Text(Int.MaxValue))
   )
 
-  private val mem: Node = new Node(Nothing, leafIs = t)
-  private val router = new ScalaRouter(mem)
+  private val mem = new Memory()
+  private val ts = new TypeSystem(mem /! types)
+  private val td = new ThingDecoder(ts)
+  private val router = new ScalaRouter(mem.node)(td)
+  private val de: Decoder[Data] = td.dataTypeDecoder(t)
 
   "data decoder can decode" in {
-    router.de.decodeJson(Json.obj(
+    de.decodeJson(Json.obj(
       "id" -> Json.fromInt(42),
       "name" -> Json.fromString("sample"),
       "comment" -> Json.fromString("non-optional comment")
@@ -39,7 +43,7 @@ class ThingDecoderSpec extends AnyWordSpec with Matchers with CirceSupport {
       )
     ))
 
-    val decoded = router.de.decodeJson(encoded)
+    val decoded = de.decodeJson(encoded)
     decoded should be (Node.empty)
   }
 }

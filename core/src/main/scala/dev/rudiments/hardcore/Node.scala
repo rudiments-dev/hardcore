@@ -26,8 +26,8 @@ case class Node(
         }
 
       case path: Path =>
-        branches.get(path.ids.head) match {
-          case Some(node) => node.read(path.dropHead)
+        branches.get(path.head) match {
+          case Some(node) => node.read(path.tail)
           case None => NotFound(path)
         }
 
@@ -35,15 +35,6 @@ case class Node(
         NotImplemented
     }
   }
-
-//  from.get(Root) match {
-//    case Some(Identical) => Node.empty
-//    case Some(Created(n: Node)) => n
-//    case Some(Created(t: Thing)) => Node(t)
-//    case Some(Updated(n1, n2: Node)) if n1 == Node.empty => n2
-//    case None => Node.empty
-//    case other => throw new IllegalArgumentException(s"What happened? $other")
-//  }
 
   def rememberSelf(what: O): O = what match {
     case Identical => Identical
@@ -86,20 +77,43 @@ case class Node(
       NotSupported
   }
 
-  def redirect(path: Path, what: O): O = {
+  def search(path: Path)(effect: (Node, O) => O): O = {
     this.read(path.dropTail) match {
-      case Readen(n: Node) =>
-        n.read(path.last) match {
-          case Readen(l: Node) => l.rememberSelf(what)
-          case Readen(thing) => n.asContainer(path.last, what)
-          case NotExist =>
-            n.asContainer(path.last, what)
-        }
+      case Readen(n: Node) => effect(n, n.read(path.last))
       case err: Error => err
       case nf: NotFound => nf
       case NotExist =>
         NotExist
-      case other => Conflict(other, what)
+      case other => Conflict(Readen(path.dropTail), other)
+    }
+  }
+
+  def redirect(path: Path, what: O): O = {
+    search(path) {
+      case (_, Readen(l: Node)) => l.rememberSelf(what)
+      case (n, Readen(thing)) => n.asContainer(path.last, what)
+      case (n, NotExist) =>
+        n.asContainer(path.last, what)
+    }
+  }
+
+  def navigate(asStrings: Seq[String]): (Node, Location) = {
+    if(asStrings.isEmpty) {
+      (this, Root)
+    } else {
+      val id = decodeKey(asStrings.head) //TODO index all paths of nodes as stringSeq and search
+      if(asStrings.size == 1) {
+        (this, id)
+      } else {
+        read(id) match {
+          case Readen(n: Node) =>
+            n.navigate(asStrings.tail) match {
+              case p@(_, Unmatched) => p
+              case (n, l) => (n, id / l)
+            }
+          case other => (this, Unmatched)
+        }
+      }
     }
   }
 

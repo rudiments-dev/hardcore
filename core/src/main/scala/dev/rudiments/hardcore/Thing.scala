@@ -114,7 +114,7 @@ sealed trait Location extends Thing {
     case (Root, Root) => Root
     case (p: Path, Root) => p
     case (id: ID, Root) => id
-    case (_, _) => throw new IllegalArgumentException("prohibited")
+    case (a, b) => throw new IllegalArgumentException(s"prohibited $a/$b")
   }
 
   def / (p: String): Location = this./(ID(p))
@@ -171,29 +171,24 @@ final case class Path(ids: ID*) extends Location {
   override def toString: String = ids.map(_.key).mkString("/")
   override def lastString: String = ids.last.lastString
 
-  def dropHead: Location = ids.toList match {
-    case head :: tail :: Nil => tail
-    case head :: tail => Path(tail: _*)
-    case other => Unmatched
-  }
-
-  def dropTail: Location = ids.toList match {
-    case head :: tail :: Nil => head
-    case head :: Nil => Unmatched
-    case other => Path(other.dropRight(1): _*)
+  def dropTail: Location = ids.size match {
+    case 0 => Unmatched
+    case 1 => Root // TODO exception?
+    case 2 => ids.head
+    case _ => Path(ids.dropRight(1):_*)
   }
 
   def head: ID = ids.head
-  def tail: Location = ids.toList match {
-    case head :: tail :: Nil => tail
-    case head :: tail => Path(tail: _*)
-    case head :: Nil => Root
-    case Nil => throw new IllegalArgumentException("empty path")
+  def tail: Location = ids.size match {
+    case 0 => Unmatched
+    case 1 => Root // TODO exception?
+    case 2 => ids.last
+    case _ => Path(ids.drop(1):_*)
   }
-  def last: ID = ids.toList match {
-    case head :: tail :: Nil => tail
-    case head :: Nil => head
-    case other => other.last
+  def last: ID = ids.size match {
+    case 0 => throw new IllegalArgumentException("Not supported empty path")
+    case 1 => ids.head
+    case _ => ids.last
   }
 
   def drop(other: Location): Location = {

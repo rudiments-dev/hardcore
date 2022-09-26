@@ -8,55 +8,37 @@ import io.circe.Decoder
 
 import scala.language.implicitConversions
 
-class ScalaRouter(mem: Node) extends CirceSupport {
-  implicit val de: Decoder[Thing] = ThingDecoder.thingDecoder(mem.leafIs)
-
+class ScalaRouter(mem: Node)(implicit td: ThingDecoder) extends CirceSupport {
   val routes: Route = {
     path(Segments(1, 128) ~ Slash) { segments =>
         get {
-          mem.decodeAndReadLocation(segments) match {
-            case (l, Readen(_: Node)) => mem ?? l
-            case (l, err: Error) =>
-              err
-            case (l, other) =>
-              NotImplemented
+          mem.navigate(segments) match {
+            case (_, Unmatched) => NotExist
+            case (_, l) => mem ?? l
           }
         }
     } ~ path(Segments(1, 128)) { segments =>
-      val (loc, ifErr) = mem.decodeAndReadLocation(segments)
-      parameterMultiMap { params =>
-        get {
-          (loc, ifErr) match {
-            case (Unmatched, _) => NotExist
-            case (_, err: Error) => err
-            case (l, _) =>
+      mem.navigate(segments) match {
+        case (_, Unmatched) => NotExist
+        case (node, location) =>
+          implicit val d: Decoder[Data] = td.decoder(node.leafIs).map(_.asInstanceOf[Data])
+          parameterMultiMap { params =>
+            get {
               if (params.contains("structure")) {
-                mem ?* l
+                mem ?* location
               } else {
-                mem ? l
+                mem ? location
               }
-          }
-        } ~ delete {
-          (loc, ifErr) match {
-            case (Unmatched, _) => NotExist
-            case (_, err: Error) => err
-            case (l, _) => mem -= l
-          }
-        } ~ entity(as[Thing]) { data =>
-          post {
-            (loc, ifErr) match {
-              case (Unmatched, _) => NotExist
-              case (_, err: Error) => err
-              case (l, _) => mem += l -> data
-            }
-          } ~ put {
-            (loc, ifErr) match {
-              case (Unmatched, _) => NotExist
-              case (_, err: Error) => err
-              case (l, _) => mem *= l -> data
+            } ~ delete {
+              mem -= location
+            } ~ entity(as[Data]) { data =>
+              post {
+                mem += location -> data
+              } ~ put {
+                mem *= location -> data
+              }
             }
           }
-        }
       }
     } ~ pathEnd {
       parameterMultiMap { params =>

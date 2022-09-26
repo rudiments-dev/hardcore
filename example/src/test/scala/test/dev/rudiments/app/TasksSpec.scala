@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import dev.rudiments.hardcore.Initial.types
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
+import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter, ThingDecoder}
 import dev.rudiments.management.Management
 import io.circe.{Decoder, Json}
 import org.junit.Ignore
@@ -21,15 +21,17 @@ class TasksSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with C
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private val mem = new Memory()
   Management.init(mem.node)
+  private val ts = new TypeSystem(mem /! types)
+  private val td = new ThingDecoder(ts)
 
   private val n: Node = mem /! Management.tasks
-  private val router = new ScalaRouter(n)
+  private val router = new ScalaRouter(n)(td)
   private val routes = router.seal()
-  private implicit val de: Decoder[Thing] = router.de
   private val t = mem ? (types / "Task") match {
     case Readen(found: Type) => found
     case other => fail(s"unexpected read of types/Task: $other")
   }
+  private implicit val de: Decoder[Thing] = td.decoder(t).map(_.asInstanceOf[Data])
 
 //  mem /! Management.team += ID("alice") -> Management.userLink.data("Alice", "alice@test.org")
 
@@ -56,7 +58,7 @@ class TasksSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with C
   }
 
   "can decode task" in {
-    router.de.decodeJson(Json.obj(
+    td.dataTypeDecoder(t).decodeJson(Json.obj(
       "name" -> Json.fromString("task-1"),
       "summary" -> Json.fromString("summ of task #1"),
       "deadline" -> Json.fromString("2022-06-06"),

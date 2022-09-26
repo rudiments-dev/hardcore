@@ -21,13 +21,13 @@ class BoardSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with C
   private implicit val actorSystem: ActorSystem = ActorSystem()
   private val mem = new Memory()
   Management.init(mem.node)
+  private val ts = new TypeSystem(mem /! types)
+  private val td = new ThingDecoder(ts)
 
   private val n: Node = mem /! Management.boards
-  private val router = new ScalaRouter(n)
+  private val router = new ScalaRouter(n)(td)
   private val routes = router.seal()
-  private implicit val de: Decoder[Thing] = router.de
-  private val ts = new TypeSystem(mem /! types)
-  private val nodeDe = new ThingDecoder(ts).anythingDecoder
+  private val nodeDe = td.anythingDecoder
   private val c = mem ! (types / "BoardColumn")
   private val t = mem ! (types / "Task")
 

@@ -3,8 +3,9 @@ package test.dev.rudiments.http
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import dev.rudiments.hardcore.Initial.types
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter}
+import dev.rudiments.hardcore.http.{CirceSupport, ScalaRouter, ThingDecoder}
 import io.circe.Decoder
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -20,12 +21,18 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
     Field("comment", Text(Int.MaxValue))
   )
 
-  private val mem: Node = new Node(Nothing, leafIs = t)
-  private val router = new ScalaRouter(mem)
-  private val routes = router.seal("example")
-  private implicit val de: Decoder[Thing] = router.de
+  private val mem = new Memory()
+  private val ts = new TypeSystem(mem /! types)
+  private val td = new ThingDecoder(ts)
+  private val router = new ScalaRouter(mem.node)(td)
+  private val routes = router.seal()
+  private implicit val de: Decoder[Data] = td.dataTypeDecoder(t)
 
-  private val sample: Thing = t.data(42, "sample", "non-optional comment")
+  mem += ID("example") -> Node(Nothing, leafIs = t)
+  mem += ID("34") -> Node(Nothing, leafIs = Nothing)
+  mem += (ID("34") / "43") -> Node(Nothing, leafIs = t)
+
+  private val sample = t.data(42, "sample", "non-optional comment")
 
   "no element by ID" in {
     Get("/example/42") ~> routes ~> check {
@@ -37,29 +44,29 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   "put item into repository" in {
     Post("/example/42", sample) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      responseAs[Thing] should be (sample)
+      responseAs[Data] should be (sample)
     }
-    mem ? ID("42") should be (Readen(sample))
+    mem ? (ID("example") / "42") should be (Readen(sample))
 
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Thing] should be (sample)
+      responseAs[Data] should be (sample)
     }
   }
 
   "update item in repository" in {
-    Put("/example/42", t.data(42L, "test", "non-optional comment").asInstanceOf[Thing]) ~> routes ~> check {
+    Put("/example/42", t.data(42L, "test", "non-optional comment")) ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Thing] should be (t.data(42L, "test", "non-optional comment"))
+      responseAs[Data] should be (t.data(42L, "test", "non-optional comment"))
     }
     Get("/example/42") ~> routes ~> check {
       response.status should be (StatusCodes.OK)
-      responseAs[Thing] should be (t.data(42L, "test", "non-optional comment"))
+      responseAs[Data] should be (t.data(42L, "test", "non-optional comment"))
     }
   }
 
   "second POST with same item conflicts with existing" in {
-    Post("/example/42", t.data(42L, "test", "non-optional comment").asInstanceOf[Thing]) ~> routes ~> check {
+    Post("/example/42", t.data(42L, "test", "non-optional comment")) ~> routes ~> check {
       response.status should be (StatusCodes.Conflict)
     }
   }
@@ -74,13 +81,18 @@ class ScalaRouterSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
   }
 
   "can create deep into memory" in {
-    mem += ID("34") -> Node.empty
-    mem += (ID("34") / "43") -> Node.empty
+    val sample2 = t.data(0L, "deep", "test")
 
     val path = ID("34") / "43" / "10"
-    Post("/example/34/43/10", t.data(0L, "deep", "test").asInstanceOf[Thing]) ~> routes ~> check {
+
+    Get("/34/43") ~> routes ~> check {
+      response.status should be(StatusCodes.OK)
+    }
+
+    Post("/34/43/10", sample2) ~> routes ~> check {
       response.status should be (StatusCodes.Created)
-      mem ? path should be (Readen(t.data(0L, "deep", "test")))
+      responseAs[Data] should be (sample2)
+      mem ? path should be (Readen(sample2))
     }
   }
 }

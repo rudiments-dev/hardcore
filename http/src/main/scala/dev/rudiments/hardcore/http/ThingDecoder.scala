@@ -1,7 +1,6 @@
 package dev.rudiments.hardcore.http
 
 import dev.rudiments.hardcore._
-import dev.rudiments.hardcore.http.ThingDecoder.{anyDecoder, dataDecoder, decoder, idKeyDecoder, locDecoder, locKeyDecoder}
 import dev.rudiments.hardcore.http.ThingEncoder.discriminator
 import io.circe.{Decoder, DecodingFailure, HCursor, KeyDecoder}
 
@@ -61,8 +60,8 @@ class ThingDecoder(ts: TypeSystem) {
             case ID("AnyOf") => c.downField("p")
               .as(Decoder.decodeArray(predicateDecoder, Factory.arrayFactory))
               .map(arr => AnyOf(arr:_*))
-            case ID("Link") => Left(DecodingFailure("Not supported", List.empty))
-            case ID("Declared") => Left(DecodingFailure("Not supported", List.empty))
+            case ID("Link") => Left(DecodingFailure(s"Not supported $id", List.empty))
+            case ID("Declared") => Left(DecodingFailure(s"Not supported $id", List.empty))
             case _ => Left(DecodingFailure(s"Not implemented Predicate: $id", List.empty))
           }
         } else {
@@ -196,51 +195,47 @@ class ThingDecoder(ts: TypeSystem) {
       )
 
     val rawTypes = ts.typeSystem.collect {
-      case (id: ID, t: Type) => id -> dataDecoder(t).map(dt => Data(Link(ID("types") / id, t), dt.data).asInstanceOf[Thing])
-      case (p: Path, t: Type) => p.last -> dataDecoder(t).map(dt => Data(Link(p, t), dt.data).asInstanceOf[Thing])
+      case (id: ID, t: Type) => id -> dataTypeDecoder(t).map(dt => Data(Link(ID("types") / id, t), dt.data).asInstanceOf[Thing])
+      case (p: Path, t: Type) => p.last -> dataTypeDecoder(t).map(dt => Data(Link(p, t), dt.data).asInstanceOf[Thing])
     }
     provided ++ (rawTypes -- provided.keys)
   }
 
   private def staticDecoder(what: Thing): Decoder[Thing] = Decoder { _: HCursor => Right(what) }
   private def alwaysFail(msg: String): Decoder[Thing] = Decoder { _: HCursor => Left(DecodingFailure(msg, List.empty)) }
-}
 
-object ThingDecoder {
-  def thingDecoder(over: Thing): Decoder[Thing] = decoder(over).map(_.asInstanceOf[Thing])
+  def decoder(p: Predicate): Decoder[_] = p match {
+    case p: Plain => plainDataDecoder(p)
+    case Enlist(of) => Decoder.decodeSeq(decoder(of))
+    case Index(Text(_), over) => Decoder.decodeMap(KeyDecoder.decodeKeyString, decoder(over))
+    case t: Type => dataTypeDecoder(t)
+    case Link(p: Path, t: Type) => dataTypeDecoder(t)
+    case Link(l, _) if l == ID("types") / "Location" => locDecoder
+    case Link(l, _) if l == ID("Location") => locDecoder
+    case Link(p: Path, any: AnyOf) => //TODO check actual
+      val options: Map[Location, Link] = any.p.collect {
+        case l@Link(id: ID, Nothing) => id -> l
+        case l@Link(pa: Path, Nothing) => pa.last -> l
+      }.toMap
 
-  def decoder(thing: Thing): Decoder[_] = thing match {
-      case p: Plain => plainDecoder(p)
-      case Enlist(of) => Decoder.decodeSeq(decoder(of))
-      case Index(Text(_), over) => Decoder.decodeMap(KeyDecoder.decodeKeyString, decoder(over))
-      case t: Type => dataDecoder(t)
-      case Link(p: Path, t: Type) => dataDecoder(t)
-      case Link(l, _) if l == ID("types") / "Location" => locDecoder
-      case Link(l, _) if l == ID("Location") => locDecoder
-      case Link(p: Path, any: AnyOf) =>
-        val options: Map[Location, Link] = any.p.collect {
-          case l@Link(id: ID, Nothing) => id -> l
-          case l@Link(pa: Path, Nothing) => pa.last -> l
-        }.toMap
-
-        Decoder.decodeString.map { s =>
-          options.get(Location(s)) match {
-            case Some(found) => found
-            case None =>
-                DecodingFailure.fromThrowable(
-                  new IllegalArgumentException(s"$s Not a value from AnyOf in $p"), List.empty)
-          }
+      Decoder.decodeString.map { s =>
+        options.get(Location(s)) match {
+          case Some(found) => found
+          case None =>
+            DecodingFailure.fromThrowable(
+              new IllegalArgumentException(s"$s Not a value from AnyOf in $p"), List.empty)
         }
-      case Link(p: Path, other) =>
-        throw new IllegalArgumentException(s"On $p not a type: $other")
-      case many: AnyOf => anyDecoder(many)
+      }
+    case Link(p: Path, other) =>
+      throw new IllegalArgumentException(s"On $p not a type: $other")
+    case many: AnyOf => anyDecoder(many)
 
-      case Nothing => Decoder.apply(_ => Right(Nothing))
-      case Anything => throw new IllegalArgumentException("Not supported, use AnyOf(<all things>) instead")
-      case _ => ??? //TODO Predicate as AnyOf(<each predicate available>)
-    }
+    case Nothing => Decoder.apply(_ => Right(Nothing))
+    case Anything => throw new IllegalArgumentException("Not supported, use AnyOf(<all things>) instead")
+    case _ => ??? //TODO Predicate as AnyOf(<each predicate available>)
+  }
 
-  def dataDecoder(t: Type): Decoder[Data] = { c: HCursor =>
+  def dataTypeDecoder(t: Type): Decoder[Data] = { c: HCursor =>
     t.fields.map {
       case Field(name, p) => c.downField(name).as(decoder(p))
     }.foldRight(Right(scala.Nil): Either[DecodingFailure, scala.List[_]]) {
@@ -248,7 +243,7 @@ object ThingDecoder {
     }.map { v => Data(t, v) }
   }
 
-  private val plainDecoder: PartialFunction[Plain, Decoder[_]] = {
+  private val plainDataDecoder: PartialFunction[Plain, Decoder[_]] = {
     case Bool => Decoder.decodeBoolean
     case Text(_) => Decoder.decodeString
     case Number(_, _) => Decoder.decodeLong
@@ -261,7 +256,7 @@ object ThingDecoder {
   def anyDecoder(many: AnyOf): Decoder[_] = { c: HCursor =>
     c.downField(discriminator).as[String].flatMap { name =>
       many.p.collect {
-        case Link(p: Path, t: Type) if p.ids.last.key == name => dataDecoder(t).apply(c)
+        case Link(p: Path, t: Type) if p.ids.last.key == name => dataTypeDecoder(t).apply(c)
         case l@Link(p: Path, Nothing) if p.ids.last.key == name => Right(l) //use links for enums
       }.head
     }
