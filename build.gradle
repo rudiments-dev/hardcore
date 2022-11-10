@@ -1,101 +1,21 @@
 buildscript {
     repositories {
-        jcenter()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
     }
-    dependencies {
-        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
-        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.21.2'
-        classpath 'gradle.plugin.org.scoverage:gradle-scoverage:5.0.0'
-        classpath 'com.palantir.gradle.gitversion:gradle-git-version:0.12.3'
-    }
 }
 
-apply plugin: 'com.palantir.git-version'
-
 def base_version = '0.4-SNAPSHOT'
-def details = versionDetails()
-ext.calculated_version = project.hasProperty("tagged-build") ? details.lastTag + "-" + base_version: base_version
 
 allprojects {
-    apply plugin: 'org.scoverage'
-
-    scoverage {
-        scoverageScalaVersion = "2.13"
-    }
-
     group 'dev.rudiments'
-    version rootProject.ext.calculated_version
+    version base_version
 
     repositories {
         mavenLocal()
         mavenCentral()
     }
-}
-
-subprojects {
-    apply plugin: 'maven'
-    apply plugin: 'scala'
-    apply plugin: 'com.bmuschko.nexus'
-
-    modifyPom {
-        project {
-            name 'Rudiments'
-            description 'Research project and bootstrap library.'
-            url 'https://github.com/rudiments-dev/hardcore'
-
-            scm {
-                url "https://github.com/rudiments-dev/hardcore"
-                connection "git@github.com:rudiments-dev/hardcore.git"
-            }
-
-            licenses {
-                license {
-                    name 'The Apache Software License, Version 2.0'
-                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    distribution 'repo'
-                }
-            }
-
-            description "${parent.project.description}"
-            groupId "${parent.project.group}"
-            name "${project.name}"
-            packaging 'jar'
-            url "https://github.com/rudiments-dev/hardcore"
-            version "${parent.project.version}"
-            developers {
-                developer {
-                    id 'gennady-lebedev'
-                    name 'Gennady Lebedev'
-                }
-            }
-        }
-    }
-
-    extraArchive {
-        sources = true
-        tests = true
-        javadoc = true
-    }
-
-    nexus {
-        repositoryUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-        snapshotRepositoryUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
-    }
-
-    signing {
-        ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-        required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
-    }
-}
-
-apply plugin: 'io.codearte.nexus-staging'
-
-nexusStaging {
-    stagingProfileId = "cf3280f3d7f7cd"
-    packageGroup = "dev.rudiments"
 }
 
 def scalaModules() {
@@ -106,51 +26,36 @@ configure(scalaModules()) {
     apply plugin: 'java'
     apply plugin: 'scala'
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 17
+    targetCompatibility = 17
 
     test {
         reports {
-            html.enabled = true
-            junitXml.enabled = true
+            html.required = true
+            junitXml.required = true
         }
         maxHeapSize = "2048m"
         testLogging {
             events "skipped", "failed"
-            exceptionFormat "short"
+            exceptionFormat "full"
         }
     }
 
     dependencies {
-        implementation 'org.scala-lang:scala-library:2.13.3'
-        implementation 'com.typesafe.akka:akka-actor_2.13:2.6.10'
-        implementation 'com.typesafe.akka:akka-slf4j_2.13:2.6.10'
-        implementation 'com.typesafe.akka:akka-stream_2.13:2.6.10'
-        implementation 'com.typesafe.akka:akka-http_2.13:10.2.1'
+        implementation 'org.scala-lang:scala-library:2.13.7'
+        implementation 'com.typesafe.akka:akka-actor_2.13:2.6.17'
+        implementation 'com.typesafe.akka:akka-slf4j_2.13:2.6.17'
+        implementation 'com.typesafe.akka:akka-stream_2.13:2.6.17'
 
+        implementation 'com.beachape:enumeratum_2.13:1.7.0'
 
-        implementation 'ch.megard:akka-http-cors_2.13:1.1.0'
-        implementation 'io.circe:circe-core_2.13:0.13.0'
-        implementation 'io.circe:circe-generic_2.13:0.13.0'
-        implementation 'io.circe:circe-generic-extras_2.13:0.13.0'
-        implementation 'de.heikoseeberger:akka-http-circe_2.13:1.35.2'
+        implementation 'com.typesafe.scala-logging:scala-logging_2.13:3.9.4'
+        implementation 'org.slf4j:slf4j-api:1.7.32'
 
-        implementation 'org.scalikejdbc:scalikejdbc_2.13:3.5.0'
+        testImplementation 'org.scalatest:scalatest_2.13:3.2.10'
+        testImplementation 'org.scalatestplus:junit-4-13_2.13:3.2.10.0'
 
-        implementation 'com.beachape:enumeratum_2.13:1.6.1'
-
-        implementation 'com.typesafe.scala-logging:scala-logging_2.13:3.9.2'
-        implementation 'org.slf4j:slf4j-api:1.7.25'
-
-        testImplementation 'org.scalatest:scalatest_2.13:3.2.3'
-        testImplementation 'org.scalatestplus:junit-4-13_2.13:3.2.2.0'
-        testImplementation 'com.typesafe.akka:akka-testkit_2.13:2.6.10'
-        testImplementation 'com.typesafe.akka:akka-http-testkit_2.13:10.2.1'
-        testImplementation 'com.dimafeng:testcontainers-scala_2.13:0.39.0'
-        testImplementation 'com.dimafeng:testcontainers-scala-postgresql_2.13:0.39.0'
-        testImplementation 'org.postgresql:postgresql:42.2.18'
-
-        testImplementation 'junit:junit:4.12'
-        testImplementation 'ch.qos.logback:logback-classic:1.2.3'
+        testImplementation 'junit:junit:4.13.2'
+        testImplementation 'ch.qos.logback:logback-classic:1.2.7'
     }
 }

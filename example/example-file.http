@@ -1,0 +1,34 @@
+GET http://localhost:8080/api/file
+Accept: application/json
+
+###
+
+GET http://localhost:8080/api/file/
+Accept: application/json
+
+###
+
+GET http://localhost:8080/api/file/docker-compose.yml
+Accept: application/json
+
+###
+
+GET http://localhost:8080/api/file/research
+Accept: application/json
+
+###
+
+GET http://localhost:8080/api/file/research/
+Accept: application/json
+
+###
+
+GET http://localhost:8080/api/file/research/agents.md
+Accept: application/json
+
+###
+
+GET http://localhost:8080/api/file/example/src/main/scala/dev/rudiments/app/Main.scala
+Accept: application/json
+
+###
