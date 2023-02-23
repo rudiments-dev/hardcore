@@ -1,7 +1,4 @@
 rootProject.name = 'hardcore'
 include 'core'
-include 'http'
-include 'file'
-include 'sql'
-include 'management'
+include 'codec'
 include 'example'
