@@ -1,5 +1,5 @@
 dependencies {
-    implementation 'io.circe:circe-core_2.13:0.14.1'
-    implementation 'io.circe:circe-generic_2.13:0.14.1'
-    implementation 'io.circe:circe-generic-extras_2.13:0.14.1'
+    implementation 'io.circe:circe-core_3:0.14.5'
+    implementation 'io.circe:circe-generic_3:0.14.5'
+    implementation 'io.circe:circe-generic-extras_3:0.14.5'
 }

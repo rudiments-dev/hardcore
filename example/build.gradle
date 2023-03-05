@@ -2,7 +2,7 @@ dependencies {
     implementation project(':core')
     implementation project(':codec')
 
-    implementation 'ch.qos.logback:logback-classic:1.2.7'
+    implementation 'ch.qos.logback:logback-classic:1.4.5'
 }
 
 task example(type: JavaExec, dependsOn: classes) {
