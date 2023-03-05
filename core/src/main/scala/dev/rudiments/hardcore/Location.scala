@@ -23,7 +23,7 @@ final case class ID(key: Any) extends Location {
 }
 
 final case class Path(ids: ID*) extends Location {
-  if(ids.size <= 2)
+  if(ids.size < 2)
     throw new IllegalArgumentException(s"Path should be at least with 2 IDs, but got: ${ids.size}")
 
   def /(l: Location): Location = l match {
@@ -34,7 +34,7 @@ final case class Path(ids: ID*) extends Location {
 
   def head: ID = ids.head
   def tail: Location =
-    if (ids.size == 1) {
+    if (ids.size == 2) {
       ids.last
     } else {
       Path(ids.tail :_*)

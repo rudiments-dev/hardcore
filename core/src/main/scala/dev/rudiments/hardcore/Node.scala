@@ -49,7 +49,7 @@ case class Node(
     case other => throw new IllegalArgumentException(s"Not event: $other")
   }
 
-  def apply(commit: Commit): Out = { // TODO merge with apply(location, event)
+  def apply(commit: Commit): Out with CRUD = { // TODO merge with apply(location, event)
     val (errors, events) = commit.cud
       .map { case (l, evt) => l -> readChain(l, evt) }
       .partitionMap {
@@ -87,6 +87,8 @@ case class Node(
     case Readen(r) => this.apply(l, Deleted(r))
     case other => other
   }
+
+  def >> (pairs: (Location, Event with CRUD)*): Out with CRUD = this.apply(Commit(pairs:_*))
 }
 
 object Node {
