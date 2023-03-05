@@ -5,31 +5,25 @@ import scala.collection.immutable.ListMap
 sealed trait CRUD {}
 object CRUD {}
 
-sealed trait Cmd extends Command with CRUD
-sealed trait Qry extends Query with CRUD
-sealed trait Evt extends Event with CRUD
-sealed trait Rep extends Report with CRUD
-sealed trait Err extends Error with CRUD
+case class Create(value: Product) extends Command with CRUD
+case class Read(where: Location) extends Query with CRUD
+case class Update(old: Product, value: Product) extends Command with CRUD
+case class Delete(old: Product) extends Command with CRUD
 
-case class Create(value: Any) extends Cmd
-case class Read(where: Location) extends Qry
-case class Update(old: Any, value: Any) extends Cmd
-case class Delete(old: Any) extends Cmd
-
-case class Created(value: Any) extends Evt
-case class Readen(value: Any) extends Rep
-case class Updated(old: Any, value: Any) extends Evt
-case class Deleted(old: Any) extends Evt
-case class Commit(events: (Location, Evt)*) extends Evt {
-  def cud: Seq[(Location, Evt)] = events.foldLeft(Seq.empty[(Location, Evt)]) {
+case class Created(value: Product) extends Event with CRUD
+case class Readen(value: Product) extends Report with CRUD
+case class Updated(old: Product, value: Product) extends Event with CRUD
+case class Deleted(old: Product) extends Event with CRUD
+case class Commit(events: (Location, Event with CRUD)*) extends Event with CRUD {
+  def cud: Seq[(Location, Event with CRUD)] = events.foldLeft(Seq.empty[(Location, Event with CRUD)]) {
     case (m, (prefix, c: Commit)) => m ++ c.cud.map { case (l, evt) => prefix / l -> evt }
     case (m, p) => m :+ p //Created, Updated, Deleted
   }
   //TODO reject commit with intersecting locations inside?
 }
-case class Applied(commit: Commit) extends Evt
+case class Applied(commit: Commit) extends Event with CRUD
 
-case class NotFound(id: Location) extends Rep
-case class Conflict(incoming: Event, actual: Out) extends Err
-case class NotSupported(in: In) extends Err
-case class MultiError(errors: (Location, Out)*) extends Err
+case class NotFound(id: Location) extends Report with CRUD
+case class Conflict(incoming: Event, actual: Out) extends Error with CRUD
+case class NotSupported(in: In) extends Error with CRUD
+case class MultiError(errors: (Location, Out)*) extends Error with CRUD

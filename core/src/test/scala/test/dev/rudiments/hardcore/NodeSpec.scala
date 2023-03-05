@@ -10,7 +10,7 @@ import org.scalatestplus.junit.JUnitRunner
 class NodeSpec extends AnyWordSpec with Matchers {
   "Node" should {
     "created empty" in {
-      Node.empty.state.size should be (0)
+      Node.empty.size should be (0)
     }
   }
 }
