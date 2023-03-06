@@ -4,6 +4,16 @@ import java.lang
 
 sealed trait Location extends Product {
   def /(l: Location): Location
+  final def toIds: Seq[ID] = this match
+    case Self => Seq.empty
+    case id: ID => id :: Nil
+    case path: Path => path.ids
+}
+object Location {
+  def apply(ids: ID*): Location = ids match
+    case Nil => Self
+    case h :: Nil => h
+    case _ => Path(ids:_*)
 }
 
 case object Self extends Location {
