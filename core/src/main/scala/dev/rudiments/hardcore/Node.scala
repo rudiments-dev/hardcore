@@ -30,8 +30,18 @@ case class Node(
       }
 
     if (errors.isEmpty) {
-      val executed = events.map { (l, cur) => l -> cur.unsafeApply() }
-      Applied(Commit(executed:_*))
+      try {
+        val executed = events
+          .map { (l, cur) => l -> cur.unsafeApply() } //TODO rollback if errors
+          .filter { _._2 match
+              case _: Event with CRUD => false
+              case _ => true
+          }
+        if(executed.isEmpty) Applied(commit)
+        else MultiError(executed:_*)
+      } catch {
+        case e: Exception => InternalError(e)
+      }
     } else {
       MultiError(errors:_*)
     }
@@ -115,18 +125,31 @@ object Node {
         case (Readen(v), u@Updated(v1, v2)) if v == v1 && v1 != v2 => u
         case (r@Readen(v), Updated(v1, v2)) if v == v1 && v1 == v2 => r
         case (Readen(v), d@Deleted(old)) if v == old => d
-        case (Readen(node: Node), c: Commit) => ??? //TODO check, not apply here
+        case (Readen(_), c: Commit) =>
+          val errors = c.cud
+            .map { (l, evt) => l -> node.cursor().search(l).check(evt).out }
+            .filter { _._2 match
+                case _: Event with CRUD => false
+                case _ => true
+            }
+
+          if (errors.isEmpty) {
+            c
+          } else {
+            MultiError(errors: _*)
+          }
         case (actual, event) => Conflict(event, actual)
 
       this
     }
 
-    def unsafeApply(): Event with CRUD = {
+    def unsafeApply(): Out with CRUD = {
       out match
         case c@Created(v) => node.state += (inLocation -> v); c
         case u@Updated(_, v) => node.state += (inLocation -> v); u
         case d: Deleted => node.state -= inLocation; d
-        case other => throw new IllegalArgumentException(s"Not an event: $other") // or ignore?
+        case c: Commit => node.apply(c); c
+        case other => other
     }
   }
 }

@@ -49,4 +49,6 @@ final case class Path(ids: ID*) extends Location {
     } else {
       Path(ids.tail :_*)
     }
+
+  override def toString: String = ids.map(_.key.toString).mkString("/")
 }

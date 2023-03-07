@@ -18,8 +18,16 @@ case class Commit(events: (Location, Event with CRUD)*) extends Event with CRUD 
   def cud: Seq[(Location, Event with CRUD)] = events.foldLeft(Seq.empty[(Location, Event with CRUD)]) {
     case (m, (prefix, c: Commit)) => m ++ c.cud.map { case (l, evt) => prefix / l -> evt }
     case (m, p) => m :+ p //Created, Updated, Deleted
-  }
-  //TODO reject commit with intersecting locations inside?
+  } //TODO reject commit with intersecting locations inside?
+
+  override def toString: String = events.map { (l, evt) => evt match
+    case Created(v) => s"$l +$v"
+    case Updated(v1, v2) => s"$l *$v1|->$v2"
+    case Deleted(v) => s"$l -$v"
+    case c: Commit => s"$l: Commit($c)"
+    case Applied(c) => s"$l: Applied($c)"
+    case other => s"$l -> {$other}"
+  }.mkString(";")
 }
 case class Applied(commit: Commit) extends Event with CRUD
 
@@ -27,3 +35,4 @@ case class NotFound(id: Location) extends Report with CRUD
 case class Conflict(incoming: Event, actual: Out) extends Error with CRUD
 case class NotSupported(in: In) extends Error with CRUD
 case class MultiError(errors: (Location, Out)*) extends Error with CRUD
+case class InternalError(t: Throwable) extends Error with CRUD

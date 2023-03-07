@@ -50,5 +50,13 @@ class NodeSpec extends AnyWordSpec with Matchers {
       node.size should be (11)
       node.read(p) should be (Readen(s1))
     }
+
+    "apply nested commits" in {
+      val pairs = (24 to 42).map (i => ID(i.toString) -> Created(Something(i.toHexString, i)))
+      node(Commit(ID("n") -> Commit(pairs:_*))) should be (Applied(
+        Commit(ID("n") -> Commit(pairs:_*))
+      ))
+      node.state(ID("n")).asInstanceOf[Node].size should be (20)
+    }
   }
 }
