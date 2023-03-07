@@ -1,4 +1,4 @@
-package dev.rudiments.logs
+package dev.rudiments.utils
 
 import org.slf4j.{Logger, LoggerFactory}
 
