@@ -35,6 +35,7 @@ case class Commit(events: (Location, Event with CRUD)*) extends Event with CRUD 
 }
 
 case class NotFound(id: Location) extends Report with CRUD
+case object Identical extends Report with CRUD
 case class Conflict(incoming: Event, actual: Out) extends Error with CRUD
 case class NotSupported(in: In) extends Error with CRUD
 case class MultiError(errors: (Location, Out)*) extends Error with CRUD

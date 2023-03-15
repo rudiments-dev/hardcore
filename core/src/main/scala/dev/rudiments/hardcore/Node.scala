@@ -47,6 +47,36 @@ case class Node(
     }
   }
 
+  def compare(from: Location, to: Location): Out with CRUD = {
+    (read(from), read(to)) match
+      case (Readen(f: Node), Readen(t: Node)) => f.reconsileTo(t) match
+        case Nil => Identical
+        case evts => Commit(evts:_*)
+      case (_: NotFound, Readen(t)) => Created(t)
+      case (Readen(f), Readen(t)) if f != t => Updated(f, t)
+      case (_: Readen, _: Readen) => Identical
+      case (Readen(f), _: NotFound) => Deleted(f)
+      case (nf1: NotFound, _: NotFound) => nf1
+      case other => throw new IllegalArgumentException(s"should never happen with $other")
+  }
+
+  def reconsileTo(node: Node): Seq[(Location, Event with CRUD)] = {
+    if (this == node) {
+      Seq.empty
+    } else {
+      val keys = this.state.keySet ++ node.state.keySet
+      keys.foldLeft(Seq.empty[(Location, Event with CRUD)]) { (out, key) =>
+        (this.state.get(key), node.state.get(key)) match
+          case (Some(f: Node), Some(t: Node)) => out ++ f.reconsileTo(t).map { (l, e) => key / l -> e }
+          case (None, Some(t)) => out :+ key -> Created(t)
+          case (Some(f), Some(t)) if f != t => out :+ key -> Updated(f, t)
+          case (Some(f), Some(t)) if f == t => out
+          case (Some(f), None) => out :+ key -> Deleted(f)
+          case other => throw new IllegalArgumentException(s"should never happen with $other")
+      }
+    }
+  }
+
   def size: Int = this.state.size
 
   def >+ (pair: (Location, Product)): Out with CRUD = this.apply(pair._1, Created(pair._2))
