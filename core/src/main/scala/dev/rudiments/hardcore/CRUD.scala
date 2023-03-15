@@ -15,8 +15,13 @@ case class Readen(value: Product) extends Report with CRUD
 case class Updated(old: Product, value: Product) extends Event with CRUD
 case class Deleted(old: Product) extends Event with CRUD
 case class Commit(events: (Location, Event with CRUD)*) extends Event with CRUD {
-  def cud: Seq[(Location, Event with CRUD)] = events.foldLeft(Seq.empty[(Location, Event with CRUD)]) {
-    case (m, (prefix, c: Commit)) => m ++ c.cud.map { case (l, evt) => prefix / l -> evt }
+  private val indexed = events.toMap
+  if(indexed.size != events.size) {
+    throw new IllegalArgumentException("Only unique locations allowed")
+  }
+
+  def flatten: Seq[(Location, Event with CRUD)] = events.foldLeft(Seq.empty[(Location, Event with CRUD)]) {
+    case (m, (prefix, c: Commit)) => m ++ c.flatten.map { case (l, evt) => prefix / l -> evt }
     case (m, p) => m :+ p //Created, Updated, Deleted
   } //TODO reject commit with intersecting locations inside?
 
@@ -25,11 +30,9 @@ case class Commit(events: (Location, Event with CRUD)*) extends Event with CRUD 
     case Updated(v1, v2) => s"$l *$v1|->$v2"
     case Deleted(v) => s"$l -$v"
     case c: Commit => s"$l: Commit($c)"
-    case Applied(c) => s"$l: Applied($c)"
     case other => s"$l -> {$other}"
   }.mkString(";")
 }
-case class Applied(commit: Commit) extends Event with CRUD
 
 case class NotFound(id: Location) extends Report with CRUD
 case class Conflict(incoming: Event, actual: Out) extends Error with CRUD

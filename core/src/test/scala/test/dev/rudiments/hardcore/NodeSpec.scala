@@ -35,7 +35,7 @@ class NodeSpec extends AnyWordSpec with Matchers {
 
     "apply commit" in {
       val pairs = (1 to 10).map (i => ID(i.toString) -> Created(Something(i.toHexString, i)))
-      node(Commit(pairs:_*)) should be(Applied(Commit(pairs:_*)))
+      node(Commit(pairs:_*)) should be(Commit(pairs:_*))
       node.size should be(10)
     }
 
@@ -53,9 +53,7 @@ class NodeSpec extends AnyWordSpec with Matchers {
 
     "apply nested commits" in {
       val pairs = (24 to 42).map (i => ID(i.toString) -> Created(Something(i.toHexString, i)))
-      node(Commit(ID("n") -> Commit(pairs:_*))) should be (Applied(
-        Commit(ID("n") -> Commit(pairs:_*))
-      ))
+      node(Commit(ID("n") -> Commit(pairs:_*))) should be (Commit(ID("n") -> Commit(pairs:_*)))
       node.state(ID("n")).asInstanceOf[Node].size should be (20)
     }
   }

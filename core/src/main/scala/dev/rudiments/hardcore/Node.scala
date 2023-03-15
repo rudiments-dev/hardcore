@@ -21,8 +21,8 @@ case class Node(
       .unsafeApply()
   }
 
-  def apply(commit: Commit): Out with CRUD = { // TODO merge with apply(location, event)
-    val (errors, events) = commit.cud
+  def apply(commit: Commit): Out with CRUD = {
+    val (errors, events) = commit.flatten
       .map { (l, evt) => l -> cursor().search(l).check(evt) }
       .partitionMap { (l, c) => c.out match
         case _: Event with CRUD => Right(l -> c)
@@ -37,7 +37,7 @@ case class Node(
               case _: Event with CRUD => false
               case _ => true
           }
-        if(executed.isEmpty) Applied(commit)
+        if(executed.isEmpty) commit
         else MultiError(executed:_*)
       } catch {
         case e: Exception => InternalError(e)
@@ -58,8 +58,6 @@ case class Node(
     case Readen(r) => this.apply(l, Deleted(r))
     case other => other
   }
-
-  def >> (pairs: (Location, Event with CRUD)*): Out with CRUD = this.apply(Commit(pairs:_*))
 }
 
 object Node {
@@ -68,7 +66,7 @@ object Node {
   def from(c: Commit): Either[MultiError, Node] = {
     val node = Node.empty
     node.apply(c) match {
-      case _: Applied => Right(node)
+      case _: Commit => Right(node)
       case m: MultiError => Left(m)
       case other =>
         throw new IllegalArgumentException(s"Should never happen: $other")
@@ -126,7 +124,7 @@ object Node {
         case (r@Readen(v), Updated(v1, v2)) if v == v1 && v1 == v2 => r
         case (Readen(v), d@Deleted(old)) if v == old => d
         case (Readen(_), c: Commit) =>
-          val errors = c.cud
+          val errors = c.flatten
             .map { (l, evt) => l -> node.cursor().search(l).check(evt).out }
             .filter { _._2 match
                 case _: Event with CRUD => false
@@ -138,6 +136,7 @@ object Node {
           } else {
             MultiError(errors: _*)
           }
+        case (nf: NotFound, _) => nf
         case (actual, event) => Conflict(event, actual)
 
       this
