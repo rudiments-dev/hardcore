@@ -18,16 +18,6 @@ class HashedTest extends AnyWordSpec with Matchers {
       val hashed = known.map((k, _) => k -> SHA1(k).toString)
       hashed should be(known)
     }
-
-    "fit with git hash-object output" ignore {
-      val known = Map(
-        "git compatible" -> "be7296f5d069365d7b27f51d9fe31882efd584e9",
-        "sha-1" -> "abe18736ee5eb31f70fe61c8f08494553f71e62a"
-      )
-
-      val hashed = known.map((k, _) => k -> SHA1(k).toString)
-      hashed should be(known)
-    }
   }
 
   "SHA-256 hash" should {
