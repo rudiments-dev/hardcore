@@ -18,6 +18,23 @@ object Hashed {
   val utf8: Charset = Charset.forName("UTF-8")
 }
 
+case class SHA1(hash: Array[Byte]) extends Hashed(hash) {
+  override lazy val string: String = String.format("%032x", bigInteget)
+
+  override def equals(obj: Any): Boolean = obj match {
+    case other: SHA1 => this.hash.sameElements(other.hash)
+    case _ => false
+  }
+}
+
+object SHA1 {
+  val digester: MessageDigest = MessageDigest.getInstance("SHA-1")
+
+  def apply(s: String): SHA1 = this.apply(s.getBytes(Hashed.utf8))
+
+  def apply(b: Array[Byte]): SHA1 = new SHA1(digester.digest(b))
+}
+
 case class SHA256(hash: Array[Byte]) extends Hashed(hash) {
   override def equals(obj: Any): Boolean = obj match {
     case other: SHA256 => this.hash.sameElements(other.hash)

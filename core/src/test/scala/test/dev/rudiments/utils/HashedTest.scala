@@ -1,6 +1,6 @@
 package test.dev.rudiments.utils
 
-import dev.rudiments.utils.{SHA256, SHA3}
+import dev.rudiments.utils.{SHA256, SHA3, SHA1}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -8,6 +8,28 @@ import org.scalatestplus.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class HashedTest extends AnyWordSpec with Matchers {
+  "SHA-1 hash" should {
+    "fit with known hashes" in {
+      val known = Map(
+        "" -> "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "The quick brown fox jumps over the lazy dog" -> "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"
+      )
+
+      val hashed = known.map((k, _) => k -> SHA1(k).toString)
+      hashed should be(known)
+    }
+
+    "fit with git hash-object output" ignore {
+      val known = Map(
+        "git compatible" -> "be7296f5d069365d7b27f51d9fe31882efd584e9",
+        "sha-1" -> "abe18736ee5eb31f70fe61c8f08494553f71e62a"
+      )
+
+      val hashed = known.map((k, _) => k -> SHA1(k).toString)
+      hashed should be(known)
+    }
+  }
+
   "SHA-256 hash" should {
     "fit with known hashes" in {
       val known = Map(
