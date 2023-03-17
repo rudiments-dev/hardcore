@@ -1,9 +1,9 @@
 package dev.rudiments.utils
 
 import java.math.BigInteger
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets.UTF_8
 import java.security.MessageDigest
-import java.util.Base64
+import java.util.{Base64, HexFormat}
 
 trait Hashed(hash: Array[Byte]) {
   lazy val bigInteget: BigInteger = new BigInteger(1, hash)
@@ -15,11 +15,11 @@ trait Hashed(hash: Array[Byte]) {
 }
 
 object Hashed {
-  val utf8: Charset = Charset.forName("UTF-8")
+  val hexFormat: HexFormat = HexFormat.of()
 }
 
 case class SHA1(hash: Array[Byte]) extends Hashed(hash) {
-  override lazy val string: String = String.format("%032x", bigInteget)
+  override lazy val string: String = String.format("%040x", bigInteget)
 
   override def equals(obj: Any): Boolean = obj match {
     case other: SHA1 => this.hash.sameElements(other.hash)
@@ -30,9 +30,11 @@ case class SHA1(hash: Array[Byte]) extends Hashed(hash) {
 object SHA1 {
   val digester: MessageDigest = MessageDigest.getInstance("SHA-1")
 
-  def apply(s: String): SHA1 = this.apply(s.getBytes(Hashed.utf8))
+  def apply(s: String): SHA1 = this.apply(s.getBytes(UTF_8))
 
   def apply(b: Array[Byte]): SHA1 = new SHA1(digester.digest(b))
+
+  def fromHex(hex: String): SHA1 = new SHA1(Hashed.hexFormat.parseHex(hex))
 }
 
 case class SHA256(hash: Array[Byte]) extends Hashed(hash) {
@@ -45,7 +47,7 @@ case class SHA256(hash: Array[Byte]) extends Hashed(hash) {
 object SHA256 {
   val digester: MessageDigest = MessageDigest.getInstance("SHA-256")
 
-  def apply(s: String): SHA256 = this.apply(s.getBytes(Hashed.utf8))
+  def apply(s: String): SHA256 = this.apply(s.getBytes(UTF_8))
   def apply(b: Array[Byte]): SHA256 = new SHA256(digester.digest(b))
 }
 
@@ -60,7 +62,7 @@ case class SHA3(hash: Array[Byte]) extends Hashed(hash) {
 object SHA3 {
   val digester: MessageDigest = MessageDigest.getInstance("SHA3-256")
 
-  def apply(s: String): SHA3 = this.apply(s.getBytes(Hashed.utf8))
+  def apply(s: String): SHA3 = this.apply(s.getBytes(UTF_8))
 
   def apply(b: Array[Byte]): SHA3 = new SHA3(digester.digest(b))
 }

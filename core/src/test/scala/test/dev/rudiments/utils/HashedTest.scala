@@ -18,6 +18,12 @@ class HashedTest extends AnyWordSpec with Matchers {
       val hashed = known.map((k, _) => k -> SHA1(k).toString)
       hashed should be(known)
     }
+
+    "can be encoded and decoded from HEX" in {
+      val h = SHA1("The quick brown fox jumps over the lazy dog")
+      h.toString should be ("2fd4e1c67a2d28fced849ee1bb76e7391b93eb12")
+      SHA1.fromHex("2fd4e1c67a2d28fced849ee1bb76e7391b93eb12") should be (h)
+    }
   }
 
   "SHA-256 hash" should {
