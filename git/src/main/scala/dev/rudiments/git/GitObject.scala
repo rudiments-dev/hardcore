@@ -115,7 +115,8 @@ object Commit {
             )
           case _ => throw new IllegalArgumentException("Can't read commit header")
         }
-      case _ => throw new IllegalArgumentException("Can't read commit")
+      case other => //TODO fails of merge with pgp
+        throw new IllegalArgumentException("Can't read commit")
     }
   }
 
@@ -137,6 +138,10 @@ object Commit {
           val z = ZoneId.of(zone)
           val when = Instant.ofEpochMilli(time.toLong).atZone(z)
           new AuthRecord(name, mail, when)
+        case name1 :: name2 :: mail :: time :: zone :: Nil =>
+          val z = ZoneId.of(zone)
+          val when = Instant.ofEpochMilli(time.toLong).atZone(z)
+          new AuthRecord(name1 + " " + name2, mail, when)
     }
   }
 }

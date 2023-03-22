@@ -1,6 +1,6 @@
 package test.dev.rudiments.git
 
-import dev.rudiments.git.{Blob, Reader, Tree, Writer}
+import dev.rudiments.git.{Blob, Commit, Reader, Tree, Writer}
 import dev.rudiments.utils.Log
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -52,5 +52,21 @@ class GitObjectTest extends AnyWordSpec with Matchers with Log {
       case Left(err) => throw err
       case Right(c) =>
         c.header should be ("commit 238")
+  }
+
+  "can read parent and tree of commit" in {
+    val result = for {
+      first <- Reader.read(dir, "a3e9375e5ea70baf7d6a4ba343c59619aee1f2f0")
+      tree <- Reader.read(dir, first.asInstanceOf[Commit].tree.toString)
+      second <- Reader.read(dir, first.asInstanceOf[Commit].parent.get.toString)
+    } yield (first, tree, second)
+
+    result match {
+      case Left(err) => throw err
+      case Right(f, t, s) =>
+        f.header should be("commit 238")
+        t.header should be("tree 620")
+        s.header should be("commit 275")
+    }
   }
 }

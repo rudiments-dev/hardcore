@@ -2,6 +2,7 @@ package dev.rudiments.git
 
 import dev.rudiments.utils.ZLib
 
+import java.lang
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.{Files, Path}
 
@@ -30,6 +31,7 @@ object Reader {
           case "commit" :: size :: Nil =>
             val commit = Commit(content)
             commit.validate(size.toInt, hash)
+          case "object" :: _ => Left(new IllegalArgumentException("Tags not supported yet"))
           case other :: _ :: Nil => Left(new IllegalArgumentException(s"Not supported git object type: $other"))
           case _ => Left(new IllegalArgumentException("Wrong format of a git object"))
       }

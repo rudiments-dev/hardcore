@@ -13,19 +13,21 @@ import java.nio.file.{Files, Path}
 class GitCommitsTest extends AnyWordSpec with Matchers with Log {
   private val dir = Path.of("..").toAbsolutePath //TODO fix
 
-  "can read chain of commits" in {
-    val result = for {
-      first <- Reader.read(dir, "a3e9375e5ea70baf7d6a4ba343c59619aee1f2f0")
-      tree <- Reader.read(dir, first.asInstanceOf[Commit].tree.toString)
-      second <- Reader.read(dir, first.asInstanceOf[Commit].parent.get.toString)
-    } yield (first, tree, second)
+  "can read chain of commits till the first one" ignore {
+    var h = "a3e9375e5ea70baf7d6a4ba343c59619aee1f2f0"
+    var i = 0; // up to 37
 
-    result match {
-      case Left(err) => throw err
-      case Right(f, t, s) =>
-        f.header should be("commit 238")
-        t.header should be("tree 620")
-        s.header should be("commit 275")
+    while(h != "SUCCESS" || h != "FAIL") {
+      Reader.read(dir, h) match {
+        case Right(c: Commit) if c.parent.isDefined =>
+          h = c.parent.get.toString
+          i += 1
+        case Right(_) => h = "SUCCESS"
+        case Left(err) => h = "FAIL"
+          throw err
+      }
     }
+
+    //5d631a5fb3318f3cf14ba3c7e0aba9e6674b8944
   }
 }
