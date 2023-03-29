@@ -16,7 +16,7 @@ class RepositoryTest extends AnyWordSpec with Matchers with Log {
 
   private val repo = new Repository(dir)
 
-  "can read packs" ignore {
-    repo.read() //TODO fails of merge commit with pgp
+  "can read packs" in {
+    repo.read() //TODO fails on initial commit
   }
 }

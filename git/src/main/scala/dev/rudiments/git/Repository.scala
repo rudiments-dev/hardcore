@@ -37,11 +37,16 @@ class Repository(root: Path) extends Log {
     case (key, Entry(PackObj.Tree, _, data, _, _)) =>
       objects.put(key, Tree(ZLib.unpack(data)))
     case (key, Entry(PackObj.Commit, _, data, _, _)) =>
-      objects.put(key, Commit(ZLib.unpack(data)))
+      try {
+        objects.put(key, Commit(ZLib.unpack(data)))
+      } catch {
+        case e: Exception => log.error("Failed commit {}", key)
+      }
+
     case (key, Entry(PackObj.Blob, _, data, _, _)) =>
       objects.put(key, Blob(ZLib.unpack(data)))
 
-    case (key, Entry(PackObj.Tag, _, _, _, _)) => key -> ???
+    case (key, Entry(PackObj.Tag, _, _, _, _)) => // TODO
     case (key, entry) => // filtered
   }
 }

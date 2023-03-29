@@ -10,6 +10,7 @@ import java.time.{Instant, LocalDateTime, ZoneId, ZonedDateTime}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder, SignStyle}
 import java.time.temporal.ChronoField
 import scala.collection.mutable
+import scala.util.matching.Regex
 
 sealed trait GitObject(kind: String) {
   val header: String = s"$kind $size"
@@ -66,10 +67,13 @@ object Tree {
     case Executable extends Mode("100755")
     case SymbolicLink extends Mode("120000")
     case SubTree extends Mode("40000")
+    case SubModule extends Mode("160000")
 
   object Mode {
     def apply(code: String): Mode =
-      values.find(_.code == code).getOrElse(throw new IllegalArgumentException(s"Not a mode code: $code"))
+      values.find(_.code == code).getOrElse {
+        throw new IllegalArgumentException(s"Not a mode code: $code")
+      }
   }
 
   case class Item(mode: Mode, name: String, hash: SHA1) {
@@ -97,26 +101,108 @@ final case class Commit(
 }
 
 object Commit {
+  val signedPattern: Regex =
+    """tree (\w{40})
+      |parent (\w{40})
+      |author (.+) <(.+)> (\d{10,20}) (.+)
+      |committer (.+) <(.+)> (\d{10,20}) (.+)
+      |gpgsig -----BEGIN PGP SIGNATURE-----
+      |\s*
+      | .{64}
+      | .{64}
+      | .{64}
+      | .{64}
+      | .{64}
+      | .{64}
+      | .{1,64}
+      | -----END PGP SIGNATURE-----
+      |\s*
+      |\s*
+      |(.*)""".stripMargin.r
+
+  val signed2Pattern: Regex =
+    """tree (\w{40})
+      |parent (\w{40})
+      |(parent (\w{40}))?
+      |author (.+) <(.+)> (\d{10,20}) (.+)
+      |committer (.+) <(.+)> (\d{10,20}) (.+)
+      |gpgsig -----BEGIN PGP SIGNATURE-----
+      |\s*
+      | .{64}
+      | .{64}
+      | .{64}
+      | .{64}
+      | .{64}
+      | .{64}
+      | .{1,64}
+      | -----END PGP SIGNATURE-----
+      |\s*
+      |\s*
+      |(.*)""".stripMargin.r
+
+  val commitPattern: Regex =
+    """tree (\w{40})
+      |parent (\w{40})
+      |author (.+) <(.+)> (\d{10,20}) (.+)
+      |committer (.+) <(.+)> (\d{10,20}) (.+)
+      |
+      |(.*)""".stripMargin.r
+
+  val mergePattern: Regex =
+    """tree (\w{40})
+      |parent (\w{40})
+      |(parent (\w{40}))?
+      |author (.+) <(.+)> (\d{10,20}) (.+)
+      |committer (.+) <(.+)> (\d{10,20}) (.+)
+      |
+      |(.*)""".stripMargin.r
+
   def apply(data: Array[Byte]): Commit = {
-    new String(data, UTF_8).split("\n\n").toList match {
-      case header :: message :: Nil =>
-        header.split("\n").toList match {
-          case t :: p :: a :: c :: Nil
-            if t.startsWith("tree ") &&
-              p.startsWith("parent ") &&
-              a.startsWith("author ") &&
-              c.startsWith("committer ") =>
+    val asString = new String(data, UTF_8)
+    try {
+      commitPattern.findFirstMatchIn(asString).map { m =>
+        new Commit(
+          SHA1.fromHex(m.group(1)),
+          Some(SHA1.fromHex(m.group(2))),
+          AuthRecord(m.group(3), m.group(4), Instant.ofEpochMilli(m.group(5).toLong).atZone(ZoneId.of(m.group(6)))),
+          AuthRecord(m.group(7), m.group(8), Instant.ofEpochMilli(m.group(9).toLong).atZone(ZoneId.of(m.group(10)))),
+          m.group(11)
+        )
+      }.getOrElse {
+        mergePattern.findFirstMatchIn(asString).map { m =>
+          new Commit(
+            SHA1.fromHex(m.group(1)),
+            Some(SHA1.fromHex(m.group(2))),
+            AuthRecord(m.group(5), m.group(6), Instant.ofEpochMilli(m.group(7).toLong).atZone(ZoneId.of(m.group(8)))),
+            AuthRecord(m.group(9), m.group(10), Instant.ofEpochMilli(m.group(11).toLong).atZone(ZoneId.of(m.group(12)))),
+            m.group(13)
+          )
+        }.getOrElse {
+          signedPattern.findFirstMatchIn(asString).map { m =>
             new Commit(
-              SHA1.fromHex(t.drop(5)),
-              if (p.drop(7) == "NIL") None else Some(SHA1.fromHex(p.drop(7))),
-              AuthRecord.parse(a.drop(7)),
-              AuthRecord.parse(c.drop(10)),
-              message
+              SHA1.fromHex(m.group(1)),
+              Some(SHA1.fromHex(m.group(2))),
+              AuthRecord(m.group(3), m.group(4), Instant.ofEpochMilli(m.group(5).toLong).atZone(ZoneId.of(m.group(6)))),
+              AuthRecord(m.group(7), m.group(8), Instant.ofEpochMilli(m.group(9).toLong).atZone(ZoneId.of(m.group(10)))),
+              m.group(11)
             )
-          case _ => throw new IllegalArgumentException("Can't read commit header")
+          }.getOrElse {
+            signed2Pattern.findFirstMatchIn(asString).map { m =>
+              new Commit(
+                SHA1.fromHex(m.group(1)),
+                Some(SHA1.fromHex(m.group(2))),
+                AuthRecord(m.group(5), m.group(6), Instant.ofEpochMilli(m.group(7).toLong).atZone(ZoneId.of(m.group(8)))),
+                AuthRecord(m.group(9), m.group(10), Instant.ofEpochMilli(m.group(11).toLong).atZone(ZoneId.of(m.group(12)))),
+                m.group(13)
+              )
+            }.getOrElse {
+              throw new IllegalArgumentException(s"Can't read commit: $asString")
+            }
+          }
         }
-      case other => //TODO fails of merge with pgp
-        throw new IllegalArgumentException("Can't read commit")
+      }
+    } catch {
+      case e: Exception => throw e
     }
   }
 
