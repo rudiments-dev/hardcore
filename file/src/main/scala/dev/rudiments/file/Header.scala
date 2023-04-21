@@ -4,6 +4,7 @@ import dev.rudiments.utils.SHA3
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets.UTF_8
+import scala.collection.immutable.ArraySeq
 
 
 type Barr = Array[Byte]
@@ -17,7 +18,7 @@ case class Header(
   def toByteArray: Barr = {
     val nameBytes = name.getBytes(UTF_8)
     ByteBuffer.allocate(nameBytes.length + 1 + 32 + 4)
-      .put(checksum.hash)
+      .put(checksum.asArray)
       .put((fileType.ordinal + 1).toByte)
       .putInt(size)
       .put(nameBytes)
@@ -33,7 +34,7 @@ object Header {
     val fileType = Header.Type(buff.get())
     val size = buff.getInt
     val name = buff.asCharBuffer().toString
-    new Header(name, fileType, size, new SHA3(hash))
+    new Header(name, fileType, size, new SHA3(ArraySeq.unsafeWrapArray(hash)))
   }
 
   enum Type:

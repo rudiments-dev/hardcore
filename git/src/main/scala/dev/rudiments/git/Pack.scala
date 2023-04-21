@@ -7,6 +7,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.{Files, Path}
 import java.nio.file.StandardOpenOption.READ
+import scala.collection.immutable.ArraySeq
 import scala.util.{Failure, Success}
 
 case class Pack(objects: List[(SHA1, Pack.Entry)]) {
@@ -39,7 +40,7 @@ object Pack {
     val crcUntil = shaUntil + size * 4
     val offsetsUntil = crcUntil + size * 4
     val trailerUntil = offsetsUntil + 40
-    val sha = data.slice(shaFrom, shaUntil).grouped(20).map(h => new SHA1(h)).toList
+    val sha = data.slice(shaFrom, shaUntil).grouped(20).map(h => new SHA1(ArraySeq.unsafeWrapArray(h))).toList
     val crc = data.slice(shaUntil, crcUntil).grouped(4).map(c => new CRC(c)).toList
     val offsets = data.slice(crcUntil, offsetsUntil).grouped(4).map(b => ByteBuffer.wrap(b).getInt).toList
     val trailer = data.slice(offsetsUntil, offsetsUntil + 40) //TODO verify integrity
@@ -58,7 +59,7 @@ object Pack {
     val idx = readIdx(repo, hash, count)
 
     if(idx.nonEmpty) {
-      val tail = new SHA1(Array.empty) -> (bytes.length - 20)
+      val tail = new SHA1(Seq.empty) -> (bytes.length - 20)
 
       val pack = (idx :+ tail).sliding(2).map {
         case f :: s :: Nil => f._1 -> readEntry(bytes, f._2, s._2)
