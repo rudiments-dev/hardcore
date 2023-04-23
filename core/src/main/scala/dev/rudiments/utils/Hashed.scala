@@ -54,4 +54,6 @@ object SHA3 {
   def apply(b: Array[Byte]): SHA3 = new SHA3(ArraySeq.unsafeWrapArray(digester.digest(b)))
 
   def fromHex(hex: String): SHA3 = new SHA3(ArraySeq.unsafeWrapArray(Hashed.hexFormat.parseHex(hex)))
+  
+  def empty: SHA3 = new SHA3(ArraySeq.unsafeWrapArray(digester.digest(Array.empty[Byte])))
 }

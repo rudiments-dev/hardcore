@@ -71,3 +71,7 @@ case class Blob(data: Seq[Byte]) extends FileData {
 object Blob {
   def apply(data: Array[Byte]): Blob = new Blob(ArraySeq.unsafeWrapArray(data))
 }
+
+case object NotExist extends FileData {
+  override def about: About = About(Type.File, 0, SHA3.empty)
+}
