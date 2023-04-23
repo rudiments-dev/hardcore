@@ -7,34 +7,28 @@ import java.nio.charset.StandardCharsets.UTF_8
 import scala.collection.immutable.ArraySeq
 
 
-type Barr = Array[Byte]
-
-case class Header(
-  name: String,
-  fileType: Header.Type,
+case class About(
+  fileType: About.Type,
   size: Int,
   checksum: SHA3
 ) {
-  def toByteArray: Barr = {
-    val nameBytes = name.getBytes(UTF_8)
-    ByteBuffer.allocate(nameBytes.length + 1 + 32 + 4)
+  def toByteArray: Array[Byte] = {
+    ByteBuffer.allocate(1 + 32 + 4)
       .put(checksum.asArray)
       .put((fileType.ordinal + 1).toByte)
       .putInt(size)
-      .put(nameBytes)
       .array()
   }
 }
 
-object Header {
-  def apply(data: Barr): Header = {
+object About {
+  def apply(data: Array[Byte]): About = {
     val buff = ByteBuffer.wrap(data)
-    val hash = new Barr(32)
+    val hash = new Array[Byte](32)
     buff.get(hash)
-    val fileType = Header.Type(buff.get())
+    val fileType = About.Type(buff.get())
     val size = buff.getInt
-    val name = buff.asCharBuffer().toString
-    new Header(name, fileType, size, new SHA3(ArraySeq.unsafeWrapArray(hash)))
+    new About(fileType, size, new SHA3(ArraySeq.unsafeWrapArray(hash)))
   }
 
   enum Type:
