@@ -14,8 +14,10 @@ class Repository(path: Path) {
   private val dir = path.toAbsolutePath
 
   val state: mutable.Map[Seq[String], FileData] = mutable.Map.empty
+  val log: mutable.Buffer[Commit] = mutable.Buffer.empty
 
   def read(): Unit = {
+    given tx: Tx = new Tx(state.toMap)
     val file = dir.toFile
     val readen: FileData = if(file.isFile) {
       readFileUnsafe(file)
@@ -24,16 +26,22 @@ class Repository(path: Path) {
     } else {
       throw new IllegalArgumentException("Not a file or dir")
     }
-    state.put(Seq.empty, readen)
+    tx.put(Seq.empty, readen)
+
+    val commit = tx.makeCommit
+    if(commit.changes.nonEmpty) {
+      log.append(commit)
+      state ++= commit.changed
+    }
   }
 
-  private def readDirUnsafe(file: File, prefix: Seq[String]): Dir = {
+  private def readDirUnsafe(file: File, prefix: Seq[String])(using tx: Tx): Dir = {
     val content = file.listFiles().toList.sortBy(_.getName).map {
       case f if f.isFile => f.getName -> readFileUnsafe(f)
       case f if f.isDirectory => f.getName -> readDirUnsafe(f, prefix :+ f.getName)
     }
 
-    content.foreach((k, v) => state.put(prefix :+ k, v))
+    content.foreach((k, v) => tx.put(prefix :+ k, v))
 
     val (dirs, blobs) = content.partitionMap {
       case (s, _: Dir) => Left(s)

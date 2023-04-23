@@ -28,4 +28,16 @@ class FileTest extends AnyWordSpec with Matchers {
       )
     )
   }
+
+  "can read hole project" ignore {
+    val r = new Repository(Path.of("."))
+    r.read()
+    r.log.size should be (1)
+  }
+
+  "can read git project" ignore {
+    val r = new Repository(Path.of("../git"))
+    r.read()
+    r.log.size should be(1)
+  }
 }
