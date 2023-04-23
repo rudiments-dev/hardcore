@@ -1,6 +1,6 @@
 package test.dev.rudiments.file
 
-import dev.rudiments.file.{Repository, *}
+import dev.rudiments.file.*
 import dev.rudiments.utils.SHA3
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
@@ -20,7 +20,7 @@ class FileTest extends AnyWordSpec with Matchers {
     repo.read()
     repo.state.size should be (4)
     repo.state.toMap should be (
-      Map[Seq[String], FileData](
+      Map[Rel, FileData](
         Seq.empty -> Dir(Seq("nested"), Seq("1.txt")),
         Seq("nested") -> Dir(Seq.empty, Seq("2.txt")),
         Seq("nested", "2.txt") -> Blob("second file".getBytes(UTF_8)),

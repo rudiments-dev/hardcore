@@ -13,8 +13,10 @@ import scala.collection.mutable
 class Repository(path: Path) {
   private val dir = path.toAbsolutePath
 
-  val state: mutable.Map[Seq[String], FileData] = mutable.Map.empty
+  val state: mutable.Map[Rel, FileData] = mutable.Map.empty
   val log: mutable.Buffer[Commit] = mutable.Buffer.empty
+  
+  val ignored: Set[Rel] = Set.empty
 
   def read(): Unit = {
     given tx: Tx = new Tx(state.toMap)
@@ -35,7 +37,7 @@ class Repository(path: Path) {
     }
   }
 
-  private def readDirUnsafe(file: File, prefix: Seq[String])(using tx: Tx): Dir = {
+  private def readDirUnsafe(file: File, prefix: Rel)(using tx: Tx): Dir = {
     val content = file.listFiles().toList.sortBy(_.getName).map {
       case f if f.isFile => f.getName -> readFileUnsafe(f)
       case f if f.isDirectory => f.getName -> readDirUnsafe(f, prefix :+ f.getName)
@@ -55,12 +57,14 @@ class Repository(path: Path) {
   }
 }
 
+type Rel = Seq[String]
+
 sealed trait FileData {
   def about: About
 }
 
 import dev.rudiments.file.About.Type
-case class Dir(directions: Seq[String], files: Seq[String]) extends FileData {
+case class Dir(directions: Rel, files: Rel) extends FileData {
   lazy val data: Array[Byte] = BytesCodec.encodeStrings(directions) ++ BytesCodec.encodeStrings(files)
 
   override def about: About = About(Type.Dir, data.length, SHA3(data))

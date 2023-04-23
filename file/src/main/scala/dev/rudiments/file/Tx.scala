@@ -4,11 +4,11 @@ import dev.rudiments.utils.SHA3
 
 import scala.collection.mutable
 
-class Tx(val initial: Map[Seq[String], FileData]) {
-  val changed: mutable.Map[Seq[String], FileData] = mutable.Map.empty
-  val log: mutable.Map[Seq[String], FileLog] = mutable.Map.empty
+class Tx(val initial: Map[Rel, FileData]) {
+  val changed: mutable.Map[Rel, FileData] = mutable.Map.empty
+  val log: mutable.Map[Rel, FileLog] = mutable.Map.empty
 
-  def put(k: Seq[String], v: FileData): Unit = {
+  def put(k: Rel, v: FileData): Unit = {
     initial.get(k) match
       case Some(found) =>
         if (found.about != v.about) { //TODO Dir change => delete files
@@ -25,7 +25,7 @@ class Tx(val initial: Map[Seq[String], FileData]) {
 
   def makeCommit: Commit = Commit(changed.toMap.map((k,change) => k -> (log(k), change)))
 
-  def deleting(from: Seq[String]): Unit = {
+  def deleting(from: Rel): Unit = {
     initial.get(from) match {
       case Some(d@Dir(files, dirs)) =>
         changed.put(from, NotExist)
@@ -35,6 +35,7 @@ class Tx(val initial: Map[Seq[String], FileData]) {
       case Some(b: Blob) =>
         changed.put(from, NotExist)
         log.put(from, FileLog(None, Some(b.about.checksum)))
+      case _ => //DO nothing
     }
   }
 }
@@ -46,7 +47,7 @@ case class FileLog(
 )
 
 case class Commit(
-  changes: Map[Seq[String], (FileLog, FileData)]
+  changes: Map[Rel, (FileLog, FileData)]
 ) {
-  def changed: Map[Seq[String], FileData] = changes.map { case (k, (_, change)) => k -> change }
+  def changed: Map[Rel, FileData] = changes.map { case (k, (_, change)) => k -> change }
 }
