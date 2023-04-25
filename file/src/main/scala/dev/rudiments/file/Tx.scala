@@ -11,9 +11,19 @@ class Tx(val initial: Map[Rel, FileData]) {
   def put(k: Rel, v: FileData): Unit = {
     initial.get(k) match
       case Some(found) =>
-        if (found.about != v.about) { //TODO Dir change => delete files
+        if (found.about != v.about) {
           changed.put(k, v)
           log.put(k, FileLog(Some(found.about.checksum), Some(v.about.checksum)))
+
+          (found, v) match {
+            case (Dir(d1, f1), Dir(d2, f2)) =>
+              (d1.toSet -- d2.toSet).foreach { s => deleting(k :+ s) }
+              (f1.toSet -- f2.toSet).foreach { s => deleting(k :+ s) }
+            case (Dir(d, f), _) =>
+              d.foreach { s => deleting(k :+ s) }
+              f.foreach { s => deleting(k :+ s) }
+            case _ => //do nothing
+          }
         } else {
           changed.remove(k)
           log.remove(k)
@@ -25,7 +35,7 @@ class Tx(val initial: Map[Rel, FileData]) {
 
   def makeCommit: Commit = Commit(changed.toMap.map((k,change) => k -> (log(k), change)))
 
-  def deleting(from: Rel): Unit = {
+  def deleting(from: Rel): Unit = { //TODO replace with Delete on Dir instead of Repo
     initial.get(from) match {
       case Some(d@Dir(files, dirs)) =>
         changed.put(from, NotExist)
