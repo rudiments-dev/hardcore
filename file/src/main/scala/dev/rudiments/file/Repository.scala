@@ -16,7 +16,7 @@ class Repository(path: Path) {
   val state: mutable.Map[Rel, FileData] = mutable.Map.empty
   val log: mutable.Buffer[Commit] = mutable.Buffer.empty
   
-  val ignored: Set[Rel] = Set.empty
+  val ignored: Set[Rel] = Set(Seq(".git"), Seq(".gradle"), Seq(".idea"))
 
   def read(): Unit = {
     given tx: Tx = new Tx(state.toMap)
@@ -38,10 +38,12 @@ class Repository(path: Path) {
   }
 
   private def readDirUnsafe(file: File, prefix: Rel)(using tx: Tx): Dir = {
-    val content = file.listFiles().toList.sortBy(_.getName).map {
-      case f if f.isFile => f.getName -> readFileUnsafe(f)
-      case f if f.isDirectory => f.getName -> readDirUnsafe(f, prefix :+ f.getName)
-    }
+    val content = file.listFiles().toList.sortBy(_.getName)
+      .filterNot(f => ignored.contains(prefix :+ f.getName))
+      .map {
+        case f if f.isFile => f.getName -> readFileUnsafe(f)
+        case f if f.isDirectory => f.getName -> readDirUnsafe(f, prefix :+ f.getName)
+      }
 
     content.foreach((k, v) => tx.put(prefix :+ k, v))
 
