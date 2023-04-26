@@ -29,8 +29,14 @@ class Tx(val initial: Map[Rel, FileData]) {
           log.remove(k)
         }
       case None =>
-        changed.put(k, v)
-        log.put(k, FileLog(None, Some(v.about.checksum)))
+        v match {
+          case NotExist =>
+            changed.remove(k)
+            log.remove(k)
+          case _ =>
+            changed.put(k, v)
+            log.put(k, FileLog(None, Some(v.about.checksum)))
+        }
   }
 
   def makeCommit: Commit = Commit(changed.toMap.map((k,change) => k -> (log(k), change)))
