@@ -78,8 +78,36 @@ class Repository(root: Path) extends Log {
         } catch {
           case e: Exception => errors.put(key, (v, e.getLocalizedMessage))
         }
+
+      case (key, v@Entry(PackObj.RefDelta, _, data, _, _)) =>
+        try {
+          val delta = RefDelta(data)
+          objects.get(delta.link) match
+            case Some(_) => objects.put(key, delta)
+            case None => errors.put(key, (v, "reference not exist"))
+        } catch {
+          case e: Exception => errors.put(key, (v, e.getLocalizedMessage))
+        }
+
       case (key, entry) => errors.put(key, (entry, "Parse are not implemented"))
     }
+
+    //resolving deltas
+    val toRemove = errors.collect {
+      case (k, (Pack.Entry(PackObj.RefDelta, _, d, _, _), _)) =>
+        try {
+          val delta = RefDelta(d)
+          objects.get(delta.link).map { _ =>
+            objects.put(k, delta)
+            k
+          }
+        } catch {
+          case e: Exception => None
+        }
+    }.flatten
+    errors --= toRemove
+
+    //TODO index usedIn /objects.foreach { (k, v) => }
 
     if(errors.size - initialErros > 0) {
       log.error(s"Can't parse {${errors.size - initialErros}} entries into objects")

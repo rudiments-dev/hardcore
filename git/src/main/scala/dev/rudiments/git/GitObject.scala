@@ -5,6 +5,7 @@ import dev.rudiments.utils.{Hashed, SHA1, ZLib}
 
 import java.lang
 import java.lang.{IllegalStateException, StringBuffer}
+import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.{Files, Path}
 import java.time.{Instant, LocalDateTime, ZoneId, ZonedDateTime}
@@ -219,5 +220,27 @@ object Tag {
     } else {
       candidate.copy(originalData = Some(data.toSeq))
     }
+  }
+}
+
+case class RefDelta(
+  link: SHA1,
+  deflated: Boolean,
+  delta: Seq[Byte],
+  crc: Int
+) extends GitObject("ref-delta") {
+  override def data: Array[Byte] = link.asArray ++ delta
+}
+object RefDelta {
+  def apply(data: Array[Byte]): RefDelta = {
+    val buff = ByteBuffer.wrap(data)
+    val isDeflated = data.slice(20, 22).toSeq == Seq(120.toByte, -100.toByte)
+    val slice = data.slice(20, data.length)
+    new RefDelta(
+      new SHA1(data.take(20)),
+      isDeflated,
+      if(isDeflated) ZLib.unpack(slice).toSeq else slice.toSeq,
+      buff.getInt(data.length - 4)
+    )
   }
 }
