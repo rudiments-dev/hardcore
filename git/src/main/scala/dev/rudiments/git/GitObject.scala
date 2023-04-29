@@ -64,6 +64,7 @@ object Tree {
 
   enum Mode(val code: String):
     case File extends Mode("100644")
+    case GroupFile extends Mode("100664") //TODO merge with File 100644?
     case Executable extends Mode("100755")
     case SymbolicLink extends Mode("120000")
     case SubTree extends Mode("40000")
@@ -196,7 +197,7 @@ object Commit {
                 m.group(13)
               )
             }.getOrElse {
-              throw new IllegalArgumentException(s"Can't read commit: $asString")
+              throw new IllegalArgumentException(s"Can't read commit: ${asString.take(50)}")
             }
           }
         }
