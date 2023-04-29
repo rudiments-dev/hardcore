@@ -109,6 +109,7 @@ final case class Commit(
         }
         buff.append(s"\n\n$message")
         buff.toString().getBytes(UTF_8)
+
       case Some(msg) => msg.toArray[Byte]
   }
 }
@@ -124,12 +125,14 @@ object Commit {
   def apply(data: Array[Byte]): Commit = {
     val str = new String(data, UTF_8)
     val asMap = Field.values.toSeq.map { f => f -> f.regex.findAllMatchIn(str) }.toMap
+    val signature = asMap(Field.Signature)
     val candidate = new Commit(
       SHA1.fromHex(asMap(Field.Tree).map(_.group(1)).toSeq.head),
-      asMap(Parent).map(_.group(1)).toSeq.map(SHA1.fromHex),
-      asMap(Author).map(AuthRecord.apply).toSeq.head,
+      asMap(Field.Parent).map(_.group(1)).toSeq.map(SHA1.fromHex),
+      asMap(Field.Author).map(AuthRecord.apply).toSeq.head,
       asMap(Field.Committer).map(AuthRecord.apply).toSeq.head,
-      asMap(Field.Message).mkString("\n")
+      asMap(Field.Message).mkString("\n"),
+      if(signature.nonEmpty) Some(signature.mkString("\n")) else None
     )
 
     if(new String(candidate.data, UTF_8) == str) {
@@ -157,5 +160,64 @@ object Commit {
       Instant.ofEpochMilli(reg.group(3).toLong)
         .atZone(ZoneId.of(reg.group(4)))
     )
+  }
+}
+
+final case class Tag(
+  link: SHA1,
+  tagType: String,
+  tag: String,
+  tagger: Option[Commit.AuthRecord],
+  message: String,
+  signature: Option[String] = None,
+  originalData: Option[Seq[Byte]] = None
+) extends GitObject("tag") {
+  override def data: Array[Byte] = {
+    originalData match
+      case None =>
+        val buff = new StringBuilder()
+        buff.append(s"object $link\n")
+        buff.append(s"type $tagType\n")
+        buff.append(s"tag $tag\n")
+        tagger.foreach { t => buff.append(s"tagger $t\n") }
+        signature.foreach { s =>
+          buff
+            .append("gpgsig -----BEGIN PGP SIGNATURE-----\n")
+            .append(s)
+            .append(" -----END PGP SIGNATURE-----")
+        }
+        buff.append(s"\n\n$message")
+        buff.toString().getBytes(UTF_8)
+
+      case Some(msg) => msg.toArray[Byte]
+  }
+}
+object Tag {
+  enum Field(val regex: Regex):
+    case Object extends Field(raw"object (\w{40})".r)
+    case TagType extends Field(raw"\ntype (\w+)".r)
+    case TagName extends Field(raw"\ntag (\w+)".r)
+    case Tagger extends Field(raw"\ntagger (.+) <(.+)> (\d{10,20}) (.+)".r)
+    case Signature extends Field(raw"\ngpgsig -----BEGIN PGP SIGNATURE-----(.*\n)* -----END PGP SIGNATURE-----".r)
+    case Message extends Field(raw"(-----END PGP SIGNATURE-----)?\n\n(.*\n?)*".r)
+
+  def apply(data: Array[Byte]): Tag = {
+    val str = new String(data, UTF_8)
+    val asMap = Field.values.toSeq.map { f => f -> f.regex.findAllMatchIn(str) }.toMap
+    val signature = asMap(Field.Signature)
+    val candidate = new Tag(
+      SHA1.fromHex(asMap(Field.Object).map(_.group(1)).toSeq.head),
+      asMap(Field.TagType).map(_.group(1)).toSeq.head,
+      asMap(Field.TagName).map(_.group(1)).toSeq.head,
+      asMap(Field.Tagger).map(Commit.AuthRecord.apply).toSeq.headOption,
+      asMap(Field.Message).mkString("\n"),
+      if(signature.nonEmpty) Some(signature.mkString("\n")) else None
+    )
+
+    if (new String(candidate.data, UTF_8) == str) {
+      candidate
+    } else {
+      candidate.copy(originalData = Some(data.toSeq))
+    }
   }
 }

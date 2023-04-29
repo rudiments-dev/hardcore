@@ -40,27 +40,44 @@ class Repository(root: Path) extends Log {
     val initialObjects = objects.size
     val initialErros = errors.size
     packEntries.foreach {
-      case (key, v@Entry(PackObj.Tree, _, data, _, _)) =>
+      case (key, v@Entry(PackObj.Tree, size, data, _, _)) =>
         try {
-          objects.put(key, Tree(ZLib.unpack(data)))
+          Tree(ZLib.unpack(data))
+            .validate(size, key.string) match
+            case Right(r) => objects.put(key, r)
+            case Left(e) => errors.put(key, (v, e.getLocalizedMessage))
         } catch {
           case e: Exception => errors.put(key, (v, e.getLocalizedMessage))
         }
-      case (key, v@Entry(PackObj.Commit, _, data, _, _)) =>
+      case (key, v@Entry(PackObj.Commit, size, data, _, _)) =>
         try {
-          objects.put(key, Commit(ZLib.unpack(data)))
+          Commit(ZLib.unpack(data))
+            .validate(size, key.string) match
+            case Right(r) => objects.put(key, r)
+            case Left(e) => errors.put(key, (v, e.getLocalizedMessage))
         } catch {
           case e: Exception => errors.put(key, (v, e.getLocalizedMessage))
         }
 
-      case (key, v@Entry(PackObj.Blob, _, data, _, _)) =>
+      case (key, v@Entry(PackObj.Blob, size, data, _, _)) =>
         try {
-          objects.put(key, Blob(ZLib.unpack(data)))
+          Blob(ZLib.unpack(data))
+            .validate(size, key.string) match
+            case Right(r) => objects.put(key, r)
+            case Left(e) => errors.put(key, (v, e.getLocalizedMessage))
         } catch {
           case e: Exception => errors.put(key, (v, e.getLocalizedMessage))
         }
 
-      case (key, v@Entry(PackObj.Tag, _, _, _, _)) => errors.put(key, (v, "Tag parse are not implemented"))
+      case (key, v@Entry(PackObj.Tag, size, data, _, _)) =>
+        try {
+          Tag(ZLib.unpack(data))
+            .validate(size, key.string) match
+            case Right(r) => objects.put(key, r)
+            case Left(e) => errors.put(key, (v, e.getLocalizedMessage))
+        } catch {
+          case e: Exception => errors.put(key, (v, e.getLocalizedMessage))
+        }
       case (key, entry) => errors.put(key, (entry, "Parse are not implemented"))
     }
 
