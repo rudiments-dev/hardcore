@@ -59,7 +59,7 @@ class GitObjectTest extends AnyWordSpec with Matchers with Log {
       val result = for {
         first <- Reader.read(dir, "a3e9375e5ea70baf7d6a4ba343c59619aee1f2f0")
         tree <- Reader.read(dir, first.asInstanceOf[Commit].tree.toString)
-        second <- Reader.read(dir, first.asInstanceOf[Commit].parent.get.toString)
+        second <- Reader.read(dir, first.asInstanceOf[Commit].parent.head.toString)
       } yield (first, tree, second)
 
       result match {

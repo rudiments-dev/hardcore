@@ -68,7 +68,7 @@ class Repository(root: Path) extends Log {
       log.error(s"Can't parse {${errors.size - initialErros}} entries into objects")
       val groupped: Map[PackObj, Iterable[(Entry, String)]] = errors.values.groupBy(_._1.what)
       val counted = groupped.map { (k, v) => k -> v.size }.toSeq.sortBy(_._2)
-      log.error("Errors by groups: {}", counted)
+      log.error("Errors by groups: {}", counted.mkString(";"))
     }
     log.info(s"Parsed ${packEntries.size} entries into ${objects.size - initialObjects} objects")
   }

@@ -1,5 +1,6 @@
 package dev.rudiments.git
 
+import dev.rudiments.git.Commit.Field.{Author, Parent}
 import dev.rudiments.utils.{Hashed, SHA1, ZLib}
 
 import java.lang
@@ -34,7 +35,6 @@ sealed trait GitObject(kind: String) {
 final case class Blob(content: String) extends GitObject("blob") {
   override def data: Array[Byte] = content.getBytes(UTF_8)
 }
-
 object Blob {
   def apply(data: Array[Byte]): Blob = new Blob(new String(data, UTF_8))
 }
@@ -42,7 +42,6 @@ object Blob {
 final case class Tree(items: Seq[Tree.Item]) extends GitObject("tree") {
   override def data: Array[Byte] = items.foldLeft(Array.empty[Byte]) { (acc, el) => acc ++ el.toBytes }
 }
-
 object Tree {
   def apply(data: Array[Byte]): Tree = {
     if (!data.contains(0.toByte)) throw new IllegalArgumentException("Not found any delimiter")
@@ -85,125 +84,56 @@ object Tree {
 
 final case class Commit(
   tree: SHA1,
-  parent: Option[SHA1],
+  parent: Seq[SHA1],
   author: Commit.AuthRecord,
   committer: Commit.AuthRecord,
-  message: String
+  message: String,
+  signature: Option[String] = None,
+  originalData: Option[String] = None
 ) extends GitObject("commit") {
   override def data: Array[Byte] = {
-    s"""tree $tree
-       |parent ${parent.map(_.toString).getOrElse("NIL")}
-       |author $author
-       |committer $committer
-       |
-       |$message""".stripMargin
-      .getBytes(UTF_8)
+    originalData match
+      case None =>
+        val buff = new StringBuilder()
+        buff.append(s"tree $tree\n")
+        parent.foreach { p => buff.append(s"parent $p\n") }
+        buff.append(s"author $author\n")
+        buff.append(s"committer $committer\n")
+        signature.foreach { s => buff
+          .append("gpgsig -----BEGIN PGP SIGNATURE-----\n")
+          .append(s)
+          .append(" -----END PGP SIGNATURE-----")
+        }
+        buff.append(s"\n\n$message")
+        buff.toString().getBytes(UTF_8)
+      case Some(msg) =>
+        msg.getBytes(UTF_8)
   }
 }
-
 object Commit {
-  val signedPattern: Regex =
-    """tree (\w{40})
-      |parent (\w{40})
-      |author (.+) <(.+)> (\d{10,20}) (.+)
-      |committer (.+) <(.+)> (\d{10,20}) (.+)
-      |gpgsig -----BEGIN PGP SIGNATURE-----
-      |\s*
-      | .{64}
-      | .{64}
-      | .{64}
-      | .{64}
-      | .{64}
-      | .{64}
-      | .{1,64}
-      | -----END PGP SIGNATURE-----
-      |\s*
-      |\s*
-      |(.*)""".stripMargin.r
-
-  val signed2Pattern: Regex =
-    """tree (\w{40})
-      |parent (\w{40})
-      |(parent (\w{40}))?
-      |author (.+) <(.+)> (\d{10,20}) (.+)
-      |committer (.+) <(.+)> (\d{10,20}) (.+)
-      |gpgsig -----BEGIN PGP SIGNATURE-----
-      |\s*
-      | .{64}
-      | .{64}
-      | .{64}
-      | .{64}
-      | .{64}
-      | .{64}
-      | .{1,64}
-      | -----END PGP SIGNATURE-----
-      |\s*
-      |\s*
-      |(.*)""".stripMargin.r
-
-  val commitPattern: Regex =
-    """tree (\w{40})
-      |parent (\w{40})
-      |author (.+) <(.+)> (\d{10,20}) (.+)
-      |committer (.+) <(.+)> (\d{10,20}) (.+)
-      |
-      |(.*)""".stripMargin.r
-
-  val mergePattern: Regex =
-    """tree (\w{40})
-      |parent (\w{40})
-      |(parent (\w{40}))?
-      |author (.+) <(.+)> (\d{10,20}) (.+)
-      |committer (.+) <(.+)> (\d{10,20}) (.+)
-      |
-      |(.*)""".stripMargin.r
+  enum Field(val regex: Regex):
+    case Tree extends Field(raw"tree (\w{40})".r)
+    case Parent extends Field(raw"\nparent (\w{40})".r)
+    case Author extends Field(raw"\nauthor (.+) <(.+)> (\d{10,20}) (.+)".r)
+    case Committer extends Field(raw"\ncommitter (.+) <(.+)> (\d{10,20}) (.+)".r)
+    case Signature extends Field(raw"\ngpgsig -----BEGIN PGP SIGNATURE-----(.*\n)* -----END PGP SIGNATURE-----".r)
+    case Message extends Field(raw"(-----END PGP SIGNATURE-----)?\n\n(.*\n?)*".r)
 
   def apply(data: Array[Byte]): Commit = {
-    val asString = new String(data, UTF_8)
-    try {
-      commitPattern.findFirstMatchIn(asString).map { m =>
-        new Commit(
-          SHA1.fromHex(m.group(1)),
-          Some(SHA1.fromHex(m.group(2))),
-          AuthRecord(m.group(3), m.group(4), Instant.ofEpochMilli(m.group(5).toLong).atZone(ZoneId.of(m.group(6)))),
-          AuthRecord(m.group(7), m.group(8), Instant.ofEpochMilli(m.group(9).toLong).atZone(ZoneId.of(m.group(10)))),
-          m.group(11)
-        )
-      }.getOrElse {
-        mergePattern.findFirstMatchIn(asString).map { m =>
-          new Commit(
-            SHA1.fromHex(m.group(1)),
-            Some(SHA1.fromHex(m.group(2))),
-            AuthRecord(m.group(5), m.group(6), Instant.ofEpochMilli(m.group(7).toLong).atZone(ZoneId.of(m.group(8)))),
-            AuthRecord(m.group(9), m.group(10), Instant.ofEpochMilli(m.group(11).toLong).atZone(ZoneId.of(m.group(12)))),
-            m.group(13)
-          )
-        }.getOrElse {
-          signedPattern.findFirstMatchIn(asString).map { m =>
-            new Commit(
-              SHA1.fromHex(m.group(1)),
-              Some(SHA1.fromHex(m.group(2))),
-              AuthRecord(m.group(3), m.group(4), Instant.ofEpochMilli(m.group(5).toLong).atZone(ZoneId.of(m.group(6)))),
-              AuthRecord(m.group(7), m.group(8), Instant.ofEpochMilli(m.group(9).toLong).atZone(ZoneId.of(m.group(10)))),
-              m.group(11)
-            )
-          }.getOrElse {
-            signed2Pattern.findFirstMatchIn(asString).map { m =>
-              new Commit(
-                SHA1.fromHex(m.group(1)),
-                Some(SHA1.fromHex(m.group(2))),
-                AuthRecord(m.group(5), m.group(6), Instant.ofEpochMilli(m.group(7).toLong).atZone(ZoneId.of(m.group(8)))),
-                AuthRecord(m.group(9), m.group(10), Instant.ofEpochMilli(m.group(11).toLong).atZone(ZoneId.of(m.group(12)))),
-                m.group(13)
-              )
-            }.getOrElse {
-              throw new IllegalArgumentException(s"Can't read commit: ${asString.take(50)}")
-            }
-          }
-        }
-      }
-    } catch {
-      case e: Exception => throw e
+    val str = new String(data, UTF_8)
+    val asMap = Field.values.toSeq.map { f => f -> f.regex.findAllMatchIn(str) }.toMap
+    val candidate = new Commit(
+      SHA1.fromHex(asMap(Field.Tree).map(_.group(1)).toSeq.head),
+      asMap(Parent).map(_.group(1)).toSeq.map(SHA1.fromHex),
+      asMap(Author).map(AuthRecord.apply).toSeq.head,
+      asMap(Field.Committer).map(AuthRecord.apply).toSeq.head,
+      asMap(Field.Message).mkString("\n")
+    )
+
+    if(new String(candidate.data, UTF_8) == str) {
+      candidate
+    } else {
+      candidate.copy(originalData = Some(str))
     }
   }
 
@@ -219,16 +149,11 @@ object Commit {
   }
 
   object AuthRecord {
-    def parse(s: String): AuthRecord = {
-      s.split(" ").toList match
-        case name :: mail :: time :: zone :: Nil =>
-          val z = ZoneId.of(zone)
-          val when = Instant.ofEpochMilli(time.toLong).atZone(z)
-          new AuthRecord(name, mail, when)
-        case name1 :: name2 :: mail :: time :: zone :: Nil =>
-          val z = ZoneId.of(zone)
-          val when = Instant.ofEpochMilli(time.toLong).atZone(z)
-          new AuthRecord(name1 + " " + name2, mail, when)
-    }
+    def apply(reg: Regex.Match): AuthRecord = new AuthRecord(
+      reg.group(1),
+      reg.group(2),
+      Instant.ofEpochMilli(reg.group(3).toLong)
+        .atZone(ZoneId.of(reg.group(4)))
+    )
   }
 }

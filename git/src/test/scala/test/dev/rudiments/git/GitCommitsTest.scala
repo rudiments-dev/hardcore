@@ -19,8 +19,8 @@ class GitCommitsTest extends AnyWordSpec with Matchers with Log {
 
     while(h != "SUCCESS" || h != "FAIL") {
       Reader.read(dir, h) match {
-        case Right(c: Commit) if c.parent.isDefined =>
-          h = c.parent.get.toString
+        case Right(c: Commit) if c.parent.nonEmpty =>
+          h = c.parent.head.toString
           i += 1
         case Right(_) => h = "SUCCESS"
         case Left(err) => h = "FAIL"
