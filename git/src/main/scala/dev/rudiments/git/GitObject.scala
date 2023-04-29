@@ -53,7 +53,7 @@ object Tree {
       val div: Int = data.indexOf(0.toByte, start)
       val asString = new String(data.slice(start, div), UTF_8)
       asString.split(" ").toList match {
-        case mode :: name :: Nil => items.addOne(Item(Mode(mode), name, new SHA1(data.slice(div + 1, div + 21))))
+        case mode :: name => items.addOne(Item(Mode(mode), name.mkString(" "), new SHA1(data.slice(div + 1, div + 21))))
         case other => throw new IllegalArgumentException(s"Doesn't look like a tree item: `${other.mkString(";")}`")
       }
       start = div + 21
@@ -64,7 +64,7 @@ object Tree {
 
   enum Mode(val code: String):
     case File extends Mode("100644")
-    case GroupFile extends Mode("100664") //TODO merge with File 100644?
+    case GroupFile extends Mode("100664")
     case Executable extends Mode("100755")
     case SymbolicLink extends Mode("120000")
     case SubTree extends Mode("40000")
