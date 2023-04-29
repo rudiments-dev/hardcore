@@ -10,6 +10,7 @@ import java.nio.file.{Files, Path}
 import java.time.{Instant, LocalDateTime, ZoneId, ZonedDateTime}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder, SignStyle}
 import java.time.temporal.ChronoField
+import scala.collection.immutable.ArraySeq
 import scala.collection.mutable
 import scala.util.matching.Regex
 
@@ -32,11 +33,13 @@ sealed trait GitObject(kind: String) {
   }
 }
 
-final case class Blob(content: String) extends GitObject("blob") {
-  override def data: Array[Byte] = content.getBytes(UTF_8)
+final case class Blob(content: Seq[Byte]) extends GitObject("blob") {
+  override def data: Array[Byte] = content.toArray[Byte]
+  lazy val asString: String = new String(data, UTF_8)
 }
 object Blob {
-  def apply(data: Array[Byte]): Blob = new Blob(new String(data, UTF_8))
+  def apply(data: Array[Byte]): Blob = new Blob(data.toSeq)
+  def apply(str: String): Blob = new Blob(str.getBytes(UTF_8).toSeq)
 }
 
 final case class Tree(items: Seq[Tree.Item]) extends GitObject("tree") {
@@ -89,7 +92,7 @@ final case class Commit(
   committer: Commit.AuthRecord,
   message: String,
   signature: Option[String] = None,
-  originalData: Option[String] = None
+  originalData: Option[Seq[Byte]] = None
 ) extends GitObject("commit") {
   override def data: Array[Byte] = {
     originalData match
@@ -106,8 +109,7 @@ final case class Commit(
         }
         buff.append(s"\n\n$message")
         buff.toString().getBytes(UTF_8)
-      case Some(msg) =>
-        msg.getBytes(UTF_8)
+      case Some(msg) => msg.toArray[Byte]
   }
 }
 object Commit {
@@ -133,7 +135,7 @@ object Commit {
     if(new String(candidate.data, UTF_8) == str) {
       candidate
     } else {
-      candidate.copy(originalData = Some(str))
+      candidate.copy(originalData = Some(data.toSeq))
     }
   }
 
