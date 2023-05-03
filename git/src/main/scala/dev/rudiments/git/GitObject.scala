@@ -225,22 +225,67 @@ object Tag {
 
 case class RefDelta(
   link: SHA1,
+  deltas: Seq[Deltified],
   deflated: Boolean,
-  delta: Seq[Byte],
-  crc: Int
+  original: Seq[Byte] //TODO -> Seq[Delta],
 ) extends GitObject("ref-delta") {
-  override def data: Array[Byte] = link.asArray ++ delta
+  override def data: Array[Byte] = link.asArray ++ ZLib.pack(original.toArray[Byte])
 }
 object RefDelta {
   def apply(data: Array[Byte]): RefDelta = {
-    val buff = ByteBuffer.wrap(data)
     val isDeflated = data.slice(20, 22).toSeq == Seq(120.toByte, -100.toByte)
     val slice = data.slice(20, data.length)
+    val unpacked = if(isDeflated) ZLib.unpack(slice) else slice
     new RefDelta(
       new SHA1(data.take(20)),
+      Seq.empty,//Deltified.fromBytes(unpacked),
       isDeflated,
-      if(isDeflated) ZLib.unpack(slice).toSeq else slice.toSeq,
-      buff.getInt(data.length - 4)
+      unpacked.toSeq
     )
   }
+}
+
+enum Deltified {
+  case Copy(offset: Int, size: Int)
+  case Add(offset: Int, data: Seq[Byte])
+}
+
+object Deltified {
+  def fromBytes(data: Array[Byte]): Seq[Deltified] = {
+    val buff = ByteBuffer.wrap(data)
+    val deltas = mutable.Buffer.empty[Deltified]
+    while (buff.hasRemaining) {
+      val t = buff.get()
+      if (t == 0x80.toByte) {
+        deltas += Deltified.Copy(
+          variableSize(buff),
+          variableSize(buff)
+        )
+      } else if (t == 0x01.toByte) {
+        deltas += Deltified.Add(0, Seq.empty)
+      } else if (t == 0x60.toByte) {
+        assume(!buff.hasRemaining, "Met 0x60, expecting it is the end of the Delta")
+      } else {
+        throw new IllegalArgumentException("Doesn't look like deltified instruction")
+      }
+    }
+    deltas.toSeq
+  }
+
+  def variableSize(buff: ByteBuffer): Int = {
+    var cursor = 0
+    var size: Int = 0
+
+    while {
+      val b = buff.get()
+      size = size | ((b & 0x7F) << cursor)
+      cursor += 7
+
+      nextIsSize(b) && cursor <= 32
+    } do ()
+
+    size
+  }
+
+  private def nextIsSize(b: Byte): Boolean = (b & 0x80).toByte == -128.toByte
 }

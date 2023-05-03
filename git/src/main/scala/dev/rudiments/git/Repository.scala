@@ -17,6 +17,8 @@ class Repository(root: Path) extends Log {
   val tags: mutable.Buffer[String] = mutable.Buffer.empty
   val objects: mutable.Map[SHA1, GitObject] =  mutable.HashMap.empty
 
+  val usedIn: mutable.Map[SHA1, mutable.Set[SHA1]] = mutable.Map.empty
+
   val errors: mutable.Map[SHA1, (Entry, String)] = mutable.HashMap.empty
 
   private val packPath = root.resolve(Path.of(".git", "objects", "pack"))
