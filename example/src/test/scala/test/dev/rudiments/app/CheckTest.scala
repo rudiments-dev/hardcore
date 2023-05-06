@@ -1,4 +1,4 @@
-package test.dev.rudiments
+package test.dev.rudiments.app
 
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
