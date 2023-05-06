@@ -15,7 +15,7 @@ import java.nio.file.{Files, Path}
 class PackTest extends AnyWordSpec with Matchers with Log {
   private val dir = Path.of("..").toAbsolutePath //TODO fix
 
-  "can read pack index" in {
+  "can read pack index" ignore { //TODO use actual pack file, otherwise it checked while reading repository
     val hash = "8cc0a2aa174783656e7d32edb2993b578c957c2d"
     val readen = Pack.readPack(dir, hash)
     readen.objects.size should be (367)
