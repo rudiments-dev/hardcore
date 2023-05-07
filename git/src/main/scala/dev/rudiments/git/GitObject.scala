@@ -56,7 +56,7 @@ object Tree {
       val div: Int = data.indexOf(0.toByte, start)
       val asString = new String(data.slice(start, div), UTF_8)
       asString.split(" ").toList match {
-        case mode :: name => items.addOne(Item(Mode(mode), name.mkString(" "), new SHA1(data.slice(div + 1, div + 21))))
+        case mode :: name => items.addOne(Item(Mode(mode), name.mkString(" "), new SHA1(data.slice(div + 1, div + 21).toSeq)))
         case other => throw new IllegalArgumentException(s"Doesn't look like a tree item: `${other.mkString(";")}`")
       }
       start = div + 21
@@ -237,7 +237,7 @@ object RefDelta {
     val slice = data.slice(20, data.length)
     val unpacked = if(isDeflated) ZLib.unpack(slice) else slice
     new RefDelta(
-      new SHA1(data.take(20)),
+      new SHA1(data.take(20).toSeq),
       Seq.empty,//Deltified.fromBytes(unpacked),
       isDeflated,
       unpacked.toSeq

@@ -1,5 +1,6 @@
 rootProject.name = 'hardcore'
 include 'core'
+include 'codecs'
 include 'file'
 include 'git'
 include 'example'

@@ -1,6 +1,6 @@
 package dev.rudiments.file
 
-import dev.rudiments.utils.BytesCodec
+import dev.rudiments.codecs.BytesCodec
 import dev.rudiments.utils.SHA3
 
 import java.io.File
