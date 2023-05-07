@@ -1,3 +1,6 @@
 dependencies {
     implementation project(':core')
+
+    implementation 'io.circe:circe-core_3:0.15.0-M1'
+    implementation 'io.circe:circe-generic_3:0.15.0-M1'
 }
