@@ -6,22 +6,22 @@ import dev.rudiments.utils.SHA3
 import java.io.File
 import java.lang
 import java.nio.ByteBuffer
-import java.nio.file.Path
+import java.nio.file.{Path => FilePath}
 import scala.collection.immutable.ArraySeq
 import scala.collection.mutable
 
-class Repository(path: Path) {
+class Repository(path: FilePath) {
   private val dir = path.toAbsolutePath
 
-  val state: mutable.Map[Rel, FileData] = mutable.Map.empty
+  val state: mutable.Map[Path, FS] = mutable.Map.empty
   val log: mutable.Buffer[Commit] = mutable.Buffer.empty
   
-  val ignored: Set[Rel] = Set(Seq(".git"), Seq(".gradle"), Seq(".idea"))
+  val ignored: Set[Path] = Set(Seq(".git"), Seq(".gradle"), Seq(".idea"))
 
   def read(): Unit = {
     given tx: Tx = new Tx(state.toMap)
     val file = dir.toFile
-    val readen: FileData = if(file.isFile) {
+    val readen: FS = if(file.isFile) {
       readFileUnsafe(file)
     } else if(file.isDirectory) {
       readDirUnsafe(file, Seq.empty)
@@ -37,7 +37,7 @@ class Repository(path: Path) {
     }
   }
 
-  private def readDirUnsafe(file: File, prefix: Rel)(using tx: Tx): Dir = {
+  private def readDirUnsafe(file: File, prefix: Path)(using tx: Tx): Dir = {
     val content = file.listFiles().toList.sortBy(_.getName)
       .filterNot(f => ignored.contains(prefix :+ f.getName))
       .map {
@@ -49,35 +49,35 @@ class Repository(path: Path) {
 
     val (dirs, blobs) = content.partitionMap {
       case (s, _: Dir) => Left(s)
-      case (s, _: Blob) => Right(s)
+      case (s, _: Binary) => Right(s)
     }
     Dir(dirs, blobs)
   }
 
-  private def readFileUnsafe(file: File): Blob = {
-    Blob(java.nio.file.Files.readAllBytes(file.toPath))
+  private def readFileUnsafe(file: File): Binary = {
+    Binary(java.nio.file.Files.readAllBytes(file.toPath))
   }
 }
 
-type Rel = Seq[String]
+type Path = Seq[String]
 
-sealed trait FileData {
+sealed trait FS {
   def about: About
 }
 
 import dev.rudiments.file.About.Type
-case class Dir(directions: Rel, files: Rel) extends FileData {
+case class Dir(directions: Path, files: Path) extends FS {
   lazy val data: Array[Byte] = BytesCodec.encodeStrings(directions) ++ BytesCodec.encodeStrings(files)
 
   override def about: About = About(Type.Dir, data.length, SHA3(data))
 }
-case class Blob(data: Seq[Byte]) extends FileData {
+case class Binary(data: Seq[Byte]) extends FS {
   override def about: About = About(Type.File, data.size, SHA3(data.toArray[Byte]))
 }
-object Blob {
-  def apply(data: Array[Byte]): Blob = new Blob(ArraySeq.unsafeWrapArray(data))
+object Binary {
+  def apply(data: Array[Byte]): Binary = new Binary(ArraySeq.unsafeWrapArray(data))
 }
 
-case object NotExist extends FileData {
+case object NotExist extends FS {
   override def about: About = About(Type.File, 0, SHA3.empty)
 }
