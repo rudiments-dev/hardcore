@@ -238,7 +238,7 @@ object RefDelta {
     val unpacked = if(isDeflated) ZLib.unpack(slice) else slice
     new RefDelta(
       new SHA1(data.take(20).toSeq),
-      Seq.empty,//Deltified.fromBytes(unpacked),
+      Deltified.fromBytes(unpacked),
       isDeflated,
       unpacked.toSeq
     )
@@ -255,37 +255,8 @@ object Deltified {
     val buff = ByteBuffer.wrap(data)
     val deltas = mutable.Buffer.empty[Deltified]
     while (buff.hasRemaining) {
-      val t = buff.get()
-      if (t == 0x80.toByte) {
-        deltas += Deltified.Copy(
-          variableSize(buff),
-          variableSize(buff)
-        )
-      } else if (t == 0x01.toByte) {
-        deltas += Deltified.Add(0, Seq.empty)
-      } else if (t == 0x60.toByte) {
-        assume(!buff.hasRemaining, "Met 0x60, expecting it is the end of the Delta")
-      } else {
-        throw new IllegalArgumentException("Doesn't look like deltified instruction")
-      }
+      deltas += ByteUtils.delta(buff)
     }
     deltas.toSeq
   }
-
-  def variableSize(buff: ByteBuffer): Int = {
-    var cursor = 0
-    var size: Int = 0
-
-    while {
-      val b = buff.get()
-      size = size | ((b & 0x7F) << cursor)
-      cursor += 7
-
-      nextIsSize(b) && cursor <= 32
-    } do ()
-
-    size
-  }
-
-  private def nextIsSize(b: Byte): Boolean = (b & 0x80).toByte == -128.toByte
 }

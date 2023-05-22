@@ -85,7 +85,7 @@ object Pack {
     buf.put(0, bytes.slice(8, 12)).getInt
   }
 
-  private def readEntry(bytes: Array[Byte], from: Int, until: Int): Entry = {
+  private def readEntry(bytes: Array[Byte], from: Int, until: Int): Entry = { //TODO move to ByteUtils & rewrite with ByteBuffer
     var address = from
     var b = bytes(address)
     val objType = PackObj(b)

@@ -1,5 +1,8 @@
 dependencies {
     implementation project(':core')
+    implementation project(':codecs')
+    implementation project(':file')
+    implementation project(':git')
 
     implementation 'ch.qos.logback:logback-classic:1.4.5'
 }
