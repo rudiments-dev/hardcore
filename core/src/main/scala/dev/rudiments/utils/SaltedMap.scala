@@ -1,7 +1,5 @@
 package dev.rudiments.utils
 
-import dev.rudiments.hardcore.Location
-
 class SaltedMap[K, +V](values: Array[(K, V)]) extends Map[K, V]{
   val salt: Int = 0;//TODO
 

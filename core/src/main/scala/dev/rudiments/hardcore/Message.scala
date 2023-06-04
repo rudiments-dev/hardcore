@@ -8,4 +8,4 @@ trait Command extends In
 trait Query extends In
 trait Event extends Out
 trait Report extends Out
-trait Error extends Out
+trait Error extends Report
