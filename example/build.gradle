@@ -1,6 +1,5 @@
 dependencies {
     implementation project(':core')
-    implementation project(':codecs')
     implementation project(':file')
     implementation project(':git')
 
