@@ -2,28 +2,45 @@ package dev.rudiments.hardcore
 
 import scala.collection.immutable.ListMap
 
-sealed trait CRUD {}
-object CRUD {}
+trait CRUD[K, V] {
+  type Evt = CUD[K, V]
+  type Rep = CUDR[K, V]
 
-case class Create(value: Product) extends Command with CRUD
-case class Read[K](where: K) extends Query with CRUD
-case class Update(old: Product, value: Product) extends Command with CRUD
-case class Delete(old: Product) extends Command with CRUD
-case class Move[K](from: K, to: K) extends Command with CRUD
+  def read(where: K): Readen[V] | NotFound[K]
+  def apply(where: K, what: Evt): Rep
+  def apply(tx: Tx[K, V]): TxReport[K, V]
+  def size: Int
 
-case class Created[V](value: V) extends Event with CRUD
-case class Readen[V](value: V) extends Report with CRUD
-case class Updated[V](old: V, value: V) extends Event with CRUD
-case class Deleted[V](old: V) extends Event with CRUD
-case class Moved[K, V](value: V, to: K) extends Event with CRUD
-case class Tx[K, V](events: (K, CUD[K, V])*) extends Event with CRUD
+  def whatIf(where: K, evt: Evt): Rep = (read(where), evt) match {
+    case (Readen(old), u@Updated(v1, v2)) if v1 == old => u
+    case (Readen(old), d@Deleted(v)) if v == old => d
+    case (Readen(old), m@Moved(v, to: K)) if v == old => read(to) match {
+      case _: NotFound[K] => m
+      case r: Readen[V] => Conflict(m, r)
+    }
+    case (_: NotFound[K], c: Created[V]) => c
+    case (readen, err) => Conflict(err, readen)
+  }
 
-case class NotFound[K](where: K) extends Report with CRUD
-case object Identical extends Report with CRUD
-case class TxReport[K, V](ok: Seq[(K, CUD[K, V])], errors: Seq[(K, Report)]) extends Report with CRUD
-case class Conflict(in: Event, actual: Out) extends Error with CRUD
-case class NotSupported(m: Message) extends Error with CRUD
-case class InternalError(t: Throwable) extends Error with CRUD
+  def create(where: K, what: V): Rep = this.apply(where, Created(what))
+  def +(w: (K, V)): Rep = this.create(w._1, w._2)
 
-type CUD[K, V] = Created[V] | Updated[V] | Deleted[V] | Moved[K, V]
-type CUDR[K, V] = CUD[K, V] | Report
+  def update(where: K, to: V): Rep = read(where) match {
+    case Readen(old) => this.apply(where, Updated(old, to))
+    case nf: NotFound[K] => nf
+  }
+  def *(w: (K, V)): Rep = this.update(w._1, w._2)
+
+  def delete(where: K): Rep = read(where) match {
+    case Readen(old) => this.apply(where, Deleted(old))
+    case nf: NotFound[K] => nf
+  }
+  def -(where: K): Rep = this.delete(where)
+
+  def move(from: K, to: K): Rep = (read(from), read(to)) match {
+    case (Readen(old), nf: NotFound[K]) => this.apply(from, Moved(old, to))
+    case (Readen(old), r@Readen(err)) => Conflict(Moved(old, to), r)
+    case (nf: NotFound[K], _) => nf
+  }
+  def >>(w: (K, K)): Rep = this.move(w._1, w._2)
+}
