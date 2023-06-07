@@ -6,7 +6,7 @@ buildscript {
     }
 }
 
-def base_version = '0.4-SNAPSHOT'
+def base_version = '0.5-SNAPSHOT'
 
 allprojects {
     group 'dev.rudiments'
@@ -42,20 +42,14 @@ configure(scalaModules()) {
     }
 
     dependencies {
-        implementation 'org.scala-lang:scala-library:2.13.7'
-        implementation 'com.typesafe.akka:akka-actor_2.13:2.6.17'
-        implementation 'com.typesafe.akka:akka-slf4j_2.13:2.6.17'
-        implementation 'com.typesafe.akka:akka-stream_2.13:2.6.17'
+        implementation 'org.scala-lang:scala3-library_3:3.1.3'
 
-        implementation 'com.beachape:enumeratum_2.13:1.7.0'
+        implementation 'org.slf4j:slf4j-api:2.0.6'
 
-        implementation 'com.typesafe.scala-logging:scala-logging_2.13:3.9.4'
-        implementation 'org.slf4j:slf4j-api:1.7.32'
-
-        testImplementation 'org.scalatest:scalatest_2.13:3.2.10'
-        testImplementation 'org.scalatestplus:junit-4-13_2.13:3.2.10.0'
+        testImplementation 'org.scalatest:scalatest_3:3.2.15'
+        testImplementation 'org.scalatestplus:junit-4-13_3:3.2.15.0'
 
         testImplementation 'junit:junit:4.13.2'
-        testImplementation 'ch.qos.logback:logback-classic:1.2.7'
+        testImplementation 'ch.qos.logback:logback-classic:1.4.5'
     }
 }

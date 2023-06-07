@@ -1,57 +1,46 @@
 package dev.rudiments.hardcore
 
+import scala.collection.immutable.ListMap
 
-sealed trait CRUD {}
-object CRUD {
-  type Evt = Event with CRUD
-  type Cmd = Command with CRUD
-  type O = Out with CRUD
-  type I = In with CRUD
+trait CRUD[K, V] {
+  type Evt = CUD[K, V]
+  type Rep = CUDR[K, V]
+
+  def read(where: K): Readen[V] | NotFound[K]
+  def apply(where: K, what: Evt): Rep
+  def apply(tx: Tx[K, V]): TxReport[K, V]
+  def size: Int
+
+  def whatIf(where: K, evt: Evt): Rep = (read(where), evt) match {
+    case (Readen(old), u@Updated(v1, v2)) if v1 == old => u
+    case (Readen(old), d@Deleted(v)) if v == old => d
+    case (Readen(old), m@Moved(v, to: K)) if v == old => read(to) match {
+      case _: NotFound[K] => m
+      case r: Readen[V] => Conflict(m, r)
+    }
+    case (_: NotFound[K], c: Created[V]) => c
+    case (readen, err) => Conflict(err, readen)
+  }
+
+  def create(where: K, what: V): Rep = this.apply(where, Created(what))
+  def +(w: (K, V)): Rep = this.create(w._1, w._2)
+
+  def update(where: K, to: V): Rep = read(where) match {
+    case Readen(old) => this.apply(where, Updated(old, to))
+    case nf: NotFound[K] => nf
+  }
+  def *(w: (K, V)): Rep = this.update(w._1, w._2)
+
+  def delete(where: K): Rep = read(where) match {
+    case Readen(old) => this.apply(where, Deleted(old))
+    case nf: NotFound[K] => nf
+  }
+  def -(where: K): Rep = this.delete(where)
+
+  def move(from: K, to: K): Rep = (read(from), read(to)) match {
+    case (Readen(old), nf: NotFound[K]) => this.apply(from, Moved(old, to))
+    case (Readen(old), r@Readen(err)) => Conflict(Moved(old, to), r)
+    case (nf: NotFound[K], _) => nf
+  }
+  def >>(w: (K, K)): Rep = this.move(w._1, w._2)
 }
-
-final case class  Create(what: Thing) extends Command with CRUD
-case object       Read extends Query with CRUD
-final case class  Update(what: Thing) extends Command with CRUD
-case object       Delete extends Command with CRUD
-
-final case class  Find(p: Predicate) extends Query with CRUD
-final case class  LookFor(p: Predicate) extends Query with CRUD
-final case class  Dump(p: Predicate) extends Query with CRUD
-
-case object Prepare extends Query with CRUD
-case object Verify extends Query with CRUD
-final case class Commit(
-  crud: Map[Location, CRUD.Evt],
-  extra: Seq[(Command, Event)] = Seq.empty // for future use
-) extends Command with CRUD {
-  def crudNode(): Node = Node.fromMap(crud)
-  def stateNode(): Node = Node.fromEventMap(crud)
-}
-
-final case class Partner(of: Location) extends Command with CRUD
-final case class Quit(from: Location) extends Command with CRUD
-
-
-final case class Created(data: Thing) extends Event with CRUD
-final case class Readen(data: Thing) extends Report with CRUD
-final case class Updated(old: Thing, data: Thing) extends Event with CRUD
-final case class Deleted(old: Thing) extends Event with CRUD
-
-final case class Found(query: Query, values: Map[Location, Thing]) extends Report with CRUD
-case object NotExist extends Report with CRUD
-case class NotFound(missing: Location) extends Report with CRUD
-
-final case class Prepared(commit: Commit) extends Report with CRUD
-case object Identical extends Report with CRUD
-case object Valid extends Report with CRUD
-final case class Committed(commit: Commit) extends Event with CRUD
-
-final case class Partners(w: Location) extends Event with CRUD
-final case class Quited(from: Location) extends Event with CRUD
-
-
-final case class AlreadyExist(data: Thing) extends Error with CRUD
-final case class Conflict(that: Message, other: Message) extends Error with CRUD
-final case class MultiError(errors: Map[Location, Out]) extends Error with CRUD
-case object NotImplemented extends Error with CRUD
-case object NotSupported extends Error with CRUD
