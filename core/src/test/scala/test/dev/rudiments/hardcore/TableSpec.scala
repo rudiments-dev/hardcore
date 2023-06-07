@@ -12,7 +12,7 @@ class TableSpec extends AnyWordSpec with Matchers {
   private val s1 = Something("abc", 42)
   private val s2 = Something("cde", 24)
 
-  private val t = Table.empty[Something, String]
+  private val t = Table.empty[String, Something]
 
   "Node" should {
     "created empty" in {
