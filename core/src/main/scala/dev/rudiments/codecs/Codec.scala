@@ -1,21 +1,20 @@
 package dev.rudiments.codecs
 
-import Coded.{Error, Ok}
-
 import scala.reflect.ClassTag
 
-class Encoder[A, B](en: A => Coded[B]) {
-  def map[C](f: B => C): Encoder[A, C] = Encoder(en.andThen(_.map(f)))
+class Encoder[A, B](en: A => Result[B]) extends OneWay(en) {
+  def toCodec(de: B => Result[A]): Codec[A, B] = Codec(en, de)
 }
 object Encoder {
-  def pure[A, B](f: A => B): Encoder[A, B] = Encoder(f.andThen(r => Ok(r)))
+  def pure[A, B](f: A => B): Encoder[A, B] = Encoder(f.andThen(r => Result.Ok(r)))
+  //TODO if error in B
 }
 
-class Decoder[A, B](de: A => Decoded[B]) {
-  def map[C](f: B => C): Decoder[A, C] = Decoder(de.andThen(_.map(f)))
+class Decoder[A, B](de: A => Result[B]) extends OneWay(de){
+  def toCodec(en: B => Result[A]): Codec[B, A] = Codec(en, de)
 }
 
-class Codec[A, B](en: A => Coded[B], de: B => Decoded[A]) {
+class Codec[A, B](en: A => Result[B], de: B => Result[A]) {
   def bimap[C](
     f: B => C, g: C => B
   ): Codec[A, C] = Codec(
@@ -23,19 +22,16 @@ class Codec[A, B](en: A => Coded[B], de: B => Decoded[A]) {
   )
 }
 
-enum Coded[A] {
+enum Result[A] {
   case Error(e: Exception)
   case Ok(value: A)
 
-  def map[B](f: A => B): Coded[B] = this match {
-    case Coded.Error(e) => Coded.Error(e)
-    case Coded.Ok(v) => Coded.Ok(f(v))
+  def map[B](f: A => B): Result[B] = this match {
+    case Result.Error(e) => Result.Error(e)
+    case Result.Ok(v) => Result.Ok(f(v))
   }
 }
 
-case class Encoded[A](value: Either[Exception, A]) {
-  def map[B](f: A => B): Encoded[B] = Encoded(value.map(f))
-}
-case class Decoded[A](value: Either[Exception, A]) {
-  def map[B](f: A => B): Decoded[B] = Decoded(value.map(f))
+class OneWay[A, B](t: A => Result[B]) {
+  def map[C](f: B => C): OneWay[A, C] = OneWay(t.andThen(_.map(f)))
 }
