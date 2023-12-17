@@ -39,6 +39,6 @@ enum Result[A] {
   }
 }
 
-class OneWay[A, B](t: A => Result[B]) {
+class OneWay[A, B](val t: A => Result[B]) {
   def map[C](f: B => C): OneWay[A, C] = OneWay(t.andThen(_.map(f)))
 }
