@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.codecs.{Codec, Decoder, Encoder, Result}
-import dev.rudiments.hardcore.Graph.{AroundNode, Edge, Edges, Item, SeqGraph}
+import dev.rudiments.codecs.{Encoder, Result}
+import dev.rudiments.hardcore.Graph.{AroundNode, Edge, Edges, Item, JointGraph, SeqGraph}
 
 case class Graph[K, +N, +E](
   nodes: Map[K, N],
@@ -55,16 +55,20 @@ case class Graph[K, +N, +E](
     edges.filterNot(e => fromKeys.contains(e.from)) ++ edges.filterNot(e => toKeys.contains(e.to))
   }
 
-  def join[N1 >: N, E1 >: E](that: Graph[K, N1, E1], joints: Edges[K, E1] = Seq.empty): Graph[K, N1, E1] = Graph(
+  def join[N1 >: N, E1 >: E](that: Graph[K, N1, E1], joints: Edges[K, E1]): Graph[K, N1, E1] = Graph(
     nodes = this.nodes ++ that.nodes,
     edges = this.edges ++ that.edges ++ joints
   )
-  def split(keys: Set[K]): (Graph[K, N, E], Edges[K, E], Graph[K, N, E]) = {
+  def split(keys: Set[K]): JointGraph[K, N, E] = {
     val cutNodeKeys = this.nodes.keySet -- keys
     val joints = this.edges.filter { case Edge(from, to, _) =>
       cutNodeKeys.contains(from) && keys.contains(to) || keys.contains(from) && cutNodeKeys.contains(to)
     }
-    (this.filter { (k, _) => keys.contains(k) }, joints, this.filter { (k, _) => cutNodeKeys.contains(k) })
+    JointGraph(
+      this.filter { (k, _) => keys.contains(k) },
+      joints,
+      this.filter { (k, _) => cutNodeKeys.contains(k) }
+    )
   }
 
   def to[A, N1 >: N, E1 >: E](using en: Encoder[Graph[K, N1, E1], A]): Result[A] = en.en(this)
@@ -94,5 +98,9 @@ object Graph {
         Item[K, N, E](k, n, g.edgesFrom.getOrElse(k, Seq.empty).map(e => keys(e.to) -> e.value))
       }, keys
     )
+  }
+
+  case class JointGraph[K, +N, +E](g: Graph[K, N, E], joints: Edges[K, E], h: Graph[K, N, E]) {
+    //def to[A](using en: Encoder[JointGraph[K, N, E], A]): Result[A] = en.en(this)
   }
 }
