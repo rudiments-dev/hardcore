@@ -1,14 +1,15 @@
 package test.dev.rudiments.codecs
 
-import dev.rudiments.codecs.TS
-import dev.rudiments.codecs.MJ
-import dev.rudiments.codecs.OneWay
+import dev.rudiments.codecs.{MJ, MirrorInfo, OneWay, TS}
 import dev.rudiments.codecs.Result.*
 import dev.rudiments.hardcore.{EdgeTree, Graph, Many}
 import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.junit.JUnitRunner
+
+import scala.compiletime.{constValue, erasedValue, error, summonFrom}
+import scala.deriving.Mirror
 
 @RunWith(classOf[JUnitRunner])
 class CodecTest extends AnyWordSpec with Matchers {
@@ -44,5 +45,18 @@ class CodecTest extends AnyWordSpec with Matchers {
       TS.Text("42") -> TS.Number(42),
       TS.Text("24") -> TS.Number(24),
     ))))
+  }
+
+  "can derive int and string fields of a case class and recursively" in {
+    MirrorInfo[Sample] should be (
+      MirrorInfo[Sample]("Sample", Seq("i" -> MirrorInfo.intInfo, "s" -> MirrorInfo.strInfo))
+    )
+
+    MirrorInfo[Example] should be(
+      MirrorInfo[Example]("Example", Seq(
+        "i" -> MirrorInfo.intInfo,
+        "s" -> MirrorInfo[Sample]("Sample", Seq("i" -> MirrorInfo.intInfo, "s" -> MirrorInfo.strInfo))
+      ))
+    )
   }
 }
