@@ -27,7 +27,7 @@ object MirrorInfo {
     case _: (t *: ts) => constValue[t].asInstanceOf[String] :: summonLabelsRec[ts]
   }
 
-  inline final def apply[A](using inline A: Mirror.Of[A]): MirrorInfo[A] = {
+  inline final def apply[A](using A: Mirror.Of[A]): MirrorInfo[A] = {
     val name = constValue[A.MirroredLabel].asInstanceOf[String]
     val labels = summonLabelsRec[A.MirroredElemLabels]
     val fields = fieldsInfo[A.MirroredElemTypes]

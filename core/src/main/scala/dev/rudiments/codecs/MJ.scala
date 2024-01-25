@@ -44,7 +44,7 @@ object MJ extends Log {
       case _: (t *: ts) => summonEncoder[t] :: summonEncodersRec[ts]
     }
 
-  inline final def derived[A](using inline A: Mirror.Of[A]): En[A] = {
+  inline final def derived[A](using A: Mirror.Of[A]): En[A] = {
     val name = constValue[A.MirroredLabel].asInstanceOf[String]
     val labels = summonLabelsRec[A.MirroredElemLabels].toArray
     val encoders = summonEncodersRec[A.MirroredElemTypes].toArray
