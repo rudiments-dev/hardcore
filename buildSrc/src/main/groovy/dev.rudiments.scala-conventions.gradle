@@ -1,5 +1,7 @@
 plugins {
+    id 'java'
     id 'scala'
+    id 'jacoco'
 }
 
 def baseVersion = '0.6-SNAPSHOT'
@@ -41,3 +43,12 @@ test {
         }
     }
 }
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = false
+    }
+}
+
+check.dependsOn jacocoTestReport
