@@ -3,15 +3,12 @@ package test.dev.rudiments.codecs
 import dev.rudiments.codecs.{MJ, MirrorInfo, OneWay, TS}
 import dev.rudiments.codecs.Result.*
 import dev.rudiments.hardcore.{EdgeTree, Graph, Many}
-import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.junit.JUnitRunner
 
 import scala.compiletime.{constValue, erasedValue, error, summonFrom}
 import scala.deriving.Mirror
 
-@RunWith(classOf[JUnitRunner])
 class CodecTest extends AnyWordSpec with Matchers {
 
   "can generate Codecs graph from the Type graph" in {

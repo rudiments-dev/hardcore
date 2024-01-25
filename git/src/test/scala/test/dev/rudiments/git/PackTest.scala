@@ -3,15 +3,12 @@ package test.dev.rudiments.git
 import dev.rudiments.git.{ByteUtils, Deltified, Pack, RefDelta}
 import dev.rudiments.git.Pack.PackObj
 import dev.rudiments.utils.{Hashed, Log}
-import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.junit.JUnitRunner
 
 import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}
 
-@RunWith(classOf[JUnitRunner])
 class PackTest extends AnyWordSpec with Matchers with Log {
   private val dir = Path.of("..").toAbsolutePath //TODO fix
 

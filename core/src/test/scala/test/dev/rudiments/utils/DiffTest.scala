@@ -2,14 +2,11 @@ package test.dev.rudiments.utils
 
 import com.github.difflib.DiffUtils
 import dev.rudiments.utils.{Chunk, Delta, Diff, Unified}
-import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.junit.JUnitRunner
 
 import scala.jdk.CollectionConverters.*
 
-@RunWith(classOf[JUnitRunner])
 class DiffTest extends AnyWordSpec with Matchers {
   private val text1 = Seq("This is a test senctence.", "This is the second line.", "And here is the finish.")
   private val text2 = Seq("This is a test for diffutils.", "This is the second line.")

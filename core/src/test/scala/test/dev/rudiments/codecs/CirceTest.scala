@@ -1,14 +1,11 @@
 package test.dev.rudiments.codecs
 
-import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.junit.JUnitRunner
 
 import io.circe.generic.semiauto.*
 import io.circe.{Codec, Json}
 
-@RunWith(classOf[JUnitRunner])
 class CirceTest extends AnyWordSpec with Matchers {
   case class Sample(
     a: Int,

@@ -1,12 +1,9 @@
 package test.dev.rudiments.utils
 
 import dev.rudiments.utils.{SHA256, SHA3, SHA1}
-import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.junit.JUnitRunner
 
-@RunWith(classOf[JUnitRunner])
 class HashedTest extends AnyWordSpec with Matchers {
   "SHA-1 hash" should {
     "fit with known hashes" in {

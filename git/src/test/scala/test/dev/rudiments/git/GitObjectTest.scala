@@ -2,14 +2,11 @@ package test.dev.rudiments.git
 
 import dev.rudiments.git.{Blob, Commit, Reader, Tree, Writer}
 import dev.rudiments.utils.Log
-import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.junit.JUnitRunner
 
 import java.nio.file.{Files, Path}
 
-@RunWith(classOf[JUnitRunner])
 class GitObjectTest extends AnyWordSpec with Matchers with Log {
   private val dir = Path.of("..").toAbsolutePath //TODO fix
 

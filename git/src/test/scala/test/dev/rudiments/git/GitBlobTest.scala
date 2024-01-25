@@ -2,12 +2,9 @@ package test.dev.rudiments.git
 
 import dev.rudiments.git.Blob
 import dev.rudiments.utils.SHA1
-import org.junit.runner.RunWith
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.junit.JUnitRunner
 
-@RunWith(classOf[JUnitRunner])
 class GitBlobTest extends AnyWordSpec with Matchers {
   "Git BLOB" should {
     "fit header with example" in {

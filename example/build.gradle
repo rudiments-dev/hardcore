@@ -7,7 +7,7 @@ dependencies {
     implementation project(':file')
     implementation project(':git')
 
-    implementation 'ch.qos.logback:logback-classic'
+    implementation 'ch.qos.logback:logback-classic:1.4.14'
 }
 
 application {
