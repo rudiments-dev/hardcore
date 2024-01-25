@@ -1,13 +1,15 @@
+plugins {
+    id 'dev.rudiments.scala-app-conventions'
+}
+
 dependencies {
     implementation project(':core')
     implementation project(':file')
     implementation project(':git')
 
-    implementation 'ch.qos.logback:logback-classic:1.4.5'
+    implementation 'ch.qos.logback:logback-classic'
 }
 
-task example(type: JavaExec, dependsOn: classes) {
-    classpath sourceSets.main.runtimeClasspath
+application {
     mainClass = 'dev.rudiments.app.Main'
-    standardInput = System.in
 }

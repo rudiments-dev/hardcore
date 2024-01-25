@@ -1,3 +1,7 @@
+plugins {
+    id 'dev.rudiments.scala-lib-conventions'
+}
+
 dependencies {
     implementation 'io.github.java-diff-utils:java-diff-utils:4.12'
 

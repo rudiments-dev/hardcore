@@ -1,0 +1,4 @@
+plugins {
+    id 'dev.rudiments.scala-conventions'
+    id 'application'
+}
