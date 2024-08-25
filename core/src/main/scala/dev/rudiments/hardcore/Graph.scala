@@ -1,7 +1,7 @@
 package dev.rudiments.hardcore
 
-import dev.rudiments.codecs.{Encoder, Result}
-import dev.rudiments.hardcore.Graph.{AroundNode, Edge, Edges, Item, JointGraph, SeqGraph}
+import dev.rudiments.codecs.{ Encoder, Result }
+import dev.rudiments.hardcore.Graph.{ AroundNode, Edge, Edges, JointGraph }
 
 case class Graph[K, +N, +E](
   nodes: Map[K, N],

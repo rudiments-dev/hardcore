@@ -3,7 +3,7 @@ package dev.rudiments.utils
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets.UTF_8
 import java.security.MessageDigest
-import java.util.{Base64, HexFormat}
+import java.util.HexFormat
 import scala.collection.immutable.ArraySeq
 
 sealed trait Hashed(hash: Seq[Byte]) {

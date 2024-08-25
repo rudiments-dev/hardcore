@@ -1,7 +1,5 @@
 package dev.rudiments.codecs
 
-import scala.reflect.ClassTag
-
 class Encoder[A, B](val en: A => Result[B]) extends OneWay(en) {
   def apply(a: A): Result[B] = this.en(a)
   def toCodec(de: B => Result[A]): Codec[A, B] = Codec(en, de)
