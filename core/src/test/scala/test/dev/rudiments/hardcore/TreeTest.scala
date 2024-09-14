@@ -1,6 +1,6 @@
 package test.dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.{ Tree, TreeError }
+import dev.rudiments.hardcore.{ LeafOnTheWay, NotFound, Tree }
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -8,7 +8,7 @@ class TreeTest extends AnyWordSpec with Matchers {
   "can make empty tree" in {
     val t = Tree.empty[Int, Int]
     t.self should be (())
-    t.items shouldBe(empty)
+    t.items shouldBe empty
   }
 
   var t: Tree[Int, Unit, String] = _
@@ -38,8 +38,8 @@ class TreeTest extends AnyWordSpec with Matchers {
     t.read(3 :: 4 :: Nil) should be (Right("c"))
     t.read(3 :: 8 :: 9 :: Nil) should be (Right("f"))
 
-    t.read(3 :: 4 :: 5 :: Nil) should be (Left(TreeError.LeafOnTheWay(4, 5 :: Nil)))
-    t.read(42 :: Nil) should be (Left(TreeError.NotFound(42 :: Nil)))
+    t.read(3 :: 4 :: 5 :: Nil) should be (Left(LeafOnTheWay(4, 5 :: Nil)))
+    t.read(42 :: Nil) should be (Left(NotFound(42 :: Nil)))
 
     t.read(3 :: 8 :: Nil) should be (Right(Tree(
       9 -> "f"
