@@ -44,14 +44,17 @@ class CodecTest extends AnyWordSpec with Matchers {
   }
 
   "can derive int and string fields of a case class and recursively" in {
-    MirrorInfo[Sample] should be (
-      MirrorInfo[Sample]("Sample", Seq("i" -> MirrorInfo.intInfo, "s" -> MirrorInfo.strInfo))
-    )
+    val sampleShouldBe = MirrorInfo[Sample]("Sample", Seq(
+      "a" -> MirrorInfo.intInfo,
+      "b" -> MirrorInfo.strInfo,
+      "c" -> MirrorInfo.seqInfo[String]
+    ))
+    MirrorInfo[Sample] should be (sampleShouldBe)
 
     MirrorInfo[Example] should be(
       MirrorInfo[Example]("Example", Seq(
         "i" -> MirrorInfo.intInfo,
-        "s" -> MirrorInfo[Sample]("Sample", Seq("i" -> MirrorInfo.intInfo, "s" -> MirrorInfo.strInfo))
+        "s" -> sampleShouldBe
       ))
     )
   }
