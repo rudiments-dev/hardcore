@@ -2,8 +2,6 @@ package dev.rudiments.hardcore
 
 import dev.rudiments.hardcore.TreeError.LeafOnTheWay
 
-import scala.reflect.ClassTag
-
 
 case class Tree[K, B, L](
   self: B,
@@ -48,32 +46,32 @@ case class Tree[K, B, L](
 
   // Search
 
-  def deep(implicit  tK: ClassTag[K], tB: ClassTag[B], tL: ClassTag[L], tC: ClassTag[T]): Seq[Item] = {
+  def deep: Seq[Item] = {
     val rootK = List.empty[K]
     Seq(rootK -> self) ++ this.deep(rootK)
   }
 
-  def deep(path: List[K])(implicit  tK: ClassTag[K], tB: ClassTag[B], tL: ClassTag[L], tC: ClassTag[T]): Seq[Item]  = {
+  def deep(path: List[K]): Seq[Item]  = {
     items.flatMap {
-      case (k: K, t: T) => Seq((path :+ k) -> t.self) ++ t.deep(path :+ k)
+      case (k: K, t@Tree(_, _)) => Seq((path :+ k) -> t.asInstanceOf[T].self) ++ t.asInstanceOf[T].deep(path :+ k)
       case (k: K, l: L) => Seq((path :+ k) -> l)
       case _ => throw new IllegalStateException(s"Should never happen in deep search")
     }
   }
 
 
-  def wide(implicit  tK: ClassTag[K], tB: ClassTag[B], tL: ClassTag[L], tC: ClassTag[T]): Seq[Item] = {
+  def wide: Seq[Item] = {
     val rootK = List.empty[K]
     Seq(rootK -> self) ++ this.wide(rootK)
   }
 
-  def wide(path: List[K])(implicit  tK: ClassTag[K], tB: ClassTag[B], tL: ClassTag[L], tC: ClassTag[T]): Seq[Item] = {
+  def wide(path: List[K]): Seq[Item] = {
     items.map {
-      case (k, t: T) => (path :+ k) -> t.self
+      case (k, t@Tree(_, _)) => (path :+ k) -> t.asInstanceOf[T].self
       case (k, l: L) => (path :+ k) -> l
       case _ => throw new IllegalStateException(s"Should never happen in wide search")
     } ++ items.collect {
-      case (k, t: Tree[K, B, L]) => t.wide(path :+ k)
+      case (k, t@Tree(_, _)) => t.asInstanceOf[T].wide(path :+ k)
     }.flatten
   }
 }
