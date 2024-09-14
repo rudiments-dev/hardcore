@@ -1,6 +1,6 @@
 package test.dev.rudiments.hardcore
 
-import dev.rudiments.hardcore.Tree
+import dev.rudiments.hardcore.{ Tree, TreeError }
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -31,6 +31,45 @@ class TreeTest extends AnyWordSpec with Matchers {
 
     t.self should be(())
     t.items.size should be(4)
+  }
+
+  "can read from a nested tree" in {
+    t.read(1 :: Nil) should be (Right("a"))
+    t.read(3 :: 4 :: Nil) should be (Right("c"))
+    t.read(3 :: 8 :: 9 :: Nil) should be (Right("f"))
+
+    t.read(3 :: 4 :: 5 :: Nil) should be (Left(TreeError.LeafOnTheWay(4, 5 :: Nil)))
+    t.read(42 :: Nil) should be (Left(TreeError.NotFound(42 :: Nil)))
+
+    t.read(3 :: 8 :: Nil) should be (Right(Tree(
+      9 -> "f"
+    )))
+    t.read(3 :: Nil) should be(Right(Tree(
+      4 -> "c",
+      5 -> Tree(
+        6 -> "d",
+        7 -> "e"
+      ),
+      8 -> Tree(
+        9 -> "f"
+      ),
+      10 -> "g"
+    )))
+    t.read(Nil) should be (Right(Tree(
+      1 -> "a", 2 -> "b",
+      3 -> Tree(
+        4 -> "c",
+        5 -> Tree(
+          6 -> "d",
+          7 -> "e"
+        ),
+        8 -> Tree(
+          9 -> "f"
+        ),
+        10 -> "g"
+      ),
+      11 -> "h"
+    )))
   }
 
   "can make a deep search in nested tree" in {
