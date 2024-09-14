@@ -4,6 +4,7 @@ import dev.rudiments.codecs.Result.*
 import dev.rudiments.codecs.{ MJ, MirrorInfo, TS }
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import test.dev.rudiments.{ Example, Sample }
 
 import scala.compiletime.{ constValue, erasedValue, error, summonFrom }
 

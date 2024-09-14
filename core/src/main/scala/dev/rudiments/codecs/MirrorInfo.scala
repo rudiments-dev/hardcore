@@ -11,6 +11,7 @@ case class MirrorInfo[A](
 object MirrorInfo {
   given intInfo: MirrorInfo[Int] = MirrorInfo("Int", Seq.empty)
   given strInfo: MirrorInfo[String] = MirrorInfo("String", Seq.empty)
+  given seqInfo[T]: MirrorInfo[Seq[T]] = MirrorInfo("Seq of", Seq.empty)
 
   inline final def summonInfo[A]: MirrorInfo[A] = summonFrom {
     case i: MirrorInfo[A] => i
