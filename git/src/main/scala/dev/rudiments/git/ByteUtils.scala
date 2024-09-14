@@ -1,7 +1,5 @@
 package dev.rudiments.git
 
-import dev.rudiments.git.Pack.PackObj
-
 import java.nio.ByteBuffer
 
 implicit class ByteBufferOps(buff: ByteBuffer) {

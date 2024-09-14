@@ -1,12 +1,9 @@
 package dev.rudiments.git
 
-import java.nio.charset.StandardCharsets.UTF_8
-import dev.rudiments.git.Pack.{Entry, PackObj}
-import dev.rudiments.utils.{Log, SHA1, ZLib}
+import dev.rudiments.git.Pack.{ Entry, PackObj }
+import dev.rudiments.utils.{ Log, SHA1, ZLib }
 
-import java.nio.file.{Files, Path}
-import java.util.stream.Collectors
-import scala.jdk.CollectionConverters._
+import java.nio.file.{ Files, Path }
 import scala.collection.mutable
 
 class Repository(root: Path) extends Log {

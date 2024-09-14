@@ -1,17 +1,16 @@
 package dev.rudiments.git
 
-import dev.rudiments.git.Commit.Field.{Author, Parent}
-import dev.rudiments.utils.{Hashed, SHA1, ZLib}
+import dev.rudiments.git.Commit.Field.{ Author, Parent }
+import dev.rudiments.utils.{ SHA1, ZLib }
 
 import java.lang
-import java.lang.{IllegalStateException, StringBuffer}
+import java.lang.IllegalStateException
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets.UTF_8
-import java.nio.file.{Files, Path}
-import java.time.{Instant, LocalDateTime, ZoneId, ZonedDateTime}
-import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder, SignStyle}
+import java.nio.file.Path
+import java.time.format.{ DateTimeFormatter, DateTimeFormatterBuilder, SignStyle }
 import java.time.temporal.ChronoField
-import scala.collection.immutable.ArraySeq
+import java.time.{ Instant, ZoneId, ZonedDateTime }
 import scala.collection.mutable
 import scala.util.matching.Regex
 

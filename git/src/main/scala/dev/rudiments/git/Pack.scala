@@ -1,14 +1,11 @@
 package dev.rudiments.git
 
-import dev.rudiments.utils.{CRC, SHA1, ZLib}
+import dev.rudiments.utils.{ CRC, SHA1 }
 
-import java.io.{FileInputStream, InputStream}
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets.UTF_8
-import java.nio.file.{Files, Path}
-import java.nio.file.StandardOpenOption.READ
+import java.nio.file.{ Files, Path }
 import scala.collection.immutable.ArraySeq
-import scala.util.{Failure, Success}
 
 case class Pack(objects: List[(SHA1, Pack.Entry)]) {
   lazy val hashIndex: Map[SHA1, Pack.Entry] = objects.toMap
