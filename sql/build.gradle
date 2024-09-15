@@ -1,7 +1,0 @@
-dependencies {
-    implementation 'org.scalikejdbc:scalikejdbc_2.13:4.0.0'
-
-    testImplementation 'com.dimafeng:testcontainers-scala_2.13:0.39.12'
-    testImplementation 'com.dimafeng:testcontainers-scala-postgresql_2.13:0.39.12'
-    testImplementation 'org.postgresql:postgresql:42.3.1'
-}
